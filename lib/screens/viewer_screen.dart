@@ -211,18 +211,21 @@ class _ViewerScreenState extends State<ViewerScreen> {
   /// Called when the PdfViewer finishes loading the document.
   void _onViewerReady(PdfDocument? document, PdfViewerController controller) {
     if (document == null) return;
-    if (mounted) {
-      setState(() {
-        _totalPages = document.pages.length;
-        _currentPage = controller.pageNumber ?? _currentPage;
-      });
-      context.read<SettingsProvider>().setLastReadPage(
-        widget.file.path,
-        _currentPage,
-        totalPages: _totalPages,
-      );
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _totalPages = document.pages.length;
+      _currentPage = controller.pageNumber ?? _currentPage;
+    });
+    context.read<SettingsProvider>().setLastReadPage(
+      widget.file.path,
+      _currentPage,
+      totalPages: _totalPages,
+    );
+
     // Attach the search provider to the viewer controller
+    // IMPORTANT: Must be inside mounted check — calling attach after
+    // dispose() would create a PdfTextSearcher on a disposed ChangeNotifier.
     _searchProvider.attach(controller);
 
     // Pre-cache PDF page texts for highlight rendering
@@ -368,7 +371,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.list_alt_rounded,
+                      Icons.article_outlined,
                       size: 48,
                       color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                     ),
@@ -414,7 +417,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: Row(
                     children: [
-                      Icon(Icons.list_alt_rounded,
+                      Icon(Icons.article_outlined,
                           size: 20, color: cs.primary),
                       const SizedBox(width: 8),
                       Text(
@@ -549,7 +552,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
           if (!_isSvgFile && _totalPages > 0)
             IconButton(
               icon: Icon(
-                Icons.list_alt_rounded,
+                Icons.article_outlined,
                 size: 20,
                 color: _outline != null && _outline!.isNotEmpty
                     ? colorScheme.primary
@@ -562,7 +565,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
           if (!_isSvgFile && _totalPages > 0 && settings.showThumbnails)
             IconButton(
               icon: Icon(
-                Icons.grid_view_rounded,
+                Icons.view_carousel_outlined,
                 size: 20,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
@@ -574,8 +577,8 @@ class _ViewerScreenState extends State<ViewerScreen> {
             IconButton(
               icon: Icon(
                 settings.darkReadingMode
-                    ? Icons.dark_mode_rounded
-                    : Icons.dark_mode_outlined,
+                    ? Icons.nightlight_round
+                    : Icons.nightlight_outlined,
                 size: 20,
                 color: settings.darkReadingMode ? colorScheme.primary : null,
               ),
@@ -608,8 +611,8 @@ class _ViewerScreenState extends State<ViewerScreen> {
             IconButton(
               icon: Icon(
                 context.watch<HighlightProvider>().highlightMode
-                    ? Icons.highlight_rounded
-                    : Icons.highlight_outlined,
+                    ? Icons.brush_rounded
+                    : Icons.brush_outlined,
                 size: 20,
                 color: context.watch<HighlightProvider>().highlightMode
                     ? colorScheme.primary
@@ -628,7 +631,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
           if (!_isSvgFile && _totalPages > 0)
             IconButton(
               icon: Icon(
-                Icons.highlight_alt_rounded,
+                Icons.style_rounded,
                 size: 20,
                 color: context.watch<HighlightProvider>().showPanel
                     ? colorScheme.primary
@@ -674,7 +677,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
             ),
           // FEATURE 1: Save icon is always visible
           IconButton(
-            icon: const Icon(Icons.save_alt_rounded, size: 20),
+            icon: const Icon(Icons.download_rounded, size: 20),
             tooltip: 'Save to folder',
             onPressed: _saveToLocal,
           ),
@@ -698,13 +701,27 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         ? _searchProvider.currentMatchIndex + 1
                         : 0,
                     onSearchChanged: (query) {
-                      _searchProvider.search(query);
+                      try {
+                        _searchProvider.search(query);
+                      } catch (e) {
+                        // If pdfrx's PdfTextSearcher throws internally
+                        // (e.g. document disposed mid-search), silently catch.
+                        debugPrint('SearchProvider.search error: $e');
+                      }
                     },
                     onNextMatch: () {
-                      _searchProvider.nextMatch();
+                      try {
+                        _searchProvider.nextMatch();
+                      } catch (e) {
+                        debugPrint('SearchProvider.nextMatch error: $e');
+                      }
                     },
                     onPreviousMatch: () {
-                      _searchProvider.previousMatch();
+                      try {
+                        _searchProvider.previousMatch();
+                      } catch (e) {
+                        debugPrint('SearchProvider.previousMatch error: $e');
+                      }
                     },
                     onClose: () {
                       _searchProvider.clearSearch();
@@ -1102,7 +1119,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
           children: [
             // FEATURE 5.2 — First Page button
             IconButton(
-              icon: const Icon(Icons.first_page_rounded),
+              icon: const Icon(Icons.skip_previous_rounded),
               onPressed: _currentPage > 1
                   ? () => controller.goToPage(pageNumber: 1)
                   : null,
@@ -1275,7 +1292,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
             const SizedBox(width: 4),
             // FEATURE 5.2 — Last Page button
             IconButton(
-              icon: const Icon(Icons.last_page_rounded),
+              icon: const Icon(Icons.skip_next_rounded),
               onPressed: _currentPage < _totalPages
                   ? () => controller.goToPage(pageNumber: _totalPages)
                   : null,

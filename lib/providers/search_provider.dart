@@ -9,6 +9,7 @@ import 'package:pdfrx/pdfrx.dart';
 class SearchProvider extends ChangeNotifier {
   PdfTextSearcher? _searcher;
   List<PdfPageTextRange> _matches = const [];
+  bool _disposed = false;
 
   /// Whether a search task is currently running.
   bool get isSearching => _searcher?.isSearching ?? false;
@@ -28,8 +29,13 @@ class SearchProvider extends ChangeNotifier {
   /// [PdfViewerParams.onViewerReady]).
   void attach(PdfViewerController controller) {
     detach();
-    _searcher = PdfTextSearcher(controller);
-    _searcher!.addListener(_onSearcherChanged);
+    try {
+      _searcher = PdfTextSearcher(controller);
+      _searcher!.addListener(_onSearcherChanged);
+    } catch (e) {
+      debugPrint('SearchProvider.attach error: $e');
+      _searcher = null;
+    }
   }
 
   /// Detach from the controller and release resources.
@@ -42,6 +48,7 @@ class SearchProvider extends ChangeNotifier {
   }
 
   void _onSearcherChanged() {
+    if (_disposed) return;
     _matches = _searcher?.matches ?? const [];
     notifyListeners();
   }
@@ -50,32 +57,56 @@ class SearchProvider extends ChangeNotifier {
   ///
   /// If [query] is empty, the current search is cleared.
   void search(String query) {
+    if (_disposed) return;
     if (query.isEmpty) {
       _searcher?.resetTextSearch();
       _matches = const [];
       notifyListeners();
       return;
     }
-    _searcher?.startTextSearch(
-      query,
-      goToFirstMatch: true,
-      searchImmediately: true,
-    );
+    try {
+      _searcher?.startTextSearch(
+        query,
+        goToFirstMatch: true,
+        searchImmediately: true,
+      );
+    } catch (e) {
+      // Safeguard against pdfrx PdfTextSearcher internal errors
+      // (e.g. accessing a disposed document).
+      debugPrint('PdfTextSearcher.startTextSearch error: $e');
+      _matches = const [];
+      _onSearcherChanged();
+    }
   }
 
   /// Navigate to the next match in the results.
   Future<void> nextMatch() async {
-    await _searcher?.goToNextMatch();
+    if (_disposed) return;
+    try {
+      await _searcher?.goToNextMatch();
+    } catch (e) {
+      debugPrint('PdfTextSearcher.goToNextMatch error: $e');
+    }
   }
 
   /// Navigate to the previous match in the results.
   Future<void> previousMatch() async {
-    await _searcher?.goToPrevMatch();
+    if (_disposed) return;
+    try {
+      await _searcher?.goToPrevMatch();
+    } catch (e) {
+      debugPrint('PdfTextSearcher.goToPrevMatch error: $e');
+    }
   }
 
   /// Clear the current search results and reset the search state.
   void clearSearch() {
-    _searcher?.resetTextSearch();
+    if (_disposed) return;
+    try {
+      _searcher?.resetTextSearch();
+    } catch (e) {
+      debugPrint('PdfTextSearcher.resetTextSearch error: $e');
+    }
     _matches = const [];
     notifyListeners();
   }
@@ -91,6 +122,7 @@ class SearchProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     detach();
     super.dispose();
   }

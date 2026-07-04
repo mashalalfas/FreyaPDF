@@ -63,8 +63,21 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
   /// Resolution at which pages are rendered (independent of display size).
   static const int _renderWidth = 160;
 
-  /// Aspect ratio of a rendered page (width / height).
-  static const double _pageAspectRatio = 160.0 / 220.0;
+  /// Default aspect ratio fallback (A4 portrait ≈ 595/842).
+  /// Used for scroll estimation and grid sizing before real page dims are known.
+  static const double _defaultAspectRatio = 595.0 / 842.0;
+
+  /// Returns the actual page aspect ratio (width / height) from the document.
+  /// Falls back to [_defaultAspectRatio] if the document or page is unavailable.
+  double _getPageAspectRatio(PdfDocument doc, int pageIndex) {
+    if (pageIndex < 0 || pageIndex >= doc.pages.length) {
+      return _defaultAspectRatio;
+    }
+    final page = doc.pages[pageIndex];
+    final ratio = page.width / page.height;
+    // Guard against degenerate dimensions (shouldn't happen with real PDFs).
+    return ratio > 0 ? ratio : _defaultAspectRatio;
+  }
 
   @override
   void dispose() {
@@ -170,6 +183,10 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
 
   /// Estimate the row height (cell height + mainAxisSpacing) for scroll
   /// offset calculations.
+  ///
+  /// Uses [_defaultAspectRatio] for estimation since individual page ratios
+  /// aren't known at scroll-offset-prediction time. The estimate is
+  /// approximate and fine for scroll triggering purposes.
   double _estimateRowExtent() {
     const spacing = 12.0;
     const padding = 24.0; // 12dp left + 12dp right
@@ -184,7 +201,7 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
     final cellWidth = (availWidth - (cols - 1) * spacing) / cols;
     // Label area: 6dp gap + ~16dp text height = ~22dp
     const labelHeight = 22.0;
-    final cellHeight = cellWidth / _pageAspectRatio + labelHeight;
+    final cellHeight = cellWidth / _defaultAspectRatio + labelHeight;
     return cellHeight + spacing;
   }
 
@@ -237,12 +254,13 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
     const labelAreaHeight = 22.0; // 6dp gap + ~16dp text
 
     // Compute aspect ratio for the grid child so it maps to:
-    //   cell width  -> (cell width / pageAspectRatio + label)
+    //   cell width  -> (cell width / defaultAspectRatio + label)
     // We use the actual screen / sheet width as a good approximation.
+    // Individual tiles use their own actual page aspect ratio internally.
     const padding = 24.0; // 12dp left + 12dp right
     final availWidth = MediaQuery.of(context).size.width - padding;
     final cellWidth = (availWidth - (colCount - 1) * crossAxisSpacing) / colCount;
-    final cellHeight = cellWidth / _pageAspectRatio + labelAreaHeight;
+    final cellHeight = cellWidth / _defaultAspectRatio + labelAreaHeight;
     final childAspectRatio = cellWidth / cellHeight;
 
     return DraggableScrollableSheet(
@@ -321,12 +339,15 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
                       itemCount: pageCount,
                       itemBuilder: (context, index) {
                         final isCurrentPage = index + 1 == widget.currentPage;
+                        final realRatio = doc != null
+                            ? _getPageAspectRatio(doc, index)
+                            : _defaultAspectRatio;
                         return _ThumbnailTile(
                           pageIndex: index,
                           image: _cache[index],
                           isCurrentPage: isCurrentPage,
                           isLoading: _pending.contains(index),
-                          pageAspectRatio: _pageAspectRatio,
+                          pageAspectRatio: realRatio,
                           onTap: () {
                             widget.onPageSelected(index + 1);
                             Navigator.of(context).pop();
