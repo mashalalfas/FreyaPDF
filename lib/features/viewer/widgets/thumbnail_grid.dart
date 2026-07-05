@@ -384,52 +384,55 @@ class _ThumbnailTile extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          // Thumbnail preview — uses Expanded to fill the grid cell's
-          // available height so the page image always reaches both side
-          // borders. BoxFit.contain inside _buildPreview keeps the page's
-          // aspect ratio (centered for non-matching ratios instead of the
-          // old top-aligned AspectRatio that produced blank sides).
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isCurrentPage
-                      ? colorScheme.primary
-                      : colorScheme.outlineVariant.withValues(alpha: 0.5),
-                  width: isCurrentPage ? 2.5 : 1.0,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final boxWidth = constraints.maxWidth;
+          final boxHeight = constraints.maxHeight - 28; // reserve space for page label
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Thumbnail preview — fills the full grid cell width
+              Container(
+                width: boxWidth,
+                height: boxHeight > 0 ? boxHeight : boxWidth * 1.414,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isCurrentPage
+                        ? colorScheme.primary
+                        : colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    width: isCurrentPage ? 2.5 : 1.0,
+                  ),
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
                 ),
-                color:
-                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                clipBehavior: Clip.antiAlias,
+                child: _buildPreview(colorScheme),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: _buildPreview(colorScheme),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Page number label
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: isCurrentPage
-                  ? colorScheme.primary.withValues(alpha: 0.1)
-                  : null,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '${pageIndex + 1}',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isCurrentPage ? FontWeight.w600 : FontWeight.w400,
-                color: isCurrentPage
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
+              const SizedBox(height: 6),
+              // Page number label
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isCurrentPage
+                      ? colorScheme.primary.withValues(alpha: 0.1)
+                      : null,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${pageIndex + 1}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isCurrentPage ? FontWeight.w600 : FontWeight.w400,
+                    color: isCurrentPage
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

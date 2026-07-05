@@ -544,164 +544,181 @@ class _ViewerScreenState extends State<ViewerScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
 
+    final bool showToolbar = !_isSvgFile && _totalPages > 0;
+
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: showToolbar ? 80 : kToolbarHeight,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back',
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Row(
           children: [
             if (widget.file.isEncrypted) ...[
-              Icon(Icons.lock_rounded, size: 16, color: colorScheme.tertiary),
-              const SizedBox(width: 6),
+              Icon(Icons.lock_rounded, size: 14, color: colorScheme.tertiary),
+              const SizedBox(width: 4),
             ],
             Expanded(
               child: Text(
                 widget.file.displayName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 15),
               ),
             ),
           ],
         ),
         actions: [
-          // FEATURE 1.2 — Outline / ToC button
-          if (!_isSvgFile && _totalPages > 0)
+          if (widget.file.isEncrypted)
             IconButton(
-              icon: Icon(
-                Icons.article_outlined,
-                size: 20,
-                color: _outline != null && _outline!.isNotEmpty
-                    ? colorScheme.primary
-                    : null,
-              ),
-              tooltip: 'Table of Contents',
-              onPressed: _showOutline,
+              icon: Icon(Icons.lock_rounded, size: 20, color: colorScheme.tertiary),
+              tooltip: 'Encrypted',
+              onPressed: null,
             ),
-          // FEATURE 4 — Thumbnail grid button (only if setting enabled)
-          if (!_isSvgFile && _totalPages > 0 && settings.showThumbnails)
-            IconButton(
-              icon: Icon(
-                Icons.view_carousel_outlined,
-                size: 20,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-              tooltip: 'Thumbnails',
-              onPressed: _showThumbnailGrid,
-            ),
-          // Dark reading mode quick toggle
-          if (!_isSvgFile && _totalPages > 0)
-            IconButton(
-              icon: Icon(
-                settings.darkReadingMode
-                    ? Icons.nightlight_round
-                    : Icons.nightlight_outlined,
-                size: 20,
-                color: settings.darkReadingMode ? colorScheme.primary : null,
-              ),
-              tooltip: settings.darkReadingMode
-                  ? 'Disable dark reading'
-                  : 'Enable dark reading',
-              onPressed: () =>
-                  settings.setDarkReadingMode(!settings.darkReadingMode),
-            ),
-          // Search in document button
-          if (!_isSvgFile && _totalPages > 0)
-            IconButton(
-              icon: Icon(
-                Icons.search_rounded,
-                size: 20,
-                color: _showSearchBar ? colorScheme.primary : null,
-              ),
-              tooltip: 'Search in document',
-              onPressed: () {
-                setState(() {
-                  if (_showSearchBar) {
-                    _searchProvider.clearSearch();
-                  }
-                  _showSearchBar = !_showSearchBar;
-                });
-              },
-            ),
-          // Highlight mode toggle
-          if (!_isSvgFile && _totalPages > 0)
-            IconButton(
-              icon: Icon(
-                context.watch<HighlightProvider>().highlightMode
-                    ? Icons.brush_rounded
-                    : Icons.brush_outlined,
-                size: 20,
-                color: context.watch<HighlightProvider>().highlightMode
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-              tooltip: context.watch<HighlightProvider>().highlightMode
-                  ? 'Exit highlight mode'
-                  : 'Highlight mode',
-              onPressed: () {
-                context
-                    .read<HighlightProvider>()
-                    .toggleHighlightMode();
-              },
-            ),
-          // View highlights panel button
-          if (!_isSvgFile && _totalPages > 0)
-            IconButton(
-              icon: Icon(
-                Icons.style_rounded,
-                size: 20,
-                color: context.watch<HighlightProvider>().showPanel
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-              tooltip: 'View highlights',
-              onPressed: () {
-                context
-                    .read<HighlightProvider>()
-                    .togglePanel();
-              },
-            ),
-          // Bookmark toggle button
-          if (!_isSvgFile && _totalPages > 0)
-            IconButton(
-              icon: Icon(
-                context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                size: 20,
-                color: context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-              tooltip: context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
-                  ? 'Remove bookmark'
-                  : 'Bookmark this page',
-              onPressed: () async {
-                final provider = context.read<BookmarkProvider>();
-                final existing = provider.fileBookmarks.where((b) => b.pageNumber == _currentPage);
-                if (existing.isNotEmpty) {
-                  for (final b in existing) {
-                    await provider.removeBookmark(b.id);
-                  }
-                } else {
-                  await provider.addBookmark(Bookmark(
-                    filePath: widget.file.path,
-                    pageNumber: _currentPage,
-                    label: null,
-                  ));
-                }
-              },
-            ),
-          // FEATURE 1: Save icon is always visible
-          IconButton(
-            icon: const Icon(Icons.download_rounded, size: 20),
-            tooltip: 'Save to folder',
-            onPressed: _saveToLocal,
-          ),
-          IconButton(
-            icon: const Icon(Icons.share_rounded, size: 20),
-            tooltip: 'Share',
-            onPressed: _shareFile,
-          ),
         ],
+        bottom: showToolbar
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(40),
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // TOC
+                      IconButton(
+                        icon: Icon(
+                          Icons.article_outlined,
+                          size: 20,
+                          color: _outline != null && _outline!.isNotEmpty
+                              ? colorScheme.primary
+                              : null,
+                        ),
+                        tooltip: 'Table of Contents',
+                        onPressed: _showOutline,
+                      ),
+                      // Thumbnails
+                      if (settings.showThumbnails)
+                        IconButton(
+                          icon: Icon(
+                            Icons.view_carousel_outlined,
+                            size: 20,
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                          tooltip: 'Thumbnails',
+                          onPressed: _showThumbnailGrid,
+                        ),
+                      // Dark reading mode
+                      IconButton(
+                        icon: Icon(
+                          settings.darkReadingMode
+                              ? Icons.nightlight_round
+                              : Icons.nightlight_outlined,
+                          size: 20,
+                          color: settings.darkReadingMode ? colorScheme.primary : null,
+                        ),
+                        tooltip: settings.darkReadingMode
+                            ? 'Disable dark reading'
+                            : 'Enable dark reading',
+                        onPressed: () =>
+                            settings.setDarkReadingMode(!settings.darkReadingMode),
+                      ),
+                      // Search
+                      IconButton(
+                        icon: Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                          color: _showSearchBar ? colorScheme.primary : null,
+                        ),
+                        tooltip: 'Search in document',
+                        onPressed: () {
+                          setState(() {
+                            if (_showSearchBar) _searchProvider.clearSearch();
+                            _showSearchBar = !_showSearchBar;
+                          });
+                        },
+                      ),
+                      // Highlight mode
+                      IconButton(
+                        icon: Icon(
+                          context.watch<HighlightProvider>().highlightMode
+                              ? Icons.brush_rounded
+                              : Icons.brush_outlined,
+                          size: 20,
+                          color: context.watch<HighlightProvider>().highlightMode
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                        tooltip: context.watch<HighlightProvider>().highlightMode
+                            ? 'Exit highlight mode'
+                            : 'Highlight mode',
+                        onPressed: () {
+                          context.read<HighlightProvider>().toggleHighlightMode();
+                        },
+                      ),
+                      // Highlights panel
+                      IconButton(
+                        icon: Icon(
+                          Icons.style_rounded,
+                          size: 20,
+                          color: context.watch<HighlightProvider>().showPanel
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                        tooltip: 'View highlights',
+                        onPressed: () {
+                          context.read<HighlightProvider>().togglePanel();
+                        },
+                      ),
+                      // Bookmark
+                      IconButton(
+                        icon: Icon(
+                          context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
+                              ? Icons.bookmark_rounded
+                              : Icons.bookmark_border_rounded,
+                          size: 20,
+                          color: context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
+                              ? colorScheme.primary
+                              : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                        tooltip: context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
+                            ? 'Remove bookmark'
+                            : 'Bookmark this page',
+                        onPressed: () async {
+                          final provider = context.read<BookmarkProvider>();
+                          final existing = provider.fileBookmarks.where((b) => b.pageNumber == _currentPage);
+                          if (existing.isNotEmpty) {
+                            for (final b in existing) {
+                              await provider.removeBookmark(b.id);
+                            }
+                          } else {
+                            await provider.addBookmark(Bookmark(
+                              filePath: widget.file.path,
+                              pageNumber: _currentPage,
+                              label: null,
+                            ));
+                          }
+                        },
+                      ),
+                      // Save
+                      IconButton(
+                        icon: const Icon(Icons.download_rounded, size: 20),
+                        tooltip: 'Save to folder',
+                        onPressed: _saveToLocal,
+                      ),
+                      // Share
+                      IconButton(
+                        icon: const Icon(Icons.share_rounded, size: 20),
+                        tooltip: 'Share',
+                        onPressed: _shareFile,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : null,
       ),
       body: Column(
         children: [
