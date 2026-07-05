@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:feya_pdf/services/app_lock_service.dart';
-import 'package:feya_pdf/services/settings_service.dart';
-import 'package:feya_pdf/providers/settings_provider.dart';
+import 'package:feya_pdf/features/security/app_lock_service.dart';
+import 'package:feya_pdf/features/settings/settings_service.dart';
+import 'package:feya_pdf/features/settings/settings_provider.dart';
 
 // ── Mock FlutterSecureStorage ──
 // Extends the real class to pass the type check.

@@ -2,8 +2,8 @@
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/models/pdf_file.dart';
-import 'package:feya_pdf/providers/app_state.dart';
+import 'package:feya_pdf/core/models/pdf_file.dart';
+import 'package:feya_pdf/features/file_management/app_state.dart';
 
 /// Global temp root for filesystem tests; cleaned up in tearDownAll.
 late Directory _tempRoot;

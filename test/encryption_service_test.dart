@@ -3,7 +3,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/services/encryption_service.dart';
+import 'package:feya_pdf/features/encryption/encryption_service.dart';
 
 
 void main() {

@@ -151,8 +151,8 @@ FileService: Directory does not exist or not accessible: /no/such/dir
 
 ## Remaining Work (from BUG_REPORT_001.md not addressed in this fix)
 
-| Item | File | Priority |
-|------|------|----------|
-| Fix `_loadInitialData` fallback chain so Path B runs if Path A fails silently | `home_screen.dart` | High |
-| Fix misleading comment about permission dialog + add `openAppSettings()` | `permission_service.dart` | Medium |
-| Verify `MANAGE_EXTERNAL_STORAGE` before spawning isolate | `file_service.dart` | Medium |
+| Item | File | Priority | Status |
+|------|------|----------|--------|
+| Fix `_loadInitialData` fallback chain so Path B runs if Path A fails silently | `home_screen.dart` | High | ✅ Done (lines 61–68) |
+| Fix misleading comment about permission dialog + add `openAppSettings()` | `permission_service.dart` | Medium | ✅ Comment fixed in FIX_SUMMARY_003 |
+| Verify `MANAGE_EXTERNAL_STORAGE` before spawning isolate | `file_service.dart` | Medium | Open |

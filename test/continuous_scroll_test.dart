@@ -2,8 +2,8 @@
 // (SettingsService with mock SharedPreferences + SettingsProvider)
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/providers/settings_provider.dart';
-import 'package:feya_pdf/services/settings_service.dart';
+import 'package:feya_pdf/features/settings/settings_provider.dart';
+import 'package:feya_pdf/features/settings/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

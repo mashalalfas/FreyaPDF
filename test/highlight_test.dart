@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/models/highlight.dart';
-import 'package:feya_pdf/services/highlight_service.dart';
-import 'package:feya_pdf/providers/highlight_provider.dart';
+import 'package:feya_pdf/features/highlights/highlight.dart';
+import 'package:feya_pdf/features/highlights/highlight_service.dart';
+import 'package:feya_pdf/features/highlights/highlight_provider.dart';
 
 void main() {
   group('HighlightData model', () {

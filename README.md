@@ -41,9 +41,9 @@ A clean, fast, ad-free PDF reader for Android with E2E encryption, annotation su
 |-------|-------|------|
 | Unit (small) | 6 files | Encryption, file, tag, settings, highlight, app lock services |
 | Integration (medium) | 5 files | AppState, TagProvider, FileOperations, HighlightProvider, BiometricAuth |
-| Widget (large) | 4 files | App root, viewer screen states, app lock screen, biometric unlock dialog |
+| Widget (large) | 5 files | App root, viewer screen states, app lock screen, biometric unlock dialog, smoke tests |
 
-Total: **265 test cases** across 15 files. 3-layer addyosmani pyramid.
+Total: **340 test cases** across 22 files. 3-layer addyosmani pyramid.
 
 `dart analyze` → 0 issues
 

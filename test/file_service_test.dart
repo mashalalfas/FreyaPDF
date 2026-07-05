@@ -5,7 +5,7 @@
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/services/file_service.dart';
+import 'package:feya_pdf/features/file_management/file_service.dart';
 
 /// Shared temp root for filesystem tests; cleaned up in tearDownAll.
 late Directory _tempRoot;

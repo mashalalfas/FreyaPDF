@@ -6,17 +6,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:feya_pdf/main.dart';
-import 'package:feya_pdf/providers/app_state.dart';
-import 'package:feya_pdf/providers/encryption_provider.dart';
-import 'package:feya_pdf/providers/file_operations_provider.dart';
-import 'package:feya_pdf/providers/recent_files_provider.dart';
-import 'package:feya_pdf/providers/scanned_paths_provider.dart';
-import 'package:feya_pdf/providers/secure_folder_provider.dart';
-import 'package:feya_pdf/providers/settings_provider.dart';
-import 'package:feya_pdf/providers/sort_search_provider.dart';
-import 'package:feya_pdf/providers/tag_provider.dart';
-import 'package:feya_pdf/services/settings_service.dart';
-import 'package:feya_pdf/services/tag_service.dart';
+import 'package:feya_pdf/features/file_management/app_state.dart';
+import 'package:feya_pdf/features/settings/backup_provider.dart';
+import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:feya_pdf/features/encryption/encryption_provider.dart';
+import 'package:feya_pdf/features/file_management/favorites_provider.dart';
+import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:feya_pdf/features/highlights/highlight_provider.dart';
+import 'package:feya_pdf/features/file_management/recent_files_provider.dart';
+import 'package:feya_pdf/features/file_management/scanned_paths_provider.dart';
+import 'package:feya_pdf/features/security/secure_folder_provider.dart';
+import 'package:feya_pdf/features/file_management/selection_provider.dart';
+import 'package:feya_pdf/features/settings/settings_provider.dart';
+import 'package:feya_pdf/features/file_management/sort_search_provider.dart';
+import 'package:feya_pdf/features/tags/tag_provider.dart';
+import 'package:feya_pdf/features/settings/backup_service.dart';
+import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:feya_pdf/features/highlights/highlight_service.dart';
+import 'package:feya_pdf/features/settings/settings_service.dart';
+import 'package:feya_pdf/features/tags/tag_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,6 +38,14 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final settingsService = SettingsService(prefs);
       final tagService = TagService(prefs);
+      final highlightService = HighlightService(prefs);
+      final bookmarkService = BookmarkService(prefs);
+      final backupService = BackupService(
+        settingsService: settingsService,
+        tagService: tagService,
+        highlightService: highlightService,
+        bookmarkService: bookmarkService,
+      );
 
       // Arrange & Act
       await tester.pumpWidget(
@@ -46,6 +62,15 @@ void main() {
             ChangeNotifierProvider(create: (_) => FileOperationsProvider()),
             ChangeNotifierProvider(create: (_) => AppState()),
             ChangeNotifierProvider(create: (_) => SecureFolderProvider()),
+            ChangeNotifierProvider(
+              create: (_) => HighlightProvider(highlightService),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => BookmarkProvider(bookmarkService),
+            ),
+            ChangeNotifierProvider(create: (_) => BackupProvider(backupService)),
+            ChangeNotifierProvider(create: (_) => FavoritesProvider(settingsService)),
+            ChangeNotifierProvider(create: (_) => SelectionProvider()),
           ],
           child: const FeyaPdfApp(),
         ),
@@ -61,6 +86,14 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final settingsService = SettingsService(prefs);
       final tagService = TagService(prefs);
+      final highlightService = HighlightService(prefs);
+      final bookmarkService = BookmarkService(prefs);
+      final backupService = BackupService(
+        settingsService: settingsService,
+        tagService: tagService,
+        highlightService: highlightService,
+        bookmarkService: bookmarkService,
+      );
 
       // Arrange & Act
       await tester.pumpWidget(
@@ -77,6 +110,15 @@ void main() {
             ChangeNotifierProvider(create: (_) => FileOperationsProvider()),
             ChangeNotifierProvider(create: (_) => AppState()),
             ChangeNotifierProvider(create: (_) => SecureFolderProvider()),
+            ChangeNotifierProvider(
+              create: (_) => HighlightProvider(highlightService),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => BookmarkProvider(bookmarkService),
+            ),
+            ChangeNotifierProvider(create: (_) => BackupProvider(backupService)),
+            ChangeNotifierProvider(create: (_) => FavoritesProvider(settingsService)),
+            ChangeNotifierProvider(create: (_) => SelectionProvider()),
           ],
           child: const FeyaPdfApp(),
         ),

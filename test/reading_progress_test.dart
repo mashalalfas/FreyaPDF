@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/services/settings_service.dart';
-import 'package:feya_pdf/providers/settings_provider.dart';
+import 'package:feya_pdf/features/settings/settings_service.dart';
+import 'package:feya_pdf/features/settings/settings_provider.dart';
 
 void main() {
   group('SettingsService — reading progress', () {

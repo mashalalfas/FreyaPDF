@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/services/passphrase_strength.dart';
+import 'package:feya_pdf/features/encryption/passphrase_strength.dart';
 
 void main() {
   group('PassphraseStrength — calculateStrength', () {

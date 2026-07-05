@@ -9,9 +9,9 @@
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/models/pdf_file.dart';
-import 'package:feya_pdf/providers/file_operations_provider.dart';
-import 'package:feya_pdf/providers/encryption_provider.dart';
+import 'package:feya_pdf/core/models/pdf_file.dart';
+import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:feya_pdf/features/encryption/encryption_provider.dart';
 
 /// Temp root for all filesystem operations in this file.
 late Directory _tempRoot;

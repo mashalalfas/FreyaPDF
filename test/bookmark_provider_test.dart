@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/models/bookmark.dart';
-import 'package:feya_pdf/services/bookmark_service.dart';
-import 'package:feya_pdf/providers/bookmark_provider.dart';
+import 'package:feya_pdf/features/bookmarks/bookmark.dart';
+import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
 
 void main() {
   group('BookmarkProvider', () {
