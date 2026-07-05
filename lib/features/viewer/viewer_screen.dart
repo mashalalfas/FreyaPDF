@@ -311,6 +311,30 @@ class _ViewerScreenState extends State<ViewerScreen> {
     await fileOps.shareFile(widget.file.path);
   }
 
+  IconData _highlightModeIcon(BuildContext context) {
+    final mode = context.watch<HighlightProvider>().highlightModeValue;
+    switch (mode) {
+      case 'text':
+        return Icons.brush_rounded;
+      case 'rectangle':
+        return Icons.crop_free_rounded;
+      default:
+        return Icons.brush_outlined;
+    }
+  }
+
+  String _highlightModeTooltip(BuildContext context) {
+    final mode = context.watch<HighlightProvider>().highlightModeValue;
+    switch (mode) {
+      case 'text':
+        return 'Text highlight mode (tap to switch)';
+      case 'rectangle':
+        return 'Rectangle draw mode (tap to switch)';
+      default:
+        return 'Highlight mode';
+    }
+  }
+
   Future<void> _saveToLocal() async {
     final fileOps = context.read<FileOperationsProvider>();
 
@@ -643,17 +667,13 @@ class _ViewerScreenState extends State<ViewerScreen> {
                       // Highlight mode
                       IconButton(
                         icon: Icon(
-                          context.watch<HighlightProvider>().highlightMode
-                              ? Icons.brush_rounded
-                              : Icons.brush_outlined,
+                          _highlightModeIcon(context),
                           size: 20,
                           color: context.watch<HighlightProvider>().highlightMode
                               ? colorScheme.primary
                               : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                         ),
-                        tooltip: context.watch<HighlightProvider>().highlightMode
-                            ? 'Exit highlight mode'
-                            : 'Highlight mode',
+                        tooltip: _highlightModeTooltip(context),
                         onPressed: () {
                           context.read<HighlightProvider>().toggleHighlightMode();
                         },
@@ -1021,14 +1041,94 @@ class _ViewerScreenState extends State<ViewerScreen> {
       ),
     );
 
+    // Wrap in a Stack to overlay a gesture detector for rectangle draw mode.
+    // The overlay only captures gestures when draw mode is active;
+    // otherwise, it passes through to the PdfViewer below.
+    final isDrawMode = context.watch<HighlightProvider>().isRectangleDrawMode;
+    final drawRect = context.watch<HighlightProvider>().drawRect;
+
+    final viewerWithDrawOverlay = Stack(
+      children: [
+        pdfViewerWidget,
+        if (isDrawMode)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanStart: (details) {
+                // Convert global position to a page-relative offset.
+                // We use globalToLocal on the PdfViewer's render box
+                // and store it; the paint callback translates it.
+                final provider = context.read<HighlightProvider>();
+                provider.startDraw(details.localPosition, _currentPage);
+              },
+              onPanUpdate: (details) {
+                context.read<HighlightProvider>().updateDraw(
+                  details.localPosition,
+                );
+              },
+              onPanEnd: (_) {
+                context.read<HighlightProvider>().endDraw();
+              },
+              onPanCancel: () {
+                context.read<HighlightProvider>().cancelDraw();
+              },
+              child: CustomPaint(
+                painter: _DrawPreviewPainter(
+                  drawRect: drawRect,
+                  color: Color(context.read<HighlightProvider>().fileHighlights.isNotEmpty
+                      ? context.read<HighlightProvider>().fileHighlights.last.color
+                      : 0xFFFFEB3B),
+                ),
+                size: Size.infinite,
+              ),
+            ),
+          ),
+        // Show a small mode indicator badge when in rectangle draw mode
+        if (isDrawMode)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.crop_free_rounded, size: 14, color: colorScheme.onPrimaryContainer),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Draw mode',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+
     return KeyedSubtree(
       key: key,
       child: settings.darkReadingMode
           ? ColorFiltered(
               colorFilter: _invertColorFilter,
-              child: pdfViewerWidget,
+              child: viewerWithDrawOverlay,
             )
-          : pdfViewerWidget,
+          : viewerWithDrawOverlay,
     );
   }
 
@@ -1311,5 +1411,34 @@ class _ViewerScreenState extends State<ViewerScreen> {
         ),
       ),
     );
+  }
+}
+
+class _DrawPreviewPainter extends CustomPainter {
+  final Rect? drawRect;
+  final Color color;
+
+  _DrawPreviewPainter({required this.drawRect, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (drawRect == null) return;
+
+    final fillPaint = Paint()
+      ..color = color.withValues(alpha: 0.25)
+      ..style = PaintingStyle.fill;
+    final borderPaint = Paint()
+      ..color = color.withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawRect(drawRect!, fillPaint);
+    canvas.drawRect(drawRect!, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _DrawPreviewPainter oldDelegate) {
+    return oldDelegate.drawRect != drawRect || oldDelegate.color != color;
   }
 }

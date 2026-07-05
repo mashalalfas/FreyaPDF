@@ -261,12 +261,21 @@ void main() {
       expect(service.loadForFile('/test.pdf'), isEmpty);
     });
 
-    test('toggleHighlightMode flips state', () {
+    test('toggleHighlightMode cycles through modes', () {
       expect(provider.highlightMode, false);
+      expect(provider.highlightModeValue, 'off');
+
       provider.toggleHighlightMode();
       expect(provider.highlightMode, true);
+      expect(provider.highlightModeValue, 'text');
+
+      provider.toggleHighlightMode();
+      expect(provider.highlightMode, true);
+      expect(provider.highlightModeValue, 'rectangle');
+
       provider.toggleHighlightMode();
       expect(provider.highlightMode, false);
+      expect(provider.highlightModeValue, 'off');
     });
 
     test('togglePanel flips state', () {
@@ -294,6 +303,7 @@ void main() {
 
       expect(provider.fileHighlights, isEmpty);
       expect(provider.highlightMode, false);
+      expect(provider.highlightModeValue, 'off');
       expect(provider.showPanel, false);
     });
 
@@ -321,6 +331,152 @@ void main() {
       provider.openFile('/b.pdf');
       expect(provider.highlightCount, 1);
       expect(provider.fileHighlights.first.text, 'from b');
+    });
+
+    test('setHighlightModeBool uses legacy boolean interface', () {
+      expect(provider.highlightModeValue, 'off');
+
+      provider.setHighlightModeBool(true);
+      expect(provider.highlightModeValue, 'text');
+      expect(provider.highlightMode, true);
+
+      provider.setHighlightModeBool(false);
+      expect(provider.highlightModeValue, 'off');
+      expect(provider.highlightMode, false);
+    });
+
+    test('isRectangleDrawMode reflects mode', () {
+      expect(provider.isRectangleDrawMode, false);
+
+      provider.setHighlightMode('rectangle');
+      expect(provider.isRectangleDrawMode, true);
+      expect(provider.highlightMode, true);
+
+      provider.setHighlightMode('text');
+      expect(provider.isRectangleDrawMode, false);
+      expect(provider.highlightMode, true);
+    });
+  });
+
+  group('HighlightData rectangle type', () {
+    test('defaults to text type', () {
+      final h = HighlightData(
+        filePath: '/test.pdf',
+        pageNumber: 1,
+        text: 'hello',
+      );
+
+      expect(h.type, 'text');
+      expect(h.isRectangle, false);
+      expect(h.rectLeft, isNull);
+      expect(h.rectTop, isNull);
+      expect(h.rectRight, isNull);
+      expect(h.rectBottom, isNull);
+    });
+
+    test('rectangle highlight stores coordinates', () {
+      final h = HighlightData(
+        filePath: '/test.pdf',
+        pageNumber: 5,
+        text: '',
+        type: 'rectangle',
+        rectLeft: 100.0,
+        rectTop: 200.0,
+        rectRight: 300.0,
+        rectBottom: 400.0,
+      );
+
+      expect(h.type, 'rectangle');
+      expect(h.isRectangle, true);
+      expect(h.rectLeft, 100.0);
+      expect(h.rectTop, 200.0);
+      expect(h.rectRight, 300.0);
+      expect(h.rectBottom, 400.0);
+    });
+
+    test('rectangle highlight serializes and deserializes', () {
+      final h = HighlightData(
+        id: 'rect-1',
+        filePath: '/test.pdf',
+        pageNumber: 3,
+        text: '',
+        type: 'rectangle',
+        rectLeft: 50.0,
+        rectTop: 100.0,
+        rectRight: 250.0,
+        rectBottom: 350.0,
+        color: 0xFF00FF00,
+      );
+
+      final json = h.toJson();
+      expect(json['type'], 'rectangle');
+      expect(json['rectLeft'], 50.0);
+      expect(json['rectTop'], 100.0);
+      expect(json['rectRight'], 250.0);
+      expect(json['rectBottom'], 350.0);
+
+      final restored = HighlightData.fromJson(json);
+      expect(restored.type, 'rectangle');
+      expect(restored.isRectangle, true);
+      expect(restored.rectLeft, 50.0);
+      expect(restored.rectTop, 100.0);
+      expect(restored.rectRight, 250.0);
+      expect(restored.rectBottom, 350.0);
+    });
+
+    test('backward compatibility: JSON without type defaults to text', () {
+      // Simulate old JSON that has no 'type' field
+      final json = {
+        'id': 'old-hl',
+        'filePath': '/test.pdf',
+        'pageNumber': 1,
+        'text': 'old highlight',
+        'color': 0xFFFFEB3B,
+        'createdAt': DateTime(2025, 1, 1).millisecondsSinceEpoch,
+      };
+
+      final restored = HighlightData.fromJson(json);
+      expect(restored.type, 'text');
+      expect(restored.isRectangle, false);
+    });
+
+    test('copyWith preserves rectangle fields', () {
+      final h = HighlightData(
+        filePath: '/test.pdf',
+        pageNumber: 1,
+        text: '',
+        type: 'rectangle',
+        rectLeft: 10.0,
+        rectTop: 20.0,
+        rectRight: 110.0,
+        rectBottom: 120.0,
+      );
+
+      final modified = h.copyWith(color: 0xFF0000FF);
+      expect(modified.type, 'rectangle');
+      expect(modified.isRectangle, true);
+      expect(modified.rectLeft, 10.0);
+      expect(modified.rectTop, 20.0);
+      expect(modified.color, 0xFF0000FF);
+    });
+
+    test('equality includes type field', () {
+      final textH = HighlightData(
+        id: 'same',
+        filePath: '/test.pdf',
+        pageNumber: 1,
+        text: 'hello',
+        type: 'text',
+      );
+      final rectH = HighlightData(
+        id: 'same',
+        filePath: '/test.pdf',
+        pageNumber: 1,
+        text: 'hello',
+        type: 'rectangle',
+      );
+
+      expect(textH, isNot(equals(rectH)));
     });
   });
 }

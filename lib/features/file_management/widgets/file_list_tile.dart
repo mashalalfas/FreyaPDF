@@ -97,7 +97,7 @@ class FileListTile extends StatelessWidget {
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),

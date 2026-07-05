@@ -5,10 +5,14 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:feya_pdf/features/highlights/highlight.dart';
 import 'package:feya_pdf/features/highlights/highlight_service.dart';
 
-/// Manages text highlights for PDF documents.
+/// Manages text and rectangle highlights for PDF documents.
 ///
 /// Provides painting callbacks for rendering highlights on PDF pages,
 /// and CRUD operations backed by [HighlightService].
+///
+/// Supports two highlight modes:
+/// - **Text highlight**: long-press text → select → "Highlight" in context menu
+/// - **Rectangle draw**: drag to draw a colored rectangle on any page area
 class HighlightProvider extends ChangeNotifier {
   final HighlightService _service;
 
@@ -25,11 +29,22 @@ class HighlightProvider extends ChangeNotifier {
   /// Currently open file path.
   String? _currentFilePath;
 
-  /// Whether highlight mode is enabled in the viewer.
-  bool _highlightMode = false;
+  /// Highlight mode: 'off', 'text', or 'rectangle'.
+  String _highlightMode = 'off';
 
   /// Whether to show the highlights panel.
   bool _showPanel = false;
+
+  // ---- Rectangle drawing state ----
+
+  /// Start point of the current drag (page coordinates).
+  Offset? _drawStart;
+
+  /// Current drag point (page coordinates).
+  Offset? _drawCurrent;
+
+  /// The page number being drawn on.
+  int? _drawPageNumber;
 
   // ---- Getters ----
 
@@ -37,11 +52,27 @@ class HighlightProvider extends ChangeNotifier {
 
   List<HighlightData> get fileHighlights => _fileHighlights;
 
-  bool get highlightMode => _highlightMode;
+  /// Whether any highlight mode is active.
+  bool get highlightMode => _highlightMode != 'off';
+
+  /// The current highlight mode string.
+  String get highlightModeValue => _highlightMode;
+
+  /// Whether rectangle draw mode is active.
+  bool get isRectangleDrawMode => _highlightMode == 'rectangle';
 
   bool get showPanel => _showPanel;
 
   int get highlightCount => _fileHighlights.length;
+
+  /// Current rectangle being drawn (null if not dragging).
+  Rect? get drawRect {
+    if (_drawStart == null || _drawCurrent == null) return null;
+    return Rect.fromPoints(_drawStart!, _drawCurrent!);
+  }
+
+  /// The page number currently being drawn on.
+  int? get drawPageNumber => _drawPageNumber;
 
   // ---- File lifecycle ----
 
@@ -56,8 +87,11 @@ class HighlightProvider extends ChangeNotifier {
   void closeFile() {
     _currentFilePath = null;
     _fileHighlights = const [];
-    _highlightMode = false;
+    _highlightMode = 'off';
     _showPanel = false;
+    _drawStart = null;
+    _drawCurrent = null;
+    _drawPageNumber = null;
     notifyListeners();
   }
 
@@ -89,15 +123,40 @@ class HighlightProvider extends ChangeNotifier {
 
   // ---- Mode toggling ----
 
+  /// Cycle through highlight modes: off → text → rectangle → off.
   void toggleHighlightMode() {
-    _highlightMode = !_highlightMode;
+    switch (_highlightMode) {
+      case 'off':
+        _highlightMode = 'text';
+        break;
+      case 'text':
+        _highlightMode = 'rectangle';
+        break;
+      case 'rectangle':
+        _highlightMode = 'off';
+        break;
+      default:
+        _highlightMode = 'off';
+    }
+    _drawStart = null;
+    _drawCurrent = null;
+    _drawPageNumber = null;
     notifyListeners();
   }
 
-  void setHighlightMode(bool value) {
+  void setHighlightMode(String value) {
     if (_highlightMode == value) return;
     _highlightMode = value;
+    _drawStart = null;
+    _drawCurrent = null;
+    _drawPageNumber = null;
     notifyListeners();
+  }
+
+  /// Set highlight mode by cycling to a specific value.
+  void setHighlightModeBool(bool value) {
+    // Legacy compat: true → 'text', false → 'off'
+    setHighlightMode(value ? 'text' : 'off');
   }
 
   void togglePanel() {
@@ -108,6 +167,69 @@ class HighlightProvider extends ChangeNotifier {
   void setShowPanel(bool value) {
     if (_showPanel == value) return;
     _showPanel = value;
+    notifyListeners();
+  }
+
+  // ---- Rectangle draw operations ----
+
+  /// Start drawing a rectangle at the given page-relative offset.
+  void startDraw(Offset position, int pageNumber) {
+    _drawStart = position;
+    _drawCurrent = position;
+    _drawPageNumber = pageNumber;
+    notifyListeners();
+  }
+
+  /// Update the current drag position.
+  void updateDraw(Offset position) {
+    if (_drawStart == null) return;
+    _drawCurrent = position;
+    notifyListeners();
+  }
+
+  /// End drawing and create the rectangle highlight.
+  Future<void> endDraw() async {
+    if (_drawStart == null || _drawCurrent == null || _drawPageNumber == null) {
+      _drawStart = null;
+      _drawCurrent = null;
+      _drawPageNumber = null;
+      notifyListeners();
+      return;
+    }
+
+    final rect = Rect.fromPoints(_drawStart!, _drawCurrent!);
+    _drawStart = null;
+    _drawCurrent = null;
+    final pageNumber = _drawPageNumber!;
+    _drawPageNumber = null;
+
+    // Ignore tiny accidental taps (less than 5px in either dimension).
+    if (rect.width.abs() < 5 && rect.height.abs() < 5) {
+      notifyListeners();
+      return;
+    }
+
+    if (_currentFilePath == null) return;
+
+    final highlight = HighlightData(
+      filePath: _currentFilePath!,
+      pageNumber: pageNumber,
+      text: '',
+      type: 'rectangle',
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      rectRight: rect.right,
+      rectBottom: rect.bottom,
+    );
+
+    await addHighlight(highlight);
+  }
+
+  /// Cancel the current draw without saving.
+  void cancelDraw() {
+    _drawStart = null;
+    _drawCurrent = null;
+    _drawPageNumber = null;
     notifyListeners();
   }
 
@@ -157,25 +279,43 @@ class HighlightProvider extends ChangeNotifier {
   ///
   /// Add this to [PdfViewerParams.pagePaintCallbacks].
   void paintHighlights(ui.Canvas canvas, Rect pageRect, PdfPage page) {
-    if (_fileHighlights.isEmpty) return;
+    // Draw existing highlights for this page
+    if (_fileHighlights.isNotEmpty) {
+      final pageHighlights = _fileHighlights
+          .where((h) => h.pageNumber == page.pageNumber)
+          .toList();
+      if (pageHighlights.isNotEmpty) {
+        final pageText = _pageTextCache[page.pageNumber];
+        if (pageText != null) {
+          for (final highlight in pageHighlights) {
+            _paintHighlightOnPage(
+              canvas,
+              pageRect,
+              page,
+              pageText,
+              highlight,
+            );
+          }
+        }
+      }
+    }
 
-    // Find highlights for this page
-    final pageHighlights =
-        _fileHighlights.where((h) => h.pageNumber == page.pageNumber).toList();
-    if (pageHighlights.isEmpty) return;
-
-    // Try to get the cached PdfPageText for this page
-    final pageText = _pageTextCache[page.pageNumber];
-    if (pageText == null) return;
-
-    for (final highlight in pageHighlights) {
-      _paintHighlightOnPage(
-        canvas,
-        pageRect,
-        page,
-        pageText,
-        highlight,
-      );
+    // Draw the in-progress rectangle preview (while user is dragging)
+    if (_drawStart != null &&
+        _drawCurrent != null &&
+        _drawPageNumber == page.pageNumber) {
+      final previewRect = Rect.fromPoints(_drawStart!, _drawCurrent!)
+          .translate(pageRect.left, pageRect.top);
+      final previewPaint = Paint()
+        ..color = const Color(0x55FFEB3B) // semi-transparent yellow
+        ..style = PaintingStyle.fill;
+      final previewBorder = Paint()
+        ..color = const Color(0xAAFFEB3B)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0
+        ..strokeCap = StrokeCap.round;
+      canvas.drawRect(previewRect, previewPaint);
+      canvas.drawRect(previewRect, previewBorder);
     }
   }
 
@@ -186,12 +326,62 @@ class HighlightProvider extends ChangeNotifier {
     PdfPageText pageText,
     HighlightData highlight,
   ) {
+    if (highlight.isRectangle) {
+      _paintRectangleHighlight(canvas, pageRect, page, highlight);
+    } else {
+      _paintTextHighlight(canvas, pageRect, page, pageText, highlight);
+    }
+  }
+
+  /// Paint a rectangle-type highlight (stored page-relative coords).
+  void _paintRectangleHighlight(
+    ui.Canvas canvas,
+    Rect pageRect,
+    PdfPage page,
+    HighlightData highlight,
+  ) {
+    if (highlight.rectLeft == null ||
+        highlight.rectTop == null ||
+        highlight.rectRight == null ||
+        highlight.rectBottom == null) {
+      return;
+    }
+
+    // The stored coordinates are in widget-space relative to the page rect.
+    // Convert them to absolute widget coordinates by adding pageRect offset.
+    final storedRect = Rect.fromLTRB(
+      highlight.rectLeft!,
+      highlight.rectTop!,
+      highlight.rectRight!,
+      highlight.rectBottom!,
+    );
+    final widgetRect = storedRect.translate(pageRect.left, pageRect.top);
+
+    final color = Color(highlight.color);
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.35)
+      ..style = PaintingStyle.fill;
+    final borderPaint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    canvas.drawRect(widgetRect, paint);
+    canvas.drawRect(widgetRect, borderPaint);
+  }
+
+  /// Paint a text-type highlight (search for text on page).
+  void _paintTextHighlight(
+    ui.Canvas canvas,
+    Rect pageRect,
+    PdfPage page,
+    PdfPageText pageText,
+    HighlightData highlight,
+  ) {
     final pattern = highlight.text;
     if (pattern.isEmpty) return;
 
     // Find all occurrences of the highlighted text
-    // Since allMatches returns a stream, we'll use a synchronous approach
-    // by searching through the charRects manually
     final textStr = pageText.fullText;
     final searchPattern = RegExp.escape(pattern);
     final regex = RegExp(searchPattern, caseSensitive: true);

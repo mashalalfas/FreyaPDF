@@ -123,7 +123,7 @@ class HighlightsPanel extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Select text and tap Highlight',
+                      'Select text or draw a rectangle',
                       style: TextStyle(
                         fontSize: 12,
                         color: cs.onSurfaceVariant.withValues(alpha: 0.4),
@@ -221,15 +221,33 @@ class _HighlightTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(2),
         ),
       ),
-      title: Text(
-        highlight.text,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 13,
-          color: cs.onSurface,
-        ),
-      ),
+      title: highlight.isRectangle
+          ? Row(
+              children: [
+                Icon(
+                  Icons.crop_free_rounded,
+                  size: 14,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Rectangle highlight',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: cs.onSurface,
+                  ),
+                ),
+              ],
+            )
+          : Text(
+              highlight.text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: cs.onSurface,
+              ),
+            ),
       subtitle: Text(
         _timeAgo(highlight.createdAt),
         style: TextStyle(
