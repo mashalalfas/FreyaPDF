@@ -300,23 +300,10 @@ class HighlightProvider extends ChangeNotifier {
       }
     }
 
-    // Draw the in-progress rectangle preview (while user is dragging)
-    if (_drawStart != null &&
-        _drawCurrent != null &&
-        _drawPageNumber == page.pageNumber) {
-      final previewRect = Rect.fromPoints(_drawStart!, _drawCurrent!)
-          .translate(pageRect.left, pageRect.top);
-      final previewPaint = Paint()
-        ..color = const Color(0x55FFEB3B) // semi-transparent yellow
-        ..style = PaintingStyle.fill;
-      final previewBorder = Paint()
-        ..color = const Color(0xAAFFEB3B)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0
-        ..strokeCap = StrokeCap.round;
-      canvas.drawRect(previewRect, previewPaint);
-      canvas.drawRect(previewRect, previewBorder);
-    }
+    // Note: The in-progress rectangle preview is drawn by the overlay's
+    // _DrawPreviewPainter in viewer_screen.dart, which uses the same
+    // widget-space coordinates as the GestureDetector. Drawing it here
+    // on the pdfrx canvas as well would cause a double-render (two boxes).
   }
 
   void _paintHighlightOnPage(
@@ -333,7 +320,15 @@ class HighlightProvider extends ChangeNotifier {
     }
   }
 
-  /// Paint a rectangle-type highlight (stored page-relative coords).
+  /// Paint a rectangle-type highlight (stored viewer widget-space coords).
+  ///
+  /// The stored coordinates come from the GestureDetector's `localPosition`,
+  /// which is in viewer widget-space (0,0 = top-left of the PdfViewer widget).
+  /// The pdfrx `pagePaintCallback` canvas also operates in viewer widget-space
+  /// (confirmed by [_paintTextHighlight], which converts page-relative PDF
+  /// coords to widget-space by adding `pageRect.left/top`).
+  ///
+  /// Therefore the stored coords are drawn directly without any translation.
   void _paintRectangleHighlight(
     ui.Canvas canvas,
     Rect pageRect,
@@ -347,15 +342,12 @@ class HighlightProvider extends ChangeNotifier {
       return;
     }
 
-    // The stored coordinates are in widget-space relative to the page rect.
-    // Convert them to absolute widget coordinates by adding pageRect offset.
-    final storedRect = Rect.fromLTRB(
+    final rect = Rect.fromLTRB(
       highlight.rectLeft!,
       highlight.rectTop!,
       highlight.rectRight!,
       highlight.rectBottom!,
     );
-    final widgetRect = storedRect.translate(pageRect.left, pageRect.top);
 
     final color = Color(highlight.color);
     final paint = Paint()
@@ -366,8 +358,8 @@ class HighlightProvider extends ChangeNotifier {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
-    canvas.drawRect(widgetRect, paint);
-    canvas.drawRect(widgetRect, borderPaint);
+    canvas.drawRect(rect, paint);
+    canvas.drawRect(rect, borderPaint);
   }
 
   /// Paint a text-type highlight (search for text on page).
