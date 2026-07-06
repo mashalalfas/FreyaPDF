@@ -1055,15 +1055,20 @@ class _ViewerScreenState extends State<ViewerScreen> {
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onPanStart: (details) {
-                // Convert global position to a page-relative offset.
-                // We use globalToLocal on the PdfViewer's render box
-                // and store it; the paint callback translates it.
+                // Convert viewport-space gesture coords to content-space
+                // by adding the current scroll offset (visibleRect.topLeft).
+                // The pdfrx pagePaintCallback canvas is in content space,
+                // so highlights must be stored in content-space coords.
+                final scrollOffset = _pdfController?.visibleRect.topLeft ?? Offset.zero;
+                final contentPos = details.localPosition + scrollOffset;
                 final provider = context.read<HighlightProvider>();
-                provider.startDraw(details.localPosition, _currentPage);
+                provider.startDraw(contentPos, _currentPage);
               },
               onPanUpdate: (details) {
+                final scrollOffset = _pdfController?.visibleRect.topLeft ?? Offset.zero;
+                final contentPos = details.localPosition + scrollOffset;
                 context.read<HighlightProvider>().updateDraw(
-                  details.localPosition,
+                  contentPos,
                 );
               },
               onPanEnd: (_) {

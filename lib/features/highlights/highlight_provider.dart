@@ -320,15 +320,12 @@ class HighlightProvider extends ChangeNotifier {
     }
   }
 
-  /// Paint a rectangle-type highlight (stored viewer widget-space coords).
+  /// Paint a rectangle-type highlight (stored viewer content-space coords).
   ///
-  /// The stored coordinates come from the GestureDetector's `localPosition`,
-  /// which is in viewer widget-space (0,0 = top-left of the PdfViewer widget).
-  /// The pdfrx `pagePaintCallback` canvas also operates in viewer widget-space
-  /// (confirmed by [_paintTextHighlight], which converts page-relative PDF
-  /// coords to widget-space by adding `pageRect.left/top`).
-  ///
-  /// Therefore the stored coords are drawn directly without any translation.
+  /// Coordinates come from the GestureDetector, converted from viewport-space
+  /// to content-space by adding the scroll offset (visibleRect.topLeft).
+  /// The pdfrx pagePaintCallback canvas operates in the same content space,
+  /// so coords are drawn directly without any translation.
   void _paintRectangleHighlight(
     ui.Canvas canvas,
     Rect pageRect,
