@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:feya_pdf/build_info.dart';
 import 'package:feya_pdf/features/settings/backup_provider.dart';
 import 'package:feya_pdf/features/encryption/encryption_provider.dart';
 import 'package:feya_pdf/features/settings/settings_provider.dart';
@@ -255,28 +257,92 @@ class SettingsScreen extends StatelessWidget {
 
           // ── About Section ──
           _SectionHeader('About'),
-          Consumer<UpdateProvider>(
-            builder: (ctx, update, _) => ListTile(
-              leading: const Icon(Icons.info_outline_rounded),
-              title: const Text('Version'),
-              trailing: Text(
-                'v${update.currentVersion}',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 13,
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/logo/FEYA PDF.png',
+                        width: 64,
+                        height: 64,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Feya PDF',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'A clean, fast, ad-free PDF reader',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-          _UpdateCheckTile(),
-          ListTile(
-            leading: const Icon(Icons.code_rounded),
-            title: const Text('Open source licenses'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => showLicensePage(
-              context: context,
-              applicationName: 'Feya PDF',
-              applicationVersion: context.read<UpdateProvider>().currentVersion,
+                const Divider(height: 1),
+                Consumer<UpdateProvider>(
+                  builder: (ctx, update, _) => ListTile(
+                    leading: const Icon(Icons.info_outline_rounded),
+                    title: const Text('Version'),
+                    trailing: Text(
+                      'v${update.currentVersion}',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.tag_rounded),
+                  title: const Text('Commit'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        BuildInfo.gitHash,
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy_rounded, size: 18),
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: BuildInfo.gitHash));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Commit hash copied'),
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                _UpdateCheckTile(),
+                ListTile(
+                  leading: const Icon(Icons.code_rounded),
+                  title: const Text('Open source licenses'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: 'Feya PDF',
+                    applicationVersion: context.read<UpdateProvider>().currentVersion,
+                  ),
+                ),
+              ],
             ),
           ),
 

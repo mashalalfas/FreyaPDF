@@ -85,19 +85,35 @@ class _LottieOverlayState extends State<_LottieOverlay> {
       color: Theme.of(context).colorScheme.surface,
       child: Center(
         child: RepaintBoundary(
-          child: Lottie.asset(
-            widget.asset,
-            width: 120,
-            height: 120,
-            repeat: false,
-            animate: true,
-            errorBuilder: (context, error, stackTrace) {
-              return Icon(
-                Icons.picture_as_pdf_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
-              );
-            },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.asset(
+                widget.asset,
+                width: 120,
+                height: 120,
+                repeat: false,
+                animate: true,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.picture_as_pdf_outlined,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              Image.asset(
+                'assets/logo/FEYA PDF.png',
+                width: 32,
+                height: 32,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Feya PDF',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
         ),
       ),
