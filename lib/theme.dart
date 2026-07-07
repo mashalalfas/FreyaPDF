@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // Warm, earthy palette — matches Feya exactly
@@ -10,6 +9,9 @@ class AppTheme {
   static const _warmSurface = Color(0xFFF5F0E8);
   static const _darkBg = Color(0xFF1A1C1E);
   static const _darkSurface = Color(0xFF252729);
+
+  /// Use 'Inter' everywhere — bundled in assets/fonts/.
+  static const _fontFamily = 'Inter';
 
   static ThemeData light() {
     final colorScheme = ColorScheme.fromSeed(
@@ -29,18 +31,19 @@ class AppTheme {
         surfaceContainerHighest: const Color(0xFFD8D1C2),
       ),
       scaffoldBackgroundColor: _warmBg,
-      textTheme: GoogleFonts.interTextTheme().copyWith(
-        bodyLarge: GoogleFonts.inter(fontSize: 16, height: 1.6),
-        bodyMedium: GoogleFonts.inter(fontSize: 14, height: 1.5),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6),
+        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: _warmSurface,
         foregroundColor: const Color(0xFF1A1A1A),
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: const TextStyle(
+          fontFamily: _fontFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF1A1A1A),
+          color: Color(0xFF1A1A1A),
         ),
       ),
       cardTheme: CardThemeData(
@@ -110,18 +113,19 @@ class AppTheme {
         surfaceContainerHighest: const Color(0xFF3B3D3F),
       ),
       scaffoldBackgroundColor: _darkBg,
-      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
-        bodyLarge: GoogleFonts.inter(fontSize: 16, height: 1.6, color: const Color(0xFFE4E4E4)),
-        bodyMedium: GoogleFonts.inter(fontSize: 14, height: 1.5, color: const Color(0xFFC4C4C4)),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6, color: Color(0xFFE4E4E4)),
+        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5, color: Color(0xFFC4C4C4)),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: _darkSurface,
         foregroundColor: const Color(0xFFE4E4E4),
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: const TextStyle(
+          fontFamily: _fontFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFFE4E4E4),
+          color: Color(0xFFE4E4E4),
         ),
       ),
       cardTheme: CardThemeData(
