@@ -16,6 +16,7 @@ enum SaveResult {
 
 class FileOperationsProvider extends ChangeNotifier {
   EncryptionProvider? _encryptionProvider;
+  final List<File> _tempDecryptedFiles = [];
 
   void attachEncryption(EncryptionProvider provider) {
     _encryptionProvider = provider;
@@ -97,6 +98,7 @@ class FileOperationsProvider extends ChangeNotifier {
         await tempFile.writeAsBytes(bytes);
         final xFile = XFile(tempFile.path, mimeType: 'application/pdf');
         await Share.shareXFiles([xFile], text: pdfName);
+        await tempFile.delete();
       } else {
         // Share the file directly
         final xFile = XFile(path, mimeType: 'application/pdf');
@@ -164,6 +166,7 @@ class FileOperationsProvider extends ChangeNotifier {
             final tempFile = File('${dir.path}/$pdfName');
             await tempFile.writeAsBytes(bytes);
             xFiles.add(XFile(tempFile.path, mimeType: 'application/pdf'));
+            _tempDecryptedFiles.add(tempFile);
           } else {
             xFiles.add(XFile(path, mimeType: 'application/pdf'));
           }
@@ -174,6 +177,11 @@ class FileOperationsProvider extends ChangeNotifier {
             ? paths.first.split('/').last
             : '${paths.length} PDFs';
         await Share.shareXFiles(xFiles, text: text);
+        // Clean up any temporary decrypted files created for sharing.
+        for (final f in _tempDecryptedFiles) {
+          try { await f.delete(); } catch (_) {}
+        }
+        _tempDecryptedFiles.clear();
       }
     } catch (_) {
       // Caller handles error display

@@ -59,3 +59,4 @@ IDENTITY.md
 SOUL.md
 TOOLS.md
 USER.md
+*.jks\nkey.properties\n

@@ -335,6 +335,13 @@ class SettingsScreen extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.code_rounded),
                   title: const Text('Open source licenses'),
+                  subtitle: Text(
+                    'Includes MIT/Apache/BSD licensed works',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
+                  ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => showLicensePage(
                     context: context,

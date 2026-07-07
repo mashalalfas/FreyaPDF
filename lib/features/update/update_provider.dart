@@ -40,6 +40,7 @@ class UpdateProvider extends ChangeNotifier {
 
   /// Initialize by reading the current app version.
   Future<void> init() async {
+    _service.cleanupStaleApks();
     final info = await PackageInfo.fromPlatform();
     _currentVersion = info.version;
     notifyListeners();

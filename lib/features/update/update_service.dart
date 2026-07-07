@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:feya_pdf/build_config.dart';
 
 /// Describes a single GitHub release asset (e.g. the APK).
 class GitHubAsset {
@@ -90,6 +89,11 @@ class UpdateService {
 
   UpdateService({http.Client? client}) : _client = client ?? http.Client();
 
+  // ── Play Store gating ─────────────────────────────────────────────
+
+  /// Returns false when running a Play Store build (auto-update disabled).
+  bool get _canUpdate => !BuildConfig.isPlayStoreBuild;
+
   // ── Version comparison ──────────────────────────────────────────────
 
   /// Compare two semver strings like "1.2.3". Returns true when [remote]
@@ -117,6 +121,7 @@ class UpdateService {
 
   /// Fetch the latest release from GitHub.
   Future<GitHubRelease?> fetchLatestRelease() async {
+    if (!_canUpdate) return null;
     final response = await _client.get(
       Uri.parse(_releasesUrl),
       headers: {
@@ -135,6 +140,9 @@ class UpdateService {
 
   /// Full check: fetch release, compare with installed version.
   Future<UpdateCheckResult> checkForUpdate() async {
+    if (!_canUpdate) {
+      return const UpdateCheckResult(status: UpdateStatus.upToDate);
+    }
     try {
       final info = await PackageInfo.fromPlatform();
       final release = await fetchLatestRelease();
@@ -158,7 +166,6 @@ class UpdateService {
     } on http.ClientException {
       return const UpdateCheckResult(status: UpdateStatus.noInternet);
     } catch (e) {
-      debugPrint('Update check failed: $e');
       return const UpdateCheckResult(status: UpdateStatus.error);
     }
   }
@@ -172,6 +179,7 @@ class UpdateService {
     DownloadProgress? onProgress,
     CancelToken? cancelToken,
   }) async {
+    if (!_canUpdate) return null;
     try {
       final cacheDir = await getTemporaryDirectory();
       final filePath = '${cacheDir.path}/${asset.name}';
@@ -186,7 +194,6 @@ class UpdateService {
       final response = await _client.send(request);
 
       if (response.statusCode != 200) {
-        debugPrint('APK download failed: HTTP ${response.statusCode}');
         return null;
       }
 
@@ -218,7 +225,6 @@ class UpdateService {
 
       return filePath;
     } catch (e) {
-      debugPrint('APK download error: $e');
       return null;
     }
   }
@@ -226,6 +232,21 @@ class UpdateService {
   /// Open a downloaded APK file for installation.
   Future<void> installApk(String filePath) async {
     await OpenFilex.open(filePath);
+  }
+
+  /// Delete stale APK files from the cache directory.
+  Future<void> cleanupStaleApks() async {
+    try {
+      final cacheDir = await getTemporaryDirectory();
+      final files = cacheDir.listSync();
+      for (final f in files) {
+        if (f is File && f.path.toLowerCase().endsWith('.apk')) {
+          try {
+            await f.delete();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
   }
 }
 

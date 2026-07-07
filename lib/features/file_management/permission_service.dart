@@ -5,19 +5,19 @@ import 'package:device_info_plus/device_info_plus.dart';
 
 class PermissionService {
   /// Check if we have storage permission.
-  /// On Android 11+, requires MANAGE_EXTERNAL_STORAGE.
-  /// On Android 10 and below, requires READ_EXTERNAL_STORAGE.
+  /// On Android 10+, uses MediaStore — no special permission needed.
+  /// On Android 9 and below, uses READ_EXTERNAL_STORAGE.
   static Future<bool> hasStoragePermission() async {
     if (!Platform.isAndroid) return true;
 
     final androidInfo = await DeviceInfoPlugin().androidInfo;
     final sdkInt = androidInfo.version.sdkInt;
 
-    if (sdkInt >= 30) {
-      // Android 11+ — need MANAGE_EXTERNAL_STORAGE
-      return await Permission.manageExternalStorage.isGranted;
+    if (sdkInt >= 29) {
+      // Android 10+ — MediaStore works without special permission
+      return true;
     } else {
-      // Android 10 and below
+      // Android 9 and below
       return await Permission.storage.isGranted;
     }
   }
@@ -29,19 +29,11 @@ class PermissionService {
     final androidInfo = await DeviceInfoPlugin().androidInfo;
     final sdkInt = androidInfo.version.sdkInt;
 
-    if (sdkInt >= 30) {
-      // Android 11+ — MANAGE_EXTERNAL_STORAGE requires opening settings
-      final status = await Permission.manageExternalStorage.status;
-      if (status.isGranted) return true;
-
-      // Request — this will show a dialog explaining why we need it
-      final result = await Permission.manageExternalStorage.request();
-      if (result.isGranted) return true;
-
-      // If denied, we need to open settings manually
-      return false;
+    if (sdkInt >= 29) {
+      // Android 10+ — MediaStore API fallback, no permission needed
+      return true;
     } else {
-      // Android 10 and below — standard permission request
+      // Android 9 and below — standard permission request
       final result = await Permission.storage.request();
       return result.isGranted;
     }

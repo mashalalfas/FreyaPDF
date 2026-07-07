@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:feya_pdf/build_config.dart';
 import 'package:feya_pdf/features/file_management/app_state.dart';
 import 'package:feya_pdf/features/file_management/favorites_provider.dart';
 import 'package:feya_pdf/features/encryption/encryption_provider.dart';
@@ -100,7 +101,10 @@ class _FeyaPdfAppState extends State<FeyaPdfApp> {
 
         // Initialize update provider and fire a silent background check.
         final update = context.read<UpdateProvider>();
-        update.init().then((_) => update.checkForUpdate(silent: true));
+        update.init();
+        if (!BuildConfig.isPlayStoreBuild) {
+          update.checkForUpdate(silent: true);
+        }
         final appState = context.read<AppState>();
         final sortSearch = context.read<SortSearchProvider>();
         final paths = context.read<ScannedPathsProvider>();

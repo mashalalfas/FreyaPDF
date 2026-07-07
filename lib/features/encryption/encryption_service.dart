@@ -8,13 +8,13 @@ import 'package:pointycastle/export.dart';
 /// Encrypts and decrypts PDF bytes using AES-256-GCM.
 ///
 /// Format:
-///   "MELY" + version(1) + iv(12) + salt(32) + ciphertext + auth_tag(16)
+///   "FEYA" + version(1) + iv(12) + salt(32) + ciphertext + auth_tag(16)
 ///
 /// Key derivation: PBKDF2-SHA256, 600,000 iterations, 32-byte key.
 ///
 /// Same format as Feya's encryption, just applied to PDF bytes.
 class EncryptionService {
-  static const _magic = [0x4D, 0x45, 0x4C, 0x59]; // "MELY"
+  static const _magic = [0x46, 0x45, 0x59, 0x41]; // "FEYA"
   static const _version = 1;
   static const _saltLength = 32;
   static const _ivLength = 12;

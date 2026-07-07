@@ -52,7 +52,7 @@ void main() {
     test('returns true for bytes prefixed with F-E-Y-A magic', () {
       final bytes = Uint8List.fromList(const [
         0x46, 0x45, 0x59, 0x41, // 'FEYA'
-        0x4D, 0x45, 0x4C, 0x59, // 'MELY' (encryption service magic)
+        0x46, 0x45, 0x59, 0x41, // 'FEYA' (inner encryption magic)
         0x01,
         // ... rest doesn't matter for the test
       ]);
@@ -96,12 +96,11 @@ void main() {
     });
 
     test('decrypt throws when payload lacks FEYA magic', () {
-      // Encrypt with the lower-level service so bytes start with MELY,
-      // not FEYA — simulating a plain-bytes payload passed by mistake.
-      final bare = EncryptionService.encryptBytes(
-        Uint8List.fromList(utf8.encode('hello')),
-        passphrase,
-      );
+      // Construct payload with invalid magic bytes to simulate corrupted data.
+      final bare = Uint8List.fromList([
+        0x00, 0x01, 0x02, 0x03, // invalid magic
+        ...List.filled(50, 0xFF),
+      ]);
       expect(
         () => backupService.decryptBackupToJson(bare, passphrase),
         throwsA(isA<EncryptionException>()),
@@ -121,7 +120,7 @@ void main() {
       const json = '{"a":1}';
       final raw = Uint8List.fromList(utf8.encode(json));
       final encrypted = backupService.encryptBackupJson(json, passphrase);
-      // Magic (4) + MELY header (5) + iv (12) + salt (32) + tag (16)
+      // Magic (4) + FEYA header (5) + iv (12) + salt (32) + tag (16)
       // = 69 bytes of overhead minimum.
       expect(encrypted.length, greaterThan(raw.length + 60));
     });

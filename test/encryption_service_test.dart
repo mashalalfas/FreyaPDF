@@ -102,16 +102,16 @@ void main() {
 
     // Arrange: encrypt any payload
     // Act: inspect first 4 bytes of ciphertext
-    // Assert: bytes match ASCII 'MELY' magic header (0x4D 0x45 0x4C 0x59)
-    test('encrypted output has magic header MELY', () {
+    // Assert: bytes match ASCII 'FEYA' magic header (0x46 0x45 0x59 0x41)
+    test('encrypted output has magic header FEYA', () {
       final encrypted = EncryptionService.encryptBytes(
         Uint8List.fromList('header check'.codeUnits),
         passphrase,
       );
-      expect(encrypted[0], equals(0x4D));
+      expect(encrypted[0], equals(0x46));
       expect(encrypted[1], equals(0x45));
-      expect(encrypted[2], equals(0x4C));
-      expect(encrypted[3], equals(0x59));
+      expect(encrypted[2], equals(0x59));
+      expect(encrypted[3], equals(0x41));
     });
 
     // Arrange: all 256 possible byte values (not valid UTF-8 as a whole)
