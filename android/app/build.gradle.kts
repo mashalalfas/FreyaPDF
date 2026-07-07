@@ -5,11 +5,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
 // Load keystore from key.properties (gitignored)
 val keystorePropertiesFile = rootProject.file("key.properties")
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -23,7 +26,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -40,10 +43,10 @@ android {
     signingConfigs {
         create("release") {
             if (keystorePropertiesFile.exists()) {
-                keyAlias = keystoreProperties["keyAlias"] as String
-                keyPassword = keystoreProperties["keyPassword"] as String
-                storeFile = file(keystoreProperties["storeFile"] as String)
-                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"].toString()
+                keyPassword = keystoreProperties["keyPassword"].toString()
+                storeFile = file(keystoreProperties["storeFile"].toString())
+                storePassword = keystoreProperties["storePassword"].toString()
             }
         }
     }
