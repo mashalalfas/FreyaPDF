@@ -5,6 +5,8 @@ import 'package:feya_pdf/features/encryption/encryption_provider.dart';
 import 'package:feya_pdf/features/settings/settings_provider.dart';
 import 'package:feya_pdf/features/security/app_lock_service.dart';
 import 'package:feya_pdf/features/encryption/widgets/passphrase_dialog.dart';
+import 'package:feya_pdf/features/update/update_provider.dart';
+import 'package:feya_pdf/features/update/widgets/update_dialog.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -253,17 +255,20 @@ class SettingsScreen extends StatelessWidget {
 
           // ── About Section ──
           _SectionHeader('About'),
-          ListTile(
-            leading: const Icon(Icons.info_outline_rounded),
-            title: const Text('Version'),
-            trailing: Text(
-              '1.0.0+1',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
+          Consumer<UpdateProvider>(
+            builder: (ctx, update, _) => ListTile(
+              leading: const Icon(Icons.info_outline_rounded),
+              title: const Text('Version'),
+              trailing: Text(
+                'v${update.currentVersion}',
+                style: TextStyle(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 13,
+                ),
               ),
             ),
           ),
+          _UpdateCheckTile(),
           ListTile(
             leading: const Icon(Icons.code_rounded),
             title: const Text('Open source licenses'),
@@ -271,7 +276,7 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'Feya PDF',
-              applicationVersion: '1.0.0+1',
+              applicationVersion: context.read<UpdateProvider>().currentVersion,
             ),
           ),
 
@@ -870,6 +875,100 @@ class _SetupKey extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UpdateCheckTile extends StatefulWidget {
+  const _UpdateCheckTile();
+
+  @override
+  State<_UpdateCheckTile> createState() => _UpdateCheckTileState();
+}
+
+class _UpdateCheckTileState extends State<_UpdateCheckTile> {
+  bool _checking = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final update = context.watch<UpdateProvider>();
+
+    return ListTile(
+      leading: Icon(
+        Icons.system_update_rounded,
+        color: _checking ? colorScheme.primary : null,
+      ),
+      title: const Text('Check for updates'),
+      subtitle: Text(
+        _checking ? 'Checking…' : 'See if a newer version is available',
+        style: TextStyle(
+          color: colorScheme.onSurfaceVariant,
+          fontSize: 13,
+        ),
+      ),
+      trailing: _checking
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorScheme.primary,
+              ),
+            )
+          : const Icon(Icons.chevron_right_rounded),
+      onTap: _checking
+          ? null
+          : () async {
+              setState(() => _checking = true);
+              final messenger = ScaffoldMessenger.of(context);
+              await update.checkForUpdate();
+              if (!mounted) return;
+              setState(() => _checking = false);
+
+              switch (update.state) {
+                case UpdateState.updateAvailable:
+                  // ignore: use_build_context_synchronously
+                  showUpdateDialog(context);
+                  break;
+                case UpdateState.upToDate:
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'You\'re up to date (v${update.currentVersion})',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                  break;
+                case UpdateState.noInternet:
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: const Text('No internet connection'),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  );
+                  break;
+                default:
+                  if (update.errorMessage != null) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(update.errorMessage!),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  }
+              }
+            },
     );
   }
 }

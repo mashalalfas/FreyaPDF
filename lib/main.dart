@@ -23,6 +23,7 @@ import 'package:feya_pdf/features/highlights/highlight_provider.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
 import 'package:feya_pdf/features/settings/backup_provider.dart';
 import 'package:feya_pdf/features/settings/backup_service.dart';
+import 'package:feya_pdf/features/update/update_provider.dart';
 import 'package:feya_pdf/theme.dart';
 import 'package:feya_pdf/features/file_management/home_screen.dart';
 import 'package:feya_pdf/features/security/widgets/app_lock_screen.dart';
@@ -71,6 +72,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BackupProvider(backupService)),
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => SelectionProvider()),
+        ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: const FeyaPdfApp(),
     ),
@@ -95,6 +97,10 @@ class _FeyaPdfAppState extends State<FeyaPdfApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_wired && mounted) {
         _wired = true;
+
+        // Initialize update provider and fire a silent background check.
+        final update = context.read<UpdateProvider>();
+        update.init().then((_) => update.checkForUpdate(silent: true));
         final appState = context.read<AppState>();
         final sortSearch = context.read<SortSearchProvider>();
         final paths = context.read<ScannedPathsProvider>();

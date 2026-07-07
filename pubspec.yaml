@@ -26,11 +26,15 @@ dependencies:
   pdfrx: ^2.3.0
   flutter_secure_storage: ^9.2.0
   local_auth: ^3.0.1
+  package_info_plus: ^8.0.0
+  http: ^1.2.0
+  open_filex: ^4.5.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.1
   local_auth_platform_interface: ^1.1.0
   plugin_platform_interface: ^2.1.8
 
@@ -40,3 +44,12 @@ flutter:
   assets:
     - assets/animations/
     - assets/logo/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  remove_alpha_ios: false
+  image_path: "assets/logo/FEYA PDF.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/logo/FEYA PDF.png"
+  min_sdk_android: 21

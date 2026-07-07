@@ -20,6 +20,7 @@ import 'package:feya_pdf/features/file_management/selection_provider.dart';
 import 'package:feya_pdf/features/settings/settings_provider.dart';
 import 'package:feya_pdf/features/file_management/sort_search_provider.dart';
 import 'package:feya_pdf/features/tags/tag_provider.dart';
+import 'package:feya_pdf/features/update/update_provider.dart';
 import 'package:feya_pdf/features/settings/backup_service.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
 import 'package:feya_pdf/features/highlights/highlight_service.dart';
@@ -71,6 +72,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => BackupProvider(backupService)),
             ChangeNotifierProvider(create: (_) => FavoritesProvider(settingsService)),
             ChangeNotifierProvider(create: (_) => SelectionProvider()),
+            ChangeNotifierProvider(create: (_) => UpdateProvider()),
           ],
           child: const FeyaPdfApp(),
         ),
@@ -119,6 +121,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => BackupProvider(backupService)),
             ChangeNotifierProvider(create: (_) => FavoritesProvider(settingsService)),
             ChangeNotifierProvider(create: (_) => SelectionProvider()),
+            ChangeNotifierProvider(create: (_) => UpdateProvider()),
           ],
           child: const FeyaPdfApp(),
         ),
