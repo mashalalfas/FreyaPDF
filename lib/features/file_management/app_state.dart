@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:feya_pdf/core/models/pdf_file.dart';
 import 'package:feya_pdf/features/file_management/file_service.dart';
@@ -72,6 +73,10 @@ class AppState extends ChangeNotifier {
       }
       _isLoading = false;
       notifyListeners();
+    } on FileSystemException {
+      _error = 'Permission denied — use "Open PDF" to select files individually';
+      _isLoading = false;
+      notifyListeners();
     } catch (e) {
       _error = 'Failed to load directory: $e';
       _isLoading = false;
@@ -127,6 +132,9 @@ class AppState extends ChangeNotifier {
             }
             return dirFiles;
           }
+        } on FileSystemException {
+          // Permission denied on Android 10+ — silently skip this path
+          return <PdfFile>[];
         } catch (e) {
           debugPrint('AppState: failed to scan directory $path: $e');
           return <PdfFile>[];
