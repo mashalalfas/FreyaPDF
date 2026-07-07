@@ -128,9 +128,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final pathsProvider = context.read<ScannedPathsProvider>();
       await pathsProvider.persistAfterPick(result);
       await appState.loadDirectory(result);
-      if (appState.error != null &&
-          appState.error!.contains('Permission denied') &&
-          mounted) {
+      if (appState.error != null && mounted) {
         await _pickFiles();
       }
       _staggerController.reset();
@@ -383,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       floatingActionButton: FloatingActionButton(
         onPressed: _pickDirectory,
         tooltip: 'Open folder',
-        child: const Icon(Icons.folder_open_rounded),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
@@ -460,13 +458,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                "Tap the + button to open PDF files. On this device, Feya PDF uses Android's file picker to access your documents.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontSize: 13,
-                ),
+              const Text(
+                'Open a folder to scan for PDF files',
               ),
               const SizedBox(height: 24),
               FilledButton.icon(

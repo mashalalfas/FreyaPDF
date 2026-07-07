@@ -14,76 +14,23 @@ class PermissionService {
     final sdkInt = androidInfo.version.sdkInt;
 
     if (sdkInt >= 29) {
-      // Android 10+ — verify we can actually access the filesystem
-      return await hasDirectoryAccess();
+      // Android 10+ — MediaStore works without special permission
+      return true;
     } else {
       // Android 9 and below
       return await Permission.storage.isGranted;
     }
   }
 
-  /// On Android 10+, test if we can actually access the filesystem.
-  /// Without MANAGE_EXTERNAL_STORAGE, direct Directory() access fails.
-  static Future<bool> hasDirectoryAccess() async {
-    if (!Platform.isAndroid) return true;
-
-    final androidInfo = await DeviceInfoPlugin().androidInfo;
-    final sdkInt = androidInfo.version.sdkInt;
-
-    if (sdkInt >= 30) {
-      // Android 11+ — try reading a known path
-      try {
-        final dir = Directory('/storage/emulated/0/Download');
-        if (await dir.exists()) {
-          await dir.list().first;
-          return true;
-        }
-      } catch (_) {
-        return false;
-      }
-      return false;
-    }
-    // Android 10 uses scoped storage but some paths are still accessible
-    if (sdkInt == 29) return true;
-
-    // Below Android 10
-    return await Permission.storage.isGranted;
-  }
-
   /// Request storage permission. Returns true if granted.
-  static Future<bool> requestStoragePermission(BuildContext ctx) async {
+  static Future<bool> requestStoragePermission() async {
     if (!Platform.isAndroid) return true;
 
     final androidInfo = await DeviceInfoPlugin().androidInfo;
     final sdkInt = androidInfo.version.sdkInt;
 
-    if (sdkInt >= 30) {
-      // Android 11+ — MANAGE_EXTERNAL_STORAGE removed; use SAF file picker
-      if (ctx.mounted) {
-        await showDialog(
-          context: ctx,
-          builder: (dctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Row(
-              children: [
-                Icon(Icons.info_outline_rounded, color: Theme.of(ctx).colorScheme.primary),
-                const SizedBox(width: 10),
-                const Text('Storage Access'),
-              ],
-            ),
-            content: const Text(
-              'Feya PDF uses Android\'s built-in file picker to open PDFs on this device.\n\n'
-              'Just tap "Open PDF" and select your files.',
-            ),
-            actions: [
-              FilledButton(
-                onPressed: () => Navigator.pop(dctx),
-                child: const Text('Got it'),
-              ),
-            ],
-          ),
-        );
-      }
+    if (sdkInt >= 29) {
+      // Android 10+ — MediaStore API fallback, no permission needed
       return true;
     } else {
       // Android 9 and below — standard permission request
@@ -97,7 +44,7 @@ class PermissionService {
     await openAppSettings();
   }
 
-  /// Show a dialog explaining how to access files.
+  /// Show a dialog explaining why we need storage permission.
   static Future<bool> showPermissionDialog(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
@@ -129,7 +76,7 @@ class PermissionService {
 
     if (result == true) {
       if (context.mounted) {
-        return await requestStoragePermission(context);
+        return await requestStoragePermission();
       }
     }
     return false;
