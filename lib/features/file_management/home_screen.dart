@@ -257,17 +257,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               )
             : Row(
                 children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.picture_as_pdf_rounded,
-                      size: 18,
-                      color: Colors.white,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Image.asset(
+                      'assets/logo/FEYA PDF.png',
+                      width: 28,
+                      height: 28,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -432,10 +428,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.picture_as_pdf_outlined,
-                size: 64,
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+              Image.asset(
+                'assets/logo/FEYA PDF.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.contain,
               ),
               const SizedBox(height: 16),
               Text(

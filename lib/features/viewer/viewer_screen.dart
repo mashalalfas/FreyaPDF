@@ -563,6 +563,52 @@ class _ViewerScreenState extends State<ViewerScreen> {
     );
   }
 
+  /// Convert a viewport-space point (from a GestureDetector over the
+  /// Positioned.fill overlay) to content-space (the same coord space as
+  /// the pdfrx pagePaintCallback canvas).
+  ///
+  /// `visibleRect` is in content-space (unzoomed units, per pdfrx 1.3.5).
+  /// Conversion: `content = visibleRect.topLeft + viewport / zoom`,
+  /// where `zoom = viewSize.width / visibleRect.width`.
+  Offset _viewportToContent(Offset viewport) {
+    final visible = safeVisibleRect();
+    final size = safeViewSize();
+    if (visible == null || size == null || visible.width <= 0) {
+      return viewport; // best-effort before viewer is ready
+    }
+    final invZoom = visible.width / size.width; // = 1 / zoom
+    return visible.topLeft + viewport * invZoom;
+  }
+
+  /// Safely read [_pdfController]'s `visibleRect`. pdfrx 1.3.5 internally
+  /// dereferences `_viewSize!`, which throws "Null check operator used on
+  /// a null value" when the viewer has not been laid out yet (e.g. draw
+  /// mode is activated during the brief window between document open and
+  /// the first LayoutBuilder pass). This wrapper catches that and returns
+  /// `null` so callers can fall back gracefully.
+  ///
+  /// Exposed package-private (no underscore) so tests can drive it with a
+  /// real [PdfViewerController] in the unattached state.
+  @visibleForTesting
+  Rect? safeVisibleRect() {
+    try {
+      return _pdfController?.visibleRect;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Safely read [_pdfController]'s `viewSize`. See [safeVisibleRect] for
+  /// the rationale — pdfrx's `viewSize` getter is `_state._viewSize!`.
+  @visibleForTesting
+  Size? safeViewSize() {
+    try {
+      return _pdfController?.viewSize;
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -622,6 +668,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         ),
                         tooltip: 'Table of Contents',
                         onPressed: _showOutline,
+                        visualDensity: VisualDensity.compact,
                       ),
                       // Thumbnails
                       if (settings.showThumbnails)
@@ -633,6 +680,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                           ),
                           tooltip: 'Thumbnails',
                           onPressed: _showThumbnailGrid,
+                          visualDensity: VisualDensity.compact,
                         ),
                       // Dark reading mode
                       IconButton(
@@ -648,6 +696,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                             : 'Enable dark reading',
                         onPressed: () =>
                             settings.setDarkReadingMode(!settings.darkReadingMode),
+                        visualDensity: VisualDensity.compact,
                       ),
                       // Search
                       IconButton(
@@ -663,6 +712,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                             _showSearchBar = !_showSearchBar;
                           });
                         },
+                        visualDensity: VisualDensity.compact,
                       ),
                       // Highlight mode
                       IconButton(
@@ -677,6 +727,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         onPressed: () {
                           context.read<HighlightProvider>().toggleHighlightMode();
                         },
+                        visualDensity: VisualDensity.compact,
                       ),
                       // Highlights panel
                       IconButton(
@@ -691,6 +742,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         onPressed: () {
                           context.read<HighlightProvider>().togglePanel();
                         },
+                        visualDensity: VisualDensity.compact,
                       ),
                       // Bookmark
                       IconButton(
@@ -727,12 +779,14 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         icon: const Icon(Icons.download_rounded, size: 20),
                         tooltip: 'Save to folder',
                         onPressed: _saveToLocal,
+                        visualDensity: VisualDensity.compact,
                       ),
                       // Share
                       IconButton(
                         icon: const Icon(Icons.share_rounded, size: 20),
                         tooltip: 'Share',
                         onPressed: _shareFile,
+                        visualDensity: VisualDensity.compact,
                       ),
                     ],
                   ),
@@ -1055,20 +1109,15 @@ class _ViewerScreenState extends State<ViewerScreen> {
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onPanStart: (details) {
-                // Convert viewport-space gesture coords to content-space
-                // by adding the current scroll offset (visibleRect.topLeft).
-                // The pdfrx pagePaintCallback canvas is in content space,
-                // so highlights must be stored in content-space coords.
-                final scrollOffset = _pdfController?.visibleRect.topLeft ?? Offset.zero;
-                final contentPos = details.localPosition + scrollOffset;
+                // Convert viewport-space gesture coords to content-space,
+                // accounting for both scroll offset and current zoom.
+                final contentPos = _viewportToContent(details.localPosition);
                 final provider = context.read<HighlightProvider>();
                 provider.startDraw(contentPos, _currentPage);
               },
               onPanUpdate: (details) {
-                final scrollOffset = _pdfController?.visibleRect.topLeft ?? Offset.zero;
-                final contentPos = details.localPosition + scrollOffset;
                 context.read<HighlightProvider>().updateDraw(
-                  contentPos,
+                  _viewportToContent(details.localPosition),
                 );
               },
               onPanEnd: (_) {
@@ -1080,6 +1129,14 @@ class _ViewerScreenState extends State<ViewerScreen> {
               child: CustomPaint(
                 painter: _DrawPreviewPainter(
                   drawRect: drawRect,
+                  contentToViewport:
+                      safeVisibleRect()?.topLeft ?? Offset.zero,
+                  contentToViewportScale: () {
+                    final v = safeVisibleRect();
+                    final s = safeViewSize();
+                    if (v == null || s == null || v.width <= 0) return 1.0;
+                    return s.width / v.width; // = zoom
+                  }(),
                   color: Color(context.read<HighlightProvider>().fileHighlights.isNotEmpty
                       ? context.read<HighlightProvider>().fileHighlights.last.color
                       : 0xFFFFEB3B),
@@ -1420,14 +1477,29 @@ class _ViewerScreenState extends State<ViewerScreen> {
 }
 
 class _DrawPreviewPainter extends CustomPainter {
-  final Rect? drawRect;
+  final Rect? drawRect;             // content-space
+  final Offset contentToViewport;   // = visibleRect.topLeft
+  final double contentToViewportScale; // = zoom = viewSize.w / visibleRect.w
   final Color color;
 
-  _DrawPreviewPainter({required this.drawRect, required this.color});
+  _DrawPreviewPainter({
+    required this.drawRect,
+    required this.contentToViewport,
+    required this.contentToViewportScale,
+    required this.color,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (drawRect == null) return;
+
+    // content -> viewport: `viewport = (content - topLeft) * zoom`
+    final r = Rect.fromLTRB(
+      (drawRect!.left   - contentToViewport.dx) * contentToViewportScale,
+      (drawRect!.top    - contentToViewport.dy) * contentToViewportScale,
+      (drawRect!.right  - contentToViewport.dx) * contentToViewportScale,
+      (drawRect!.bottom - contentToViewport.dy) * contentToViewportScale,
+    );
 
     final fillPaint = Paint()
       ..color = color.withValues(alpha: 0.25)
@@ -1438,12 +1510,15 @@ class _DrawPreviewPainter extends CustomPainter {
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawRect(drawRect!, fillPaint);
-    canvas.drawRect(drawRect!, borderPaint);
+    canvas.drawRect(r, fillPaint);
+    canvas.drawRect(r, borderPaint);
   }
 
   @override
   bool shouldRepaint(covariant _DrawPreviewPainter oldDelegate) {
-    return oldDelegate.drawRect != drawRect || oldDelegate.color != color;
+    return oldDelegate.drawRect != drawRect ||
+           oldDelegate.contentToViewport != contentToViewport ||
+           oldDelegate.contentToViewportScale != contentToViewportScale ||
+           oldDelegate.color != color;
   }
 }

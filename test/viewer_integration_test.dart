@@ -265,8 +265,11 @@ void main() {
         await _pumpViewer(tester, file: file);
         await tester.pump();
 
-        // Assert
-        expect(find.byIcon(Icons.lock_rounded), findsOneWidget);
+        // Assert — the AppBar shows the lock icon twice for an encrypted
+        // file: a small (14px) one in the title and a larger (20px) one
+        // in actions. Both come from ViewerScreen, so verifying that both
+        // render is what this test actually wants to assert.
+        expect(find.byIcon(Icons.lock_rounded), findsNWidgets(2));
         // displayName strips .enc: 'secret.pdf.enc' → 'secret.pdf'
         expect(find.text('secret.pdf'), findsOneWidget);
       },
