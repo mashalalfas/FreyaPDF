@@ -12,12 +12,6 @@ A clean, consolidated documentation set for the FeyaPDF codebase. Old, supersede
 | [`docs/clean/roadmap.md`](roadmap.md) | Consolidated plan/roadmap status (plans 001–005 + PDF password memory). |
 | [`docs/clean/architecture.md`](architecture.md) | Architecture and module overview. |
 
-## Archived (superseded / one-off)
-
-Old search investigations, bug reports, index plans, session prompts, and per-plan
-checklists live under `docs/archive/`. They are kept for historical reference only and
-should not be treated as current status.
-
 ## Build
 
 The app embeds the current git commit hash at build time. Always build via the wrapper:
