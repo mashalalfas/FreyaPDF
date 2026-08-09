@@ -1,0 +1,28 @@
+# FeyaPDF — Documentation
+
+A clean, consolidated documentation set for the FeyaPDF codebase. Old, superseded, and one-off working notes have been archived under `docs/archive/`.
+
+## Index
+
+| Document | Purpose |
+|---|---|
+| [`README.md`](../../README.md) | Project overview, build, and CI (kept at repo root). |
+| [`KNOWLEDGE_MAP.md`](../../KNOWLEDGE_MAP.md) | Architecture map (kept at repo root). |
+| [`docs/clean/search.md`](search.md) | PDF search feature: architecture, limits, and resolved ANR. |
+| [`docs/clean/roadmap.md`](roadmap.md) | Consolidated plan/roadmap status (plans 001–005 + PDF password memory). |
+| [`docs/clean/architecture.md`](architecture.md) | Architecture and module overview. |
+
+## Archived (superseded / one-off)
+
+Old search investigations, bug reports, index plans, session prompts, and per-plan
+checklists live under `docs/archive/`. They are kept for historical reference only and
+should not be treated as current status.
+
+## Build
+
+The app embeds the current git commit hash at build time. Always build via the wrapper:
+
+```bash
+./tool/build_apk.sh release          # release APK
+./tool/build_apk.sh profile --install # profile APK + install on device
+```

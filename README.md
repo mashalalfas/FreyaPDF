@@ -65,9 +65,12 @@ The Feya PDF landing page lives in the HERO repo:
 
 ## Build
 
+The app embeds the current git commit hash (shown in Settings → About → Commit) at build time via `--dart-define=GIT_HASH`. Use the wrapper so the hash is always injected:
+
 ```bash
-flutter pub get
-flutter build apk --release
+./tool/build_apk.sh release                 # build a release APK
+./tool/build_apk.sh profile --install       # build a profile APK and install it on a connected device
+./tool/build_apk.sh debug                   # build a debug APK
 ```
 
 ## CI
