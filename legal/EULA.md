@@ -1,9 +1,9 @@
-# End-User License Agreement (EULA) — Freya PDF
+# End-User License Agreement (EULA) — freya_pdf
 
-**Last updated:** 7 July 2026
-**Effective date:** 7 July 2026
+**Last updated:** 2026
+**Effective date:** 2026
 
-This End-User License Agreement (the "**Agreement**" or "**EULA**") is a legal contract between you ("**you**", "**your**", or the "**User**") and **Mashal Alfas** ("**the Developer**", "**we**", "**us**", or "**our**"), the creator and copyright holder of the **Freya PDF** mobile application (the "**App**").
+This End-User License Agreement (the "**Agreement**" or "**EULA**") is a legal contract between you ("**you**", "**your**", or the "**User**") and the Developer ("**the Developer**", "**we**", "**us**", or "**our**"), the creator and copyright holder of the **freya_pdf** mobile application (the "**App**").
 
 By installing, copying, downloading, accessing, or otherwise using the App, you agree to be bound by the terms of this Agreement. If you do not agree, do not install or use the App, and remove it from your device.
 
@@ -11,12 +11,12 @@ By installing, copying, downloading, accessing, or otherwise using the App, you 
 
 ## 1. License Grant
 
-Subject to your ongoing compliance with this Agreement, the Developer grants you a **free, personal, non-exclusive, non-transferable, non-sublicensable, revocable** license to:
+Subject to your ongoing compliance with this Agreement, the Developer grants you a **limited, personal, non-exclusive, non-transferable, non-sublicensable, revocable** license to:
 
-- Install and run the App on Android devices that you own or otherwise lawfully control;
-- Use the App for personal, non-commercial purposes to read, annotate, encrypt, decrypt, tag, and manage PDF documents stored locally on your device.
+- Install and run the App on devices that you own or otherwise lawfully control;
+- Use the App for its intended purposes as described in the App's documentation and listing.
 
-This license is conditioned on your acceptance of, and continued compliance with, every term of this Agreement. The App is provided to you **free of charge**; no payment is required or expected for its use.
+This license is conditioned on your acceptance of, and continued compliance with, every term of this Agreement.
 
 ---
 
@@ -28,45 +28,26 @@ You agree **not** to:
 2. **Modify, adapt, translate, or create derivative works** based on the App, in whole or in part.
 3. **Resell, rent, lease, sublicense, distribute, host, or otherwise commercially exploit** the App or any portion of it, whether for value or not.
 4. **Remove, alter, or obscure** any copyright, trademark, watermark, or other proprietary notice contained in or accompanying the App.
-5. **Use the App for any unlawful purpose**, including the storage, encryption, or distribution of content that infringes the rights of any third party.
-6. **Use the App to provide services to third parties**, including but not limited to PDF-reading-as-a-service, document-encryption-as-a-service, or any commercial hosting or SaaS offering.
-
-The **source code** of the App is publicly available at <https://github.com/mashalalfas/FreyaPDF> under the terms of its open-source license. This EULA governs the **compiled, distributed application** that you install on your device; the source code is governed by its own open-source license, which is published in the repository.
+5. **Use the App for any unlawful purpose**, including the storage, processing, or distribution of content that infringes the rights of any third party.
+6. **Use the App to provide services to third parties**, including any commercial hosting or SaaS offering.
 
 ---
 
 ## 3. Intellectual Property
 
-The App — including its design, source code, object code, graphics, user interface, animations, copy, and documentation — is the exclusive intellectual property of the Developer and is protected by copyright, trademark, design-right, and other applicable laws of the United Arab Emirates and other jurisdictions. No title to or ownership of any intellectual property in the App is transferred to you under this Agreement. **All rights not expressly granted in this Agreement are reserved by the Developer.**
+The App — including its design, source code, object code, graphics, user interface, animations, copy, and documentation — is the exclusive intellectual property of the Developer and is protected by copyright, trademark, design-right, and other applicable laws. No title to or ownership of any intellectual property in the App is transferred to you under this Agreement. **All rights not expressly granted in this Agreement are reserved by the Developer.**
 
-"**Freya PDF**" and the Freya PDF logo are trademarks of the Developer. You may not use these marks, or any confusingly similar marks, without the Developer's prior written permission.
+"freya_pdf" and the associated logo are trademarks of the Developer. You may not use these marks, or any confusingly similar marks, without the Developer's prior written permission.
 
 ---
 
 ## 4. Open-Source Components
 
-The App includes third-party open-source software components, libraries, and fonts. Each component is licensed to you under its own license (commonly MIT, Apache License 2.0, BSD 2-Clause, BSD 3-Clause, or ISC). A current list of components and their licenses is published in the App's `pubspec.yaml` and Software Bill of Materials (`legal/sbom.json`) in the public repository.
-
-Open-source components are provided "as is" and without warranty of any kind, in accordance with their respective licenses. The Developer's limitation of liability in Section 7 applies equally to its redistribution of open-source components.
+The App may include third-party open-source software components, libraries, and fonts. Each component is licensed to you under its own license. Open-source components are provided "as is" and without warranty of any kind, in accordance with their respective licenses. The Developer's limitation of liability in Section 7 applies equally to its redistribution of open-source components.
 
 ---
 
-## 5. Encryption Disclaimer (Important — Please Read)
-
-The App provides optional **on-device** encryption of PDF files using the **AES-256-GCM** authenticated-encryption algorithm, with keys derived from your PIN via **PBKDF2** and stored inside the **Android Keystore** (hardware-backed where the device supports it).
-
-**You are solely responsible for the following. By using the encryption feature, you expressly acknowledge and accept these risks:**
-
-- **Remembering your PIN / passphrase.** Encryption keys are derived from credentials that exist only on your device. They are never transmitted to the Developer and cannot be recovered, reset, or regenerated by us.
-- **Backing up your own files.** If you uninstall the App, lose your device, perform a factory reset, clear the App's data, lose access to the Android Keystore, or otherwise lose access to your stored keys, **your encrypted PDFs will become permanently inaccessible.** The Developer has no technical ability to decrypt or recover your data and accepts no liability for such loss.
-- **Choosing a strong PIN.** PBKDF2 slows brute-force attempts, but a short or guessable PIN weakens the protection of your data.
-- **Legal compliance.** You are solely responsible for the legality of any document you encrypt, store, share, or transmit using the App.
-
-The App is **not** a substitute for full-disk encryption, enterprise key-management systems, hardware security modules, or legally privileged storage. It is a personal-utility tool.
-
----
-
-## 6. Disclaimer of Warranty
+## 5. Disclaimer of Warranty
 
 **THE APP IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, SATISFACTORY QUALITY, TITLE, NON-INFRINGEMENT, AND ACCURACY.**
 
@@ -75,119 +56,71 @@ Without limiting the foregoing, the Developer does **not** warrant that:
 - The App will be uninterrupted, secure, error-free, or free of harmful components (including viruses, malware, or other destructive code);
 - Defects will be corrected or patches will be issued on any particular schedule;
 - The App will meet your particular requirements or expectations;
-- The rendering, parsing, or display of any PDF (including encrypted, damaged, malformed, or third-party-generated PDFs) will be faithful, complete, accurate, or free of loss of content;
 - Any particular version of the App will remain available, supported, or compatible with your device.
 
 You assume full responsibility for your selection of the App, your use of it, and any results obtained from it. No advice or information, whether oral or written, obtained by you from the Developer or through the App creates any warranty not expressly stated in this Agreement.
 
 ---
 
-## 7. Limitation of Liability
+## 6. Limitation of Liability
 
 **TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE DEVELOPER BE LIABLE TO YOU OR TO ANY THIRD PARTY FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF DATA, LOSS OF PROFITS, LOSS OF REVENUE, LOSS OF BUSINESS, LOSS OF GOODWILL, LOSS OF USE, OR OTHER INTANGIBLE LOSSES, WHETHER ARISING IN CONTRACT, TORT (INCLUDING NEGLIGENCE), STRICT LIABILITY, STATUTE, OR OTHERWISE, AND WHETHER OR NOT THE DEVELOPER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.**
 
-Without limiting the foregoing, the Developer is **expressly not liable** for:
-
-- **Loss of access to encrypted PDFs** caused by forgotten PINs, lost devices, factory resets, cleared app data, lost biometric registrations, OS-level data purges, device decommissioning, or any other cause;
-- **Corruption, damage, alteration, or unauthorised modification** of your PDF files, whether caused by the App, the device, third-party tools, or power events;
-- Any loss arising from third-party open-source components embedded in the App;
-- Any loss arising from your breach of this Agreement, your misuse of the App, or your violation of any applicable law;
-- Any loss arising from your reliance on the accuracy of the App's PDF rendering.
-
-In any event, the Developer's **total aggregate liability** under or in connection with this Agreement, regardless of the form of action, shall not exceed **the amount you paid the Developer for the App, which is zero UAE Dirhams (AED 0.00)**, the App having been provided free of charge.
+In any event, the Developer's **total aggregate liability** under or in connection with this Agreement, regardless of the form of action, shall not exceed the amount you paid the Developer for the App or the minimum amount permitted by applicable law.
 
 Some jurisdictions do not allow the exclusion or limitation of certain damages or warranties. In such jurisdictions, the limitations and exclusions above shall apply **only to the maximum extent permitted by applicable law**, and any statutory rights you cannot waive shall remain unaffected.
 
 ---
 
-## 8. Auto-Update (Non-Play Store Builds Only)
+## 7. Termination
 
-In builds distributed outside the Google Play Store, the App may check for newer versions by contacting the public GitHub Releases API at `https://api.github.com/repos/mashalalfas/FreyaPDF/releases/latest`. The only information transmitted in this check is the standard, unauthenticated HTTPS request itself: GitHub will observe your IP address as the source of the request, exactly as with any internet request you make from a browser. **No user identifier, account token, device identifier, file content, or app-state data is sent.**
-
-Builds distributed via the **Google Play Store do not perform any auto-update check** and do not make this network request.
-
-If you choose to download and install an update offered through the App, the download is fetched from GitHub's content servers using a signed HTTPS request.
-
----
-
-## 9. Third-Party Services and Open-Source Software
-
-The App does not embed any third-party analytics, advertising, social, or crash-reporting SDK. The only external service the App may contact is the public GitHub Releases API described in Section 8.
-
-Open-source components are described in Section 4. Each is governed by its own license.
-
----
-
-## 10. Termination
-
-This Agreement is effective until terminated. It will terminate **automatically and without notice** if you fail to comply with any of its terms. The Developer may also terminate this Agreement at any time, in its sole discretion, by disabling the App or asking you to remove it.
+This Agreement is effective until terminated. It will terminate **automatically and without notice** if you fail to comply with any of its terms. The Developer may also terminate this Agreement at any time, in its sole discretion, by discontinuing the App or asking you to remove it.
 
 Upon termination:
 
 - The license granted in Section 1 ends immediately;
 - You must cease all use of the App and remove it from your devices;
-- Sections 3, 4, 5, 6, 7, 11, 12, and 13 shall survive termination.
+- Sections 3, 4, 5, 6, 8, 9, and 10 shall survive termination.
 
 The Developer may also discontinue, modify, or deprecate the App, in whole or in part, at any time without notice and without liability to you.
 
 ---
 
-## 11. Governing Law and Dispute Resolution
+## 8. Governing Law and Dispute Resolution
 
-This Agreement is governed by, and shall be construed in accordance with, the laws of the **United Arab Emirates** ("**UAE**"), excluding (a) its conflict-of-laws principles and (b) the United Nations Convention on Contracts for the International Sale of Goods.
-
-The parties submit to the **exclusive jurisdiction of the courts of the Emirate of Dubai, UAE** in respect of any dispute, claim, or controversy arising out of or relating to this Agreement, including its existence, validity, interpretation, performance, breach, or termination, **except** where mandatory consumer-protection or data-protection laws of your country of habitual residence grant you non-waivable rights to bring an action before the courts of that country.
+This Agreement is governed by, and shall be construed in accordance with, the laws of **UAE**, excluding (a) its conflict-of-laws principles and (b) the United Nations Convention on Contracts for the International Sale of Goods.
 
 Nothing in this Agreement removes, limits, or restricts any mandatory statutory right you have under the laws of your country of residence, including any right to remedies that cannot be excluded by contract.
 
 ---
 
-## 12. Severability
+## 9. Severability
 
 If any provision of this Agreement is held by a court of competent jurisdiction to be invalid, illegal, or unenforceable, that provision shall be **severed** to the minimum extent necessary, and the remaining provisions shall continue in full force and effect. The severed provision shall be replaced by a valid provision that most closely reflects the original economic intent of the parties.
 
 ---
 
-## 13. Entire Agreement; No Waiver
+## 10. Entire Agreement; No Waiver
 
-This Agreement, together with the [Privacy Policy](./PRIVACY.md), constitutes the **entire agreement** between you and the Developer with respect to the App and supersedes all prior or contemporaneous understandings, communications, or representations, whether written or oral, relating to its subject matter.
+This Agreement, together with any applicable privacy policy, constitutes the **entire agreement** between you and the Developer with respect to the App and supersedes all prior or contemporaneous understandings, communications, or representations, whether written or oral, relating to its subject matter.
 
 The Developer's failure to enforce any right or provision of this Agreement shall not constitute a waiver of that right or provision. Any waiver must be in writing and signed by the Developer to be effective.
 
 ---
 
-## 14. Changes to this Agreement
+## 11. Changes to this Agreement
 
-The Developer may update this Agreement from time to time. The "**Last updated**" date at the top of this document will reflect the date of the most recent change. Material changes will, where reasonable, be communicated:
-
-- In the release notes of the next App version, and
-- Via a notice in the public repository at <https://github.com/mashalalfas/FreyaPDF>.
-
-Continued use of the App after the effective date of a revised Agreement constitutes your acceptance of the revised terms. If you do not agree, please uninstall the App and stop using it.
+The Developer may update this Agreement from time to time. The "**Last updated**" date at the top of this document will reflect the date of the most recent change. Continued use of the App after the effective date of a revised Agreement constitutes your acceptance of the revised terms. If you do not agree, please uninstall the App and stop using it.
 
 ---
 
-## 15. No Formal Support; No Service-Level Commitment
+## 12. Contact
 
-The App is provided on a **best-effort, community-supported basis**. There is no customer-support hotline, no guaranteed response time, no uptime commitment, and no service-level agreement.
-
-Bug reports, feature requests, security disclosures, and questions may be raised on the project's public issue tracker:
-
-🔗 **<https://github.com/mashalalfas/FreyaPDF/issues>**
+For questions about this Agreement, contact the Developer through the channels listed in the App's store listing or documentation.
 
 ---
 
-## 16. Contact
-
-- **Creator / Copyright holder:** Mashal Alfas
-- **Project repository:** <https://github.com/mashalalfas/FreyaPDF>
-- **Issue tracker / contact:** <https://github.com/mashalalfas/FreyaPDF/issues>
-- **Landing page:** <https://mashalalfas.github.io/FreyaPDF/>
-- **License (source code):** See `LICENSE` in the public repository
-
----
-
-## 17. Language
+## 13. Language
 
 This Agreement is drafted in the **English language**. Any translation provided is for convenience only. In the event of a conflict between the English version and a translation, **the English version shall prevail**, except where prohibited by the laws of your country of residence.
 

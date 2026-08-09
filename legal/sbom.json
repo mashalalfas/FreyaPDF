@@ -69,6 +69,28 @@
       ]
     },
     {
+      "name": "checked_yaml",
+      "version": "2.0.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "cli_util",
+      "version": "0.4.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "clock",
       "version": "1.1.2",
       "licenses": [
@@ -168,17 +190,6 @@
       ]
     },
     {
-      "name": "extension",
-      "version": "0.6.0",
-      "licenses": [
-        {
-          "license": {
-            "id": "NOASSERTION"
-          }
-        }
-      ]
-    },
-    {
       "name": "fake_async",
       "version": "1.3.3",
       "licenses": [
@@ -245,6 +256,17 @@
       ]
     },
     {
+      "name": "flutter_launcher_icons",
+      "version": "0.14.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "flutter_lints",
       "version": "6.0.0",
       "licenses": [
@@ -267,6 +289,83 @@
       ]
     },
     {
+      "name": "flutter_secure_storage",
+      "version": "9.2.4",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flutter_secure_storage_linux",
+      "version": "1.2.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flutter_secure_storage_macos",
+      "version": "3.1.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flutter_secure_storage_platform_interface",
+      "version": "1.1.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flutter_secure_storage_web",
+      "version": "1.2.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flutter_secure_storage_windows",
+      "version": "3.1.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "flutter_svg",
+      "version": "2.3.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "flutter_test",
       "version": "0.0.0",
       "licenses": [
@@ -280,17 +379,6 @@
     {
       "name": "flutter_web_plugins",
       "version": "0.0.0",
-      "licenses": [
-        {
-          "license": {
-            "id": "NOASSERTION"
-          }
-        }
-      ]
-    },
-    {
-      "name": "google_fonts",
-      "version": "6.3.3",
       "licenses": [
         {
           "license": {
@@ -324,6 +412,17 @@
     {
       "name": "http_parser",
       "version": "4.1.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "image",
+      "version": "4.9.1",
       "licenses": [
         {
           "license": {
@@ -367,7 +466,18 @@
     },
     {
       "name": "js",
-      "version": "0.7.2",
+      "version": "0.6.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "json_annotation",
+      "version": "4.12.0",
       "licenses": [
         {
           "license": {
@@ -412,6 +522,61 @@
     {
       "name": "lints",
       "version": "6.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "local_auth",
+      "version": "3.0.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "local_auth_android",
+      "version": "2.0.8",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "local_auth_darwin",
+      "version": "2.0.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "local_auth_platform_interface",
+      "version": "1.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "local_auth_windows",
+      "version": "2.0.1",
       "licenses": [
         {
           "license": {
@@ -509,8 +674,41 @@
       ]
     },
     {
+      "name": "open_filex",
+      "version": "4.7.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "package_config",
       "version": "2.2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "package_info_plus",
+      "version": "8.3.1",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "package_info_plus_platform_interface",
+      "version": "3.2.1",
       "licenses": [
         {
           "license": {
@@ -531,8 +729,19 @@
       ]
     },
     {
+      "name": "path_parsing",
+      "version": "1.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "path_provider",
-      "version": "2.1.5",
+      "version": "2.1.6",
       "licenses": [
         {
           "license": {
@@ -597,8 +806,41 @@
       ]
     },
     {
-      "name": "pdfx",
-      "version": "2.9.2",
+      "name": "pdfium_dart",
+      "version": "0.2.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pdfium_flutter",
+      "version": "0.2.3",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pdfrx",
+      "version": "2.4.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "pdfrx_engine",
+      "version": "0.4.5",
       "licenses": [
         {
           "license": {
@@ -674,8 +916,8 @@
       ]
     },
     {
-      "name": "photo_view",
-      "version": "0.15.0",
+      "name": "petitparser",
+      "version": "7.0.2",
       "licenses": [
         {
           "license": {
@@ -753,6 +995,17 @@
     {
       "name": "record_use",
       "version": "0.6.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "rxdart",
+      "version": "0.28.0",
       "licenses": [
         {
           "license": {
@@ -960,17 +1213,6 @@
       ]
     },
     {
-      "name": "universal_platform",
-      "version": "1.1.0",
-      "licenses": [
-        {
-          "license": {
-            "id": "NOASSERTION"
-          }
-        }
-      ]
-    },
-    {
       "name": "url_launcher",
       "version": "6.3.2",
       "licenses": [
@@ -1070,6 +1312,39 @@
       ]
     },
     {
+      "name": "vector_graphics",
+      "version": "1.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vector_graphics_codec",
+      "version": "1.1.13",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "vector_graphics_compiler",
+      "version": "1.2.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "vector_math",
       "version": "2.2.0",
       "licenses": [
@@ -1127,6 +1402,17 @@
     {
       "name": "xdg_directories",
       "version": "1.1.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
+      "name": "xml",
+      "version": "7.0.1",
       "licenses": [
         {
           "license": {
