@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:feya_pdf/core/models/pdf_file.dart';
 import 'package:feya_pdf/features/file_management/file_service.dart';
+import 'package:feya_pdf/features/file_management/intent_handler.dart';
 import 'package:feya_pdf/features/file_management/sort_search_provider.dart';
 import 'package:feya_pdf/features/file_management/scanned_paths_provider.dart';
 
@@ -118,6 +120,10 @@ class AppState extends ChangeNotifier {
     final results = await Future.wait(
       paths.map((path) async {
         try {
+          // Content URI directories are handled via SAF
+          if (IntentHandler.isContentUri(path)) {
+            return await _scanContentUri(path);
+          }
           if (await FileService.isReadable(path)) {
             final dirFiles = _fileCache.containsKey(path)
                 ? _fileCache[path]!
@@ -137,5 +143,57 @@ class AppState extends ChangeNotifier {
     _files = results.expand((list) => list).toList();
     _isLoading = false;
     notifyListeners();
+  }
+
+  /// Load files from a SAF content URI directory.
+  /// Uses the platform channel to list files and copy them to cache.
+  Future<void> loadContentUriFiles(String contentUri) async {
+    _isLoading = true;
+    _error = null;
+    _selectedFile = null;
+    _currentDir = contentUri;
+    notifyListeners();
+    try {
+      final files = await _scanContentUri(contentUri);
+      _files = files;
+      if (_files.isEmpty) {
+        _error = 'No PDF files found in the selected folder';
+      }
+    } catch (e) {
+      _error = 'Failed to scan folder: $e';
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /// Scan a content URI via SAF platform channel and return PdfFile list.
+  Future<List<PdfFile>> _scanContentUri(String contentUri) async {
+    if (_fileCache.containsKey(contentUri)) {
+      return List.unmodifiable(_fileCache[contentUri]!);
+    }
+    final scanned = await IntentHandler.listContentUriFiles(contentUri);
+    final pdfFiles = <PdfFile>[];
+    for (final entry in scanned.entries) {
+      final cachedPath = entry.value;
+      try {
+        final file = File(cachedPath);
+        if (await file.exists()) {
+          final stat = await file.stat();
+          pdfFiles.add(PdfFile(
+            path: cachedPath,
+            name: entry.key,
+            sizeBytes: stat.size,
+            modified: stat.modified,
+          ));
+        }
+      } catch (e) {
+        debugPrint('AppState: error creating PdfFile for $cachedPath: $e');
+      }
+    }
+    pdfFiles.sort((a, b) => b.modified.compareTo(a.modified));
+    if (pdfFiles.isNotEmpty) {
+      _fileCache[contentUri] = List.unmodifiable(pdfFiles);
+    }
+    return pdfFiles;
   }
 }

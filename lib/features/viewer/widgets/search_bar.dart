@@ -14,10 +14,19 @@ class SearchBarWidget extends StatefulWidget {
   final VoidCallback onPreviousMatch;
   final VoidCallback onClose;
 
+  /// Non-null when search cannot run for this document (very large or
+  /// image-only). Shown instead of the match counters.
+  final String? searchUnavailableReason;
+
+  /// True when the scan stopped early and only a prefix was searched.
+  final bool searchTruncated;
+
   const SearchBarWidget({
     super.key,
     this.matchCount = 0,
     this.currentMatchIndex = 0,
+    this.searchUnavailableReason,
+    this.searchTruncated = false,
     required this.onSearchChanged,
     required this.onNextMatch,
     required this.onPreviousMatch,
@@ -59,7 +68,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
     final cs = Theme.of(context).colorScheme;
 
     return Focus(
-      focusNode: _focusNode,
+      // TextField owns _focusNode through its internal EditableText Focus
+      // widget. The outer Focus must use its own node; attaching the same
+      // FocusNode to both widgets corrupts Flutter's focus attachment tree.
       onKeyEvent: _onKeyEvent,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -115,8 +126,28 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                 ),
               ),
 
+              // Search unavailable message (very large / image-only docs)
+              if (widget.searchUnavailableReason != null &&
+                  _controller.text.isNotEmpty)
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Text(
+                      widget.searchUnavailableReason!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: cs.error,
+                      ),
+                    ),
+                  ),
+                ),
+
               // Match count label
-              if (widget.matchCount > 0)
+              if (widget.matchCount > 0 &&
+                  widget.searchUnavailableReason == null)
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
                   child: Text(
@@ -130,7 +161,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                 ),
 
               // No matches indicator
-              if (_controller.text.isNotEmpty && widget.matchCount == 0)
+              if (_controller.text.isNotEmpty &&
+                  widget.matchCount == 0 &&
+                  widget.searchUnavailableReason == null)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
@@ -138,6 +171,21 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                     style: TextStyle(
                       fontSize: 12,
                       color: cs.error,
+                    ),
+                  ),
+                ),
+
+              // Truncated-scan hint
+              if (widget.searchTruncated &&
+                  widget.matchCount > 0 &&
+                  widget.searchUnavailableReason == null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    'Matches limited — refine query',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
                   ),
                 ),

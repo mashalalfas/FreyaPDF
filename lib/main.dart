@@ -22,6 +22,7 @@ import 'package:feya_pdf/features/highlights/highlight_service.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
 import 'package:feya_pdf/features/highlights/highlight_provider.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:feya_pdf/features/viewer/providers/search_provider.dart';
 import 'package:feya_pdf/features/settings/backup_provider.dart';
 import 'package:feya_pdf/features/settings/backup_service.dart';
 import 'package:feya_pdf/features/update/update_provider.dart';
@@ -73,6 +74,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => BackupProvider(backupService)),
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => SelectionProvider()),
+        ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => UpdateProvider()),
       ],
       child: const FeyaPdfApp(),

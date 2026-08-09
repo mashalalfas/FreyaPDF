@@ -9,6 +9,7 @@ import 'package:feya_pdf/features/security/app_lock_service.dart';
 import 'package:feya_pdf/features/encryption/widgets/passphrase_dialog.dart';
 import 'package:feya_pdf/features/update/update_provider.dart';
 import 'package:feya_pdf/features/update/widgets/update_dialog.dart';
+import 'package:feya_pdf/features/security/pdf_password_storage.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -120,6 +121,18 @@ class SettingsScreen extends StatelessWidget {
                 }
               },
             ),
+          ListTile(
+            leading: const Icon(Icons.password_rounded),
+            title: const Text('Remembered PDF passwords'),
+            subtitle: Text(
+              'Clear passwords saved for external PDFs on this device',
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            onTap: () => _clearRememberedPdfPasswords(context),
+          ),
 
           const SizedBox(height: 8),
 
@@ -158,10 +171,10 @@ class SettingsScreen extends StatelessWidget {
             onChanged: (v) => settings.setShowThumbnails(v),
           ),
           SwitchListTile(
-            secondary: Icon(Icons.dark_mode_rounded,
-                color: settings.darkReadingMode
-                    ? colorScheme.primary
-                    : null),
+            secondary: Icon(
+              Icons.dark_mode_rounded,
+              color: settings.darkReadingMode ? colorScheme.primary : null,
+            ),
             title: const Text('Dark reading mode'),
             subtitle: Text(
               'Invert PDF colors for comfortable reading in low light',
@@ -219,9 +232,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     )
                   : const Icon(Icons.chevron_right_rounded),
-              onTap: backup.isExporting
-                  ? null
-                  : () => backup.exportBackup(ctx),
+              onTap: backup.isExporting ? null : () => backup.exportBackup(ctx),
             ),
           ),
           Consumer<BackupProvider>(
@@ -247,9 +258,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     )
                   : const Icon(Icons.chevron_right_rounded),
-              onTap: backup.isImporting
-                  ? null
-                  : () => backup.importBackup(ctx),
+              onTap: backup.isImporting ? null : () => backup.importBackup(ctx),
             ),
           ),
 
@@ -273,9 +282,8 @@ class SettingsScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         'Feya PDF',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -316,7 +324,9 @@ class SettingsScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.copy_rounded, size: 18),
                         onPressed: () {
-                          Clipboard.setData(ClipboardData(text: BuildInfo.gitHash));
+                          Clipboard.setData(
+                            ClipboardData(text: BuildInfo.gitHash),
+                          );
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text('Commit hash copied'),
@@ -346,7 +356,9 @@ class SettingsScreen extends StatelessWidget {
                   onTap: () => showLicensePage(
                     context: context,
                     applicationName: 'Feya PDF',
-                    applicationVersion: context.read<UpdateProvider>().currentVersion,
+                    applicationVersion: context
+                        .read<UpdateProvider>()
+                        .currentVersion,
                   ),
                 ),
               ],
@@ -355,6 +367,38 @@ class SettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+
+  Future<void> _clearRememberedPdfPasswords(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear remembered PDF passwords?'),
+        content: const Text(
+          'Passwords saved for external PDFs will be removed from this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    await PdfPasswordStorage().clearAll();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Remembered PDF passwords cleared'),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
@@ -385,7 +429,9 @@ class SettingsScreen extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: Theme.of(ctx).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
+                color: Theme.of(
+                  ctx,
+                ).colorScheme.onSurfaceVariant.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -396,9 +442,27 @@ class SettingsScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
-            _themeOption(ctx, settings, ThemeMode.system, Icons.brightness_auto_rounded, 'System'),
-            _themeOption(ctx, settings, ThemeMode.light, Icons.light_mode_rounded, 'Light'),
-            _themeOption(ctx, settings, ThemeMode.dark, Icons.dark_mode_rounded, 'Dark'),
+            _themeOption(
+              ctx,
+              settings,
+              ThemeMode.system,
+              Icons.brightness_auto_rounded,
+              'System',
+            ),
+            _themeOption(
+              ctx,
+              settings,
+              ThemeMode.light,
+              Icons.light_mode_rounded,
+              'Light',
+            ),
+            _themeOption(
+              ctx,
+              settings,
+              ThemeMode.dark,
+              Icons.dark_mode_rounded,
+              'Dark',
+            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -455,10 +519,12 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController =
-        TextEditingController(text: widget.settings.userProfile.name);
-    _emailController =
-        TextEditingController(text: widget.settings.userProfile.email);
+    _nameController = TextEditingController(
+      text: widget.settings.userProfile.name,
+    );
+    _emailController = TextEditingController(
+      text: widget.settings.userProfile.email,
+    );
   }
 
   @override
@@ -582,10 +648,7 @@ class _AppLockTileState extends State<_AppLockTile> {
             _hasPin
                 ? 'Lock the app behind a PIN or biometric'
                 : 'Set up a PIN first',
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
           value: widget.settings.appLockEnabled && _hasPin,
           onChanged: _hasPin
@@ -595,18 +658,13 @@ class _AppLockTileState extends State<_AppLockTile> {
 
         // Set / change PIN
         ListTile(
-          leading: Icon(
-            _hasPin ? Icons.lock_reset_rounded : Icons.pin_rounded,
-          ),
+          leading: Icon(_hasPin ? Icons.lock_reset_rounded : Icons.pin_rounded),
           title: Text(_hasPin ? 'Change PIN' : 'Set PIN'),
           subtitle: Text(
             _hasPin
                 ? 'Change your app unlock PIN'
                 : 'Create a PIN to lock the app',
-            style: TextStyle(
-              color: colorScheme.onSurfaceVariant,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => _showPinSetupDialog(context),
@@ -636,10 +694,14 @@ class _AppLockTileState extends State<_AppLockTile> {
         // Clear PIN (only if set)
         if (_hasPin)
           ListTile(
-            leading: Icon(Icons.delete_forever_rounded,
-                color: colorScheme.error),
-            title: Text('Remove PIN',
-                style: TextStyle(color: colorScheme.error)),
+            leading: Icon(
+              Icons.delete_forever_rounded,
+              color: colorScheme.error,
+            ),
+            title: Text(
+              'Remove PIN',
+              style: TextStyle(color: colorScheme.error),
+            ),
             subtitle: Text(
               'Disable app lock and clear stored PIN',
               style: TextStyle(
@@ -706,10 +768,7 @@ class _AppLockTileState extends State<_AppLockTile> {
                     const SizedBox(height: 8),
                     Text(
                       step2Error!,
-                      style: TextStyle(
-                        color: colorScheme.error,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: colorScheme.error, fontSize: 12),
                     ),
                   ],
                   const SizedBox(height: 20),
@@ -740,12 +799,16 @@ class _AppLockTileState extends State<_AppLockTile> {
                           }
                         } else {
                           if (confirmPin.isNotEmpty) {
-                            confirmPin = confirmPin.substring(0, confirmPin.length - 1);
+                            confirmPin = confirmPin.substring(
+                              0,
+                              confirmPin.length - 1,
+                            );
                           }
                         }
                       });
                     },
-                    canDelete: (!step2 && pin.isNotEmpty) ||
+                    canDelete:
+                        (!step2 && pin.isNotEmpty) ||
                         (step2 && confirmPin.isNotEmpty),
                     colorScheme: colorScheme,
                   ),
@@ -807,8 +870,7 @@ class _AppLockTileState extends State<_AppLockTile> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Remove PIN?'),
         content: const Text(
           'This will disable app lock and delete your stored PIN. '
@@ -820,9 +882,7 @@ class _AppLockTileState extends State<_AppLockTile> {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.error,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
             onPressed: () async {
               await _lockService.clearPin();
               await widget.settings.setAppLockEnabled(false);
@@ -878,20 +938,16 @@ class _PinSetupKeypad extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: row.map((d) => _SetupKey(
-                    label: '$d',
-                    onTap: () => onDigit(d),
-                  )).toList(),
+              children: row
+                  .map((d) => _SetupKey(label: '$d', onTap: () => onDigit(d)))
+                  .toList(),
             ),
           ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(width: 60),
-            _SetupKey(
-              label: '0',
-              onTap: () => onDigit(0),
-            ),
+            _SetupKey(label: '0', onTap: () => onDigit(0)),
             _SetupKey(
               icon: Icons.backspace_outlined,
               onTap: canDelete ? onDelete : null,
@@ -910,12 +966,7 @@ class _SetupKey extends StatelessWidget {
   final VoidCallback? onTap;
   final bool disabled;
 
-  const _SetupKey({
-    this.label,
-    this.icon,
-    this.onTap,
-    this.disabled = false,
-  });
+  const _SetupKey({this.label, this.icon, this.onTap, this.disabled = false});
 
   @override
   Widget build(BuildContext context) {
@@ -975,10 +1026,7 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
       title: const Text('Check for updates'),
       subtitle: Text(
         _checking ? 'Checking…' : 'See if a newer version is available',
-        style: TextStyle(
-          color: colorScheme.onSurfaceVariant,
-          fontSize: 13,
-        ),
+        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
       ),
       trailing: _checking
           ? SizedBox(

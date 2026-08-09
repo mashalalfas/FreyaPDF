@@ -60,9 +60,6 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
   PdfDocument? get _document =>
       widget.documentRef.resolveListenable().document;
 
-  /// Resolution at which pages are rendered (independent of display size).
-  static const int _renderWidth = 160;
-
   /// Default aspect ratio fallback (A4 portrait ≈ 595/842).
   /// Used for scroll estimation and grid sizing before real page dims are known.
   static const double _defaultAspectRatio = 595.0 / 842.0;
@@ -129,7 +126,9 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
 
     try {
       final page = capturedDoc.pages[pageIndex];
-      final pdfImage = await page.render(width: _renderWidth);
+      // Render at full page size (default 72 dpi). RawImage with
+      // BoxFit.contain will scale it down to fit the thumbnail container.
+      final pdfImage = await page.render();
       if (pdfImage == null || !mounted || _document != capturedDoc) {
         pdfImage?.dispose();
         if (mounted && _document == capturedDoc) {
@@ -257,14 +256,14 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
     const mainAxisSpacing = 12.0;
     const labelAreaHeight = 22.0; // 6dp gap + ~16dp text
 
-    // Compute aspect ratio for the grid child so it maps to:
-    //   cell width  -> (cell width / defaultAspectRatio + label)
-    // We use the actual screen / sheet width as a good approximation.
-    // Individual tiles use their own actual page aspect ratio internally.
+    // Compute aspect ratio for the grid child. Uses the A4 default
+    // for grid cell sizing; the actual rendered images use BoxFit.contain
+    // so they display correctly regardless of page dimensions.
     const padding = 24.0; // 12dp left + 12dp right
     final availWidth = MediaQuery.of(context).size.width - padding;
     final cellWidth = (availWidth - (colCount - 1) * crossAxisSpacing) / colCount;
-    final cellHeight = cellWidth / _defaultAspectRatio + labelAreaHeight;
+    final pageRatio = _defaultAspectRatio;
+    final cellHeight = cellWidth / pageRatio + labelAreaHeight;
     final childAspectRatio = cellWidth / cellHeight;
 
     return DraggableScrollableSheet(
@@ -389,13 +388,18 @@ class _ThumbnailTile extends StatelessWidget {
           final boxWidth = constraints.maxWidth;
           final boxHeight = constraints.maxHeight - 28; // reserve space for page label
 
+          // Let the preview fill the available box; BoxFit.contain on
+          // RawImage will maintain the correct aspect ratio.
+          final previewHeight = boxHeight > 0 ? boxHeight : boxWidth / (595.0 / 842.0);
+
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Thumbnail preview — fills the full grid cell width
+              // Thumbnail preview — fills available space, BoxFit.contain
+              // handles aspect ratio.
               Container(
                 width: boxWidth,
-                height: boxHeight > 0 ? boxHeight : boxWidth * 1.414,
+                height: previewHeight,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(

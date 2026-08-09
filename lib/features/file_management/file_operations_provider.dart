@@ -7,12 +7,9 @@ import 'package:feya_pdf/core/models/pdf_file.dart';
 import 'package:feya_pdf/features/file_management/file_service.dart';
 import 'package:feya_pdf/features/encryption/encryption_service.dart';
 import 'package:feya_pdf/features/encryption/encryption_provider.dart';
+import 'package:feya_pdf/features/security/pdf_password_storage.dart';
 
-enum SaveResult {
-  success,
-  alreadyExists,
-  failure,
-}
+enum SaveResult { success, alreadyExists, failure }
 
 class FileOperationsProvider extends ChangeNotifier {
   EncryptionProvider? _encryptionProvider;
@@ -25,6 +22,12 @@ class FileOperationsProvider extends ChangeNotifier {
   Future<bool> deleteFile(PdfFile file) async {
     final success = await FileService.deleteFile(file.path);
     if (success) {
+      try {
+        await PdfPasswordStorage().delete(file.path);
+      } catch (e) {
+        // Password cleanup is best-effort and must not undo a file deletion.
+        debugPrint('FileOperations: failed to clear PDF password: $e');
+      }
       notifyListeners();
     }
     return success;
@@ -179,7 +182,9 @@ class FileOperationsProvider extends ChangeNotifier {
         await Share.shareXFiles(xFiles, text: text);
         // Clean up any temporary decrypted files created for sharing.
         for (final f in _tempDecryptedFiles) {
-          try { await f.delete(); } catch (_) {}
+          try {
+            await f.delete();
+          } catch (_) {}
         }
         _tempDecryptedFiles.clear();
       }
@@ -191,7 +196,10 @@ class FileOperationsProvider extends ChangeNotifier {
   /// Save a file to a target directory, or the app's local documents FeyaPDF
   /// folder if [targetDir] is null.
   /// Returns a [SaveResult] indicating success, alreadyExists, or failure.
-  Future<(SaveResult, String?)> saveToLocal(String sourcePath, {String? targetDir}) async {
+  Future<(SaveResult, String?)> saveToLocal(
+    String sourcePath, {
+    String? targetDir,
+  }) async {
     try {
       final String destDirPath;
       if (targetDir != null) {

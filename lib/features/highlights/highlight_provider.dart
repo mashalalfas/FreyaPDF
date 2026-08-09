@@ -80,6 +80,11 @@ class HighlightProvider extends ChangeNotifier {
   void openFile(String filePath) {
     _currentFilePath = filePath;
     _fileHighlights = _highlights.where((h) => h.filePath == filePath).toList();
+    // Reset highlight mode so it doesn't carry over from the previous file.
+    _highlightMode = 'off';
+    _drawStart = null;
+    _drawCurrent = null;
+    _drawPageNumber = null;
     notifyListeners();
   }
 
@@ -114,8 +119,9 @@ class HighlightProvider extends ChangeNotifier {
   Future<void> removeHighlight(String id) async {
     _highlights = _highlights.where((h) => h.id != id).toList();
     if (_currentFilePath != null) {
-      _fileHighlights =
-          _highlights.where((h) => h.filePath == _currentFilePath).toList();
+      _fileHighlights = _highlights
+          .where((h) => h.filePath == _currentFilePath)
+          .toList();
     }
     await _service.deleteHighlight(id);
     notifyListeners();
@@ -123,13 +129,11 @@ class HighlightProvider extends ChangeNotifier {
 
   // ---- Mode toggling ----
 
-  /// Cycle through highlight modes: off → text → rectangle → off.
+  /// Toggle highlight mode: off ↔ rectangle (draw).
+  /// Text highlight is always available via long-press, no mode needed.
   void toggleHighlightMode() {
     switch (_highlightMode) {
       case 'off':
-        _highlightMode = 'text';
-        break;
-      case 'text':
         _highlightMode = 'rectangle';
         break;
       case 'rectangle':
@@ -155,8 +159,8 @@ class HighlightProvider extends ChangeNotifier {
 
   /// Set highlight mode by cycling to a specific value.
   void setHighlightModeBool(bool value) {
-    // Legacy compat: true → 'text', false → 'off'
-    setHighlightMode(value ? 'text' : 'off');
+    // Legacy compat: true → 'rectangle', false → 'off'
+    setHighlightMode(value ? 'rectangle' : 'off');
   }
 
   void togglePanel() {
@@ -223,6 +227,10 @@ class HighlightProvider extends ChangeNotifier {
     );
 
     await addHighlight(highlight);
+
+    // Auto-disable draw mode after creating one box — tap again to draw another.
+    _highlightMode = 'off';
+    notifyListeners();
   }
 
   /// Cancel the current draw without saving.
@@ -230,6 +238,7 @@ class HighlightProvider extends ChangeNotifier {
     _drawStart = null;
     _drawCurrent = null;
     _drawPageNumber = null;
+    _highlightMode = 'off';
     notifyListeners();
   }
 
@@ -243,8 +252,9 @@ class HighlightProvider extends ChangeNotifier {
   Future<void> reload() async {
     _loadAll();
     if (_currentFilePath != null) {
-      _fileHighlights =
-          _highlights.where((h) => h.filePath == _currentFilePath).toList();
+      _fileHighlights = _highlights
+          .where((h) => h.filePath == _currentFilePath)
+          .toList();
     }
     notifyListeners();
   }
@@ -252,22 +262,28 @@ class HighlightProvider extends ChangeNotifier {
   // ---- Paint Callback ----
 
   /// A map of pageTexts pre-loaded for the current document.
-  /// Populated by [cachePageTexts] when the document is ready.
+  /// Populated by [cachePageText] for visible pages.
   Map<int, PdfPageText> _pageTextCache = {};
 
-  /// Pre-load structured text for all pages to enable highlight rendering.
-  Future<void> cachePageTexts(PdfDocument document) async {
-    _pageTextCache = {};
-    for (final page in document.pages) {
-      try {
-        final text = await page.loadStructuredText();
-        _pageTextCache[page.pageNumber] = text;
-      } catch (_) {
-        // Silently skip pages that can't load structured text
-      }
+  /// Load structured text only for a visible page. Full-document preloading
+  /// makes large image-heavy PDFs compete with rendering and search.
+  Future<void> cachePageText(PdfDocument document, int pageNumber) async {
+    if (_pageTextCache.containsKey(pageNumber) ||
+        pageNumber < 1 ||
+        pageNumber > document.pages.length) {
+      return;
     }
-    // Notify to trigger repaint
-    notifyListeners();
+    try {
+      final page = await document.pages[pageNumber - 1].waitForLoaded(
+        timeout: const Duration(seconds: 5),
+      );
+      if (page == null) return;
+      final text = await page.loadStructuredText();
+      _pageTextCache[pageNumber] = text;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('HighlightProvider: Page $pageNumber failed: $e');
+    }
   }
 
   /// Clear the page text cache.
@@ -288,13 +304,7 @@ class HighlightProvider extends ChangeNotifier {
         final pageText = _pageTextCache[page.pageNumber];
         if (pageText != null) {
           for (final highlight in pageHighlights) {
-            _paintHighlightOnPage(
-              canvas,
-              pageRect,
-              page,
-              pageText,
-              highlight,
-            );
+            _paintHighlightOnPage(canvas, pageRect, page, pageText, highlight);
           }
         }
       }
@@ -389,9 +399,7 @@ class HighlightProvider extends ChangeNotifier {
         page: page,
         scaledPageSize: pageRect.size,
       );
-      matchRects.add(
-        widgetRect.translate(pageRect.left, pageRect.top),
-      );
+      matchRects.add(widgetRect.translate(pageRect.left, pageRect.top));
     }
 
     // Draw the highlight rectangles

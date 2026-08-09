@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:feya_pdf/features/file_management/app_state.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:feya_pdf/features/bookmarks/bookmark.dart';
 import 'package:feya_pdf/features/encryption/encryption_provider.dart';
 import 'package:feya_pdf/features/file_management/favorites_provider.dart';
 import 'package:feya_pdf/features/tags/tag_provider.dart';
@@ -59,9 +60,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     final persisted = await pathsProvider.loadPersistedDir();
     bool loaded = false;
-    if (persisted != null && await Directory(persisted).exists()) {
-      await appState.loadDirectory(persisted);
-      loaded = appState.allFiles.isNotEmpty || appState.error != null;
+    if (persisted != null) {
+      if (IntentHandler.isContentUri(persisted)) {
+        // Content URI — re-scan via SAF platform channel
+        await appState.loadContentUriFiles(persisted);
+        loaded = appState.allFiles.isNotEmpty || appState.error != null;
+      } else if (await Directory(persisted).exists()) {
+        await appState.loadDirectory(persisted);
+        loaded = appState.allFiles.isNotEmpty || appState.error != null;
+      }
     }
     if (!loaded && pathsProvider.scannedPaths.isNotEmpty) {
       await appState.loadAllDirectories(pathsProvider.scannedPaths);
@@ -115,21 +122,32 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _pickDirectory() async {
-    // Ensure we have permission before picking
+    // Ensure we have MANAGE_EXTERNAL_STORAGE on Android 11+ before picking
     final hasPermission = await PermissionService.hasStoragePermission();
     if (!hasPermission && mounted) {
       final granted = await PermissionService.showPermissionDialog(context);
       if (!granted) return;
     }
+    // Re-check after the dialog flow — user may have denied
+    final stillNoPermission = !await PermissionService.hasStoragePermission();
+    if (stillNoPermission) return;
 
     final result = await FilePicker.platform.getDirectoryPath();
     if (result != null && mounted) {
       final appState = context.read<AppState>();
       final pathsProvider = context.read<ScannedPathsProvider>();
-      await pathsProvider.persistAfterPick(result);
-      await appState.loadDirectory(result);
-      if (appState.error != null && mounted) {
-        await _pickFiles();
+
+      if (IntentHandler.isContentUri(result)) {
+        // Android SAF content URI — use platform channel to list & copy files
+        await pathsProvider.persistAfterPick(result);
+        await appState.loadContentUriFiles(result);
+      } else {
+        // Regular file system path — use dart:io as before
+        await pathsProvider.persistAfterPick(result);
+        await appState.loadDirectory(result);
+        if (appState.error != null && mounted) {
+          await _pickFiles();
+        }
       }
       _staggerController.reset();
       _staggerController.forward();
@@ -156,6 +174,222 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       context,
       PageRouteBuilder(
         pageBuilder: (_, _, _) => ViewerScreen(file: file),
+        transitionsBuilder: (_, animation, _, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    );
+  }
+
+  void _showAllBookmarks() {
+    final bookmarkProvider = context.read<BookmarkProvider>();
+    final allBookmarks = bookmarkProvider.allBookmarks;
+
+    if (allBookmarks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No bookmarks yet')),
+      );
+      return;
+    }
+
+    // Group bookmarks by file path.
+    final grouped = <String, List<Bookmark>>{};
+    for (final b in allBookmarks) {
+      grouped.putIfAbsent(b.filePath, () => []).add(b);
+    }
+    // Sort each group by page number.
+    for (final list in grouped.values) {
+      list.sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            final entries = grouped.entries.toList()
+              ..sort((a, b) {
+                // Sort groups by most recent bookmark.
+                final aMax = a.value.map((e) => e.createdAt).reduce(
+                  (x, y) => x.isAfter(y) ? x : y,
+                );
+                final bMax = b.value.map((e) => e.createdAt).reduce(
+                  (x, y) => x.isAfter(y) ? x : y,
+                );
+                return bMax.compareTo(aMax);
+              });
+
+            return Column(
+              children: [
+                // Handle bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.bookmarks_rounded, size: 20, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'All Bookmarks',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${allBookmarks.length} total',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: entries.length,
+                    itemBuilder: (_, i) {
+                      final entry = entries[i];
+                      final fileName = entry.key.split('/').last;
+                      final bookmarks = entry.value;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                            child: Row(
+                              children: [
+                                Icon(Icons.picture_as_pdf_rounded, size: 16, color: colorScheme.error),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    fileName,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  '${bookmarks.length} bookmark${bookmarks.length > 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...bookmarks.map((b) => ListTile(
+                            dense: true,
+                            leading: Icon(
+                              Icons.bookmark_rounded,
+                              size: 18,
+                              color: colorScheme.primary,
+                            ),
+                            title: Text(
+                              b.label ?? 'Page ${b.pageNumber + 1}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            subtitle: Text(
+                              'Page ${b.pageNumber + 1}  •  ${_formatBookmarkTime(b.createdAt)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _openBookmarkFile(entry.key, b.pageNumber);
+                            },
+                          )),
+                          if (i < entries.length - 1) const Divider(indent: 16, endIndent: 16, height: 1),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _formatBookmarkTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 30) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  Future<void> _openBookmarkFile(String filePath, int pageNumber) async {
+    final appState = context.read<AppState>();
+    // Find file in loaded files, or create a transient one.
+    final existing = appState.files.where((f) => f.path == filePath).toList();
+    PdfFile pdfFile;
+    if (existing.isNotEmpty) {
+      pdfFile = existing.first;
+    } else {
+      final file = File(filePath);
+      if (!file.existsSync()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('File not found: ${filePath.split('/').last}')),
+          );
+        }
+        return;
+      }
+      pdfFile = PdfFile(
+        path: filePath,
+        name: filePath.split('/').last,
+        sizeBytes: file.lengthSync(),
+        modified: file.lastModifiedSync(),
+      );
+    }
+    appState.selectFile(pdfFile);
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (_, _, _) => ViewerScreen(
+          file: pdfFile,
+          initialPage: pageNumber,
+        ),
         transitionsBuilder: (_, animation, _, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -244,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         appBar: _selectionAppBar(selectionProvider, encryptionProvider, colorScheme),
         body: _buildBody(
           appState,
-          context.read<SortSearchProvider>(),
+          context.watch<SortSearchProvider>(),
           context.watch<BookmarkProvider>(),
           context.watch<FavoritesProvider>(),
           context.watch<SettingsProvider>(),
@@ -299,6 +533,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 }
               });
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.bookmarks_rounded, size: 20),
+            tooltip: 'All bookmarks',
+            onPressed: _showAllBookmarks,
           ),
           PopupMenuButton<dynamic>(
             icon: const Icon(Icons.sort_rounded, size: 20),
@@ -370,7 +609,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       ),
       body: _buildBody(
         appState,
-        context.read<SortSearchProvider>(),
+        context.watch<SortSearchProvider>(),
         context.watch<BookmarkProvider>(),
         context.watch<FavoritesProvider>(),
         context.watch<SettingsProvider>(),
@@ -502,8 +741,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         animation: _staggerController,
                         builder: (context, child) {
                           final delay = (index * 0.03).clamp(0.0, 1.0);
-                          final progress = (_staggerController.value - delay)
-                              .clamp(0.0, 1.0);
+                          final animValue = _staggerController.value;
+                          // After animation completes, show everything. During animation, stagger items in.
+                          final progress = animValue >= 1.0
+                              ? 1.0
+                              : (animValue - delay).clamp(0.0, 1.0);
                           return Opacity(
                             opacity: progress,
                             child: Transform.translate(

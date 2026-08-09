@@ -39,4 +39,21 @@ class IntentHandler {
     } catch (_) {}
     return null;
   }
+
+  /// Check if a path is an Android content URI (from SAF).
+  static bool isContentUri(String path) {
+    return path.startsWith('content://');
+  }
+
+  /// Recursively list all PDF files under a SAF content URI directory.
+  /// Files are copied to app cache; returns a map of {name: cachedPath}.
+  static Future<Map<String, String>> listContentUriFiles(String uriString) async {
+    try {
+      final result = await _channel.invokeMethod<Map>('listContentUriFiles', uriString);
+      if (result != null) {
+        return result.map((key, value) => MapEntry(key.toString(), value.toString()));
+      }
+    } catch (_) {}
+    return {};
+  }
 }

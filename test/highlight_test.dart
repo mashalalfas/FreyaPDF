@@ -261,13 +261,9 @@ void main() {
       expect(service.loadForFile('/test.pdf'), isEmpty);
     });
 
-    test('toggleHighlightMode cycles through modes', () {
+    test('toggleHighlightMode toggles rectangle draw mode', () {
       expect(provider.highlightMode, false);
       expect(provider.highlightModeValue, 'off');
-
-      provider.toggleHighlightMode();
-      expect(provider.highlightMode, true);
-      expect(provider.highlightModeValue, 'text');
 
       provider.toggleHighlightMode();
       expect(provider.highlightMode, true);
@@ -287,11 +283,9 @@ void main() {
     });
 
     test('closeFile clears file state', () async {
-      await provider.addHighlight(HighlightData(
-        filePath: '/test.pdf',
-        pageNumber: 1,
-        text: 'some text',
-      ));
+      await provider.addHighlight(
+        HighlightData(filePath: '/test.pdf', pageNumber: 1, text: 'some text'),
+      );
       provider.openFile('/test.pdf');
       expect(provider.highlightCount, 1);
       expect(provider.highlightMode, false);
@@ -309,18 +303,22 @@ void main() {
 
     test('multiple files handled correctly', () async {
       // Add highlights for two different files
-      await provider.addHighlight(HighlightData(
-        id: 'a',
-        filePath: '/a.pdf',
-        pageNumber: 1,
-        text: 'from a',
-      ));
-      await provider.addHighlight(HighlightData(
-        id: 'b',
-        filePath: '/b.pdf',
-        pageNumber: 2,
-        text: 'from b',
-      ));
+      await provider.addHighlight(
+        HighlightData(
+          id: 'a',
+          filePath: '/a.pdf',
+          pageNumber: 1,
+          text: 'from a',
+        ),
+      );
+      await provider.addHighlight(
+        HighlightData(
+          id: 'b',
+          filePath: '/b.pdf',
+          pageNumber: 2,
+          text: 'from b',
+        ),
+      );
 
       expect(provider.allHighlights, hasLength(2));
 
@@ -337,7 +335,7 @@ void main() {
       expect(provider.highlightModeValue, 'off');
 
       provider.setHighlightModeBool(true);
-      expect(provider.highlightModeValue, 'text');
+      expect(provider.highlightModeValue, 'rectangle');
       expect(provider.highlightMode, true);
 
       provider.setHighlightModeBool(false);

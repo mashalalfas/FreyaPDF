@@ -3,6 +3,7 @@ package com.feya.feya_pdf
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.DocumentsContract
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -29,6 +30,19 @@ class MainActivity : FlutterActivity() {
                     if (uriString != null) {
                         val path = copyContentUriToTemp(Uri.parse(uriString))
                         result.success(path)
+                    } else {
+                        result.error("INVALID_URI", "URI is null", null)
+                    }
+                }
+                "listContentUriFiles" -> {
+                    val uriString = call.arguments as? String
+                    if (uriString != null) {
+                        try {
+                            val files = listPdfFilesRecursive(Uri.parse(uriString))
+                            result.success(files)
+                        } catch (e: Exception) {
+                            result.error("SCAN_ERROR", e.message, null)
+                        }
                     } else {
                         result.error("INVALID_URI", "URI is null", null)
                     }
@@ -75,6 +89,88 @@ class MainActivity : FlutterActivity() {
         }
 
         return uri.path
+    }
+
+    /**
+     * Recursively list all PDF/ENC files under a SAF content URI directory.
+     * Each file is copied to the app cache and its cached path is returned.
+     * Returns a Map where keys are display names and values are cached file paths.
+     */
+    private fun listPdfFilesRecursive(uri: Uri): Map<String, String> {
+        val result = mutableMapOf<String, String>()
+        val tempDir = File(cacheDir, "saf_pdfs")
+        tempDir.mkdirs()
+
+        // Build the children URI for this tree/document
+        val docId = DocumentsContract.getTreeDocumentId(uri)
+            ?: DocumentsContract.getDocumentId(uri)
+        val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(uri, docId)
+
+        val cursor = contentResolver.query(
+            childrenUri,
+            arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE,
+                DocumentsContract.Document.COLUMN_SIZE
+            ),
+            null, null, null
+        )
+
+        cursor?.use {
+            val idIdx = it.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID)
+            val nameIdx = it.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME)
+            val mimeIdx = it.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE)
+
+            while (it.moveToNext()) {
+                val childId = it.getString(idIdx)
+                val name = it.getString(nameIdx)
+                val mimeType = it.getString(mimeIdx)
+                val childUri = DocumentsContract.buildDocumentUriUsingTree(uri, childId)
+
+                if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR ||
+                    mimeType == "vnd.android.document/directory") {
+                    // Recurse into subdirectory
+                    result.putAll(listPdfFilesRecursive(childUri))
+                } else if (name != null && (
+                    name.endsWith(".pdf", ignoreCase = true) ||
+                    name.endsWith(".pdf.enc", ignoreCase = true)
+                )) {
+                    // Copy PDF to cache
+                    val cachedPath = copyContentUriToTempWithName(childUri, name, tempDir)
+                    if (cachedPath != null) {
+                        result[name] = cachedPath
+                    }
+                }
+            }
+        }
+
+        return result
+    }
+
+    /**
+     * Copy a content URI to a cache file with a deterministic name.
+     * Avoids duplicate copies if the file already exists in cache.
+     */
+    private fun copyContentUriToTempWithName(uri: Uri, fileName: String, dir: File): String? {
+        try {
+            val outFile = File(dir, fileName)
+            // Skip copy if file exists and has content
+            if (outFile.exists() && outFile.length() > 0) {
+                return outFile.absolutePath
+            }
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val outputStream = FileOutputStream(outFile)
+            inputStream.use { input ->
+                outputStream.use { output ->
+                    input.copyTo(output)
+                }
+            }
+            return outFile.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
     }
 
     private fun copyContentUriToTemp(uri: Uri): String? {

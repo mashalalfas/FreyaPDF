@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
@@ -7,9 +10,7 @@ import 'package:feya_pdf/core/models/pdf_file.dart';
 import 'package:feya_pdf/features/encryption/encryption_provider.dart';
 import 'package:feya_pdf/features/settings/settings_provider.dart';
 import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
-import 'package:feya_pdf/features/viewer/providers/search_provider.dart';
 import 'package:feya_pdf/features/security/widgets/biometric_unlock_dialog.dart';
-import 'package:feya_pdf/features/viewer/widgets/search_bar.dart';
 import 'package:feya_pdf/features/viewer/widgets/thumbnail_grid.dart';
 import 'package:feya_pdf/features/highlights/widgets/highlights_panel.dart';
 import 'package:feya_pdf/features/highlights/highlight_provider.dart';
@@ -17,19 +18,40 @@ import 'package:feya_pdf/features/highlights/highlight.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
 import 'package:feya_pdf/features/bookmarks/widgets/bookmarks_panel.dart';
+import 'package:feya_pdf/features/viewer/providers/search_provider.dart';
+import 'package:feya_pdf/features/viewer/widgets/search_bar.dart';
+import 'package:feya_pdf/features/viewer/widgets/pdf_password_dialog.dart';
+import 'package:feya_pdf/features/security/pdf_password_storage.dart';
 
 /// Color matrix that inverts all RGB channels (255 - value) while preserving alpha.
 /// Used by Dark Reading Mode to create a negative effect on the PDF canvas.
 const ColorFilter _invertColorFilter = ColorFilter.matrix([
-  -1, 0, 0, 0, 255,
-  0, -1, 0, 0, 255,
-  0, 0, -1, 0, 255,
-  0, 0, 0, 1, 0,
+  -1,
+  0,
+  0,
+  0,
+  255,
+  0,
+  -1,
+  0,
+  0,
+  255,
+  0,
+  0,
+  -1,
+  0,
+  255,
+  0,
+  0,
+  0,
+  1,
+  0,
 ]);
 
 class ViewerScreen extends StatefulWidget {
   final PdfFile file;
-  const ViewerScreen({super.key, required this.file});
+  final int? initialPage;
+  const ViewerScreen({super.key, required this.file, this.initialPage});
 
   @override
   State<ViewerScreen> createState() => _ViewerScreenState();
@@ -54,11 +76,16 @@ class _ViewerScreenState extends State<ViewerScreen> {
   List<PdfOutlineNode>? _outline;
   bool _outlineLoading = false;
 
-  // Search bar state
-  final _searchProvider = SearchProvider();
-  bool _showSearchBar = false;
+  // Search state
 
-  // No additional panel state needed beyond provider
+  final PdfPasswordStorage _pdfPasswordStorage = PdfPasswordStorage();
+  Future<String?>? _passwordPrompt;
+  String? _candidatePdfPassword;
+  bool _rememberCandidatePassword = false;
+  bool _rememberedPasswordChecked = false;
+  bool _passwordFlowUsed = false;
+  int _passwordAttempts = 0;
+  int _loadGeneration = 0;
 
   // Seek-to-page state (tapping the page counter)
   bool _showPageSeek = false;
@@ -80,6 +107,16 @@ class _ViewerScreenState extends State<ViewerScreen> {
   }
 
   Future<void> _loadPdf() async {
+    final loadGeneration = ++_loadGeneration;
+    _documentRef = null;
+    _pdfController = null;
+    _passwordPrompt = null;
+    _candidatePdfPassword = null;
+    _rememberCandidatePassword = false;
+    _rememberedPasswordChecked = false;
+    _passwordFlowUsed = false;
+    _passwordAttempts = 0;
+
     // --- SVG branch ---
     if (_isSvgFile) {
       try {
@@ -113,7 +150,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
     final fileOps = context.read<FileOperationsProvider>();
 
     final lastPage = settings.getLastReadPage(widget.file.path);
-    final initialPage = (lastPage != null && lastPage > 0) ? lastPage : 1;
+    final initialPage =
+        widget.initialPage ??
+        ((lastPage != null && lastPage > 0) ? lastPage : 1);
 
     // If encrypted and no passphrase, prompt with biometric unlock
     if (widget.file.isEncrypted && !encryption.hasPassphrase) {
@@ -136,10 +175,12 @@ class _ViewerScreenState extends State<ViewerScreen> {
         return;
       }
 
+      Uint8List? encryptedBytes;
+
       // Build the PdfDocumentRef for this source
       if (widget.file.isEncrypted) {
-    final bytes = await fileOps.getPdfBytes(widget.file);
-        if (bytes == null || bytes.isEmpty || !mounted) {
+        encryptedBytes = await fileOps.getPdfBytes(widget.file);
+        if (encryptedBytes == null || encryptedBytes.isEmpty || !mounted) {
           if (mounted) {
             setState(() {
               _error = 'Decryption failed — wrong passphrase?';
@@ -153,7 +194,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
         if (widget.file.sizeBytes > 100 * 1024 * 1024 && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Large encrypted PDF — may take a moment to load'),
+              content: const Text(
+                'Large encrypted PDF — may take a moment to load',
+              ),
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 3),
             ),
@@ -161,14 +204,18 @@ class _ViewerScreenState extends State<ViewerScreen> {
         }
 
         _documentRef = PdfDocumentRefData(
-          bytes,
+          encryptedBytes,
           sourceName: widget.file.path,
+          passwordProvider: _providePdfPassword,
+          key: PdfDocumentRefKey('${widget.file.path}#viewer-$loadGeneration'),
           useProgressiveLoading: false,
         );
       } else {
         // Unencrypted: open via file path (memory-mapped / lazy page loading)
         _documentRef = PdfDocumentRefFile(
           widget.file.path,
+          passwordProvider: _providePdfPassword,
+          key: PdfDocumentRefKey('${widget.file.path}#viewer-$loadGeneration'),
           useProgressiveLoading: true,
         );
       }
@@ -189,6 +236,71 @@ class _ViewerScreenState extends State<ViewerScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Supplies passwords to both the viewer and the search document. pdfrx
+  /// calls this again after a rejected password, so a cancelled dialog stops
+  /// the retry loop by returning null.
+  Future<String?> _providePdfPassword() async {
+    final activePrompt = _passwordPrompt;
+    if (activePrompt != null) return activePrompt;
+
+    final prompt = _providePdfPasswordOnce();
+    _passwordPrompt = prompt;
+    try {
+      return await prompt;
+    } finally {
+      if (identical(_passwordPrompt, prompt)) _passwordPrompt = null;
+    }
+  }
+
+  Future<String?> _providePdfPasswordOnce() async {
+    if (!mounted) return null;
+    _passwordFlowUsed = true;
+
+    if (!_rememberedPasswordChecked) {
+      _rememberedPasswordChecked = true;
+      final remembered = await _pdfPasswordStorage.read(widget.file.path);
+      if (remembered != null && remembered.isNotEmpty) {
+        _candidatePdfPassword = remembered;
+        _rememberCandidatePassword = true;
+        _passwordAttempts++;
+        return remembered;
+      }
+    }
+
+    if (!mounted) return null;
+    final result = await showPdfPasswordDialog(
+      context,
+      isRetry: _passwordAttempts > 0,
+    );
+    if (result == null || result.password.isEmpty) return null;
+
+    _candidatePdfPassword = result.password;
+    _rememberCandidatePassword = result.remember;
+    _passwordAttempts++;
+    return result.password;
+  }
+
+  Future<void> _rememberPdfPassword() async {
+    if (!_passwordFlowUsed) return;
+    final password = _candidatePdfPassword;
+    if (!_rememberCandidatePassword) {
+      try {
+        await _pdfPasswordStorage.delete(widget.file.path);
+      } catch (e) {
+        debugPrint('Viewer: failed to forget PDF password: $e');
+      }
+      return;
+    }
+    if (password == null || password.isEmpty) {
+      return;
+    }
+    try {
+      await _pdfPasswordStorage.write(widget.file.path, password);
+    } catch (e) {
+      debugPrint('Viewer: failed to remember PDF password: $e');
     }
   }
 
@@ -217,21 +329,22 @@ class _ViewerScreenState extends State<ViewerScreen> {
       _totalPages = document.pages.length;
       _currentPage = controller.pageNumber ?? _currentPage;
     });
+    unawaited(_rememberPdfPassword());
     context.read<SettingsProvider>().setLastReadPage(
       widget.file.path,
       _currentPage,
       totalPages: _totalPages,
     );
 
-    // Attach the search provider to the viewer controller
-    // IMPORTANT: Must be inside mounted check — calling attach after
-    // dispose() would create a PdfTextSearcher on a disposed ChangeNotifier.
-    _searchProvider.attach(controller);
+    // Attach search provider — controller is now wired up so search can
+    // navigate to matches.
+    final searchProvider = context.read<SearchProvider>();
+    searchProvider.attach(controller);
 
-    // Pre-cache PDF page texts for highlight rendering
-    context.read<HighlightProvider>().cachePageTexts(document);
     // Pre-load links for the currently visible page
-    _loadPageLinks(document, controller.pageNumber ?? _currentPage);
+    final visiblePage = controller.pageNumber ?? _currentPage;
+    _loadPageLinks(document, visiblePage);
+    _loadHighlightPageText(document, visiblePage);
     // Pre-load outline in the background
     _loadOutline(document);
   }
@@ -273,8 +386,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
   void _onPageChanged(int? pageNumber) {
     if (pageNumber == null || pageNumber == _currentPage) return;
     final document = _documentRef?.resolveListenable().document;
-    if (document != null && pageNumber > 0 && pageNumber <= document.pages.length) {
+    if (document != null &&
+        pageNumber > 0 &&
+        pageNumber <= document.pages.length) {
       _loadPageLinks(document, pageNumber);
+      _loadHighlightPageText(document, pageNumber);
     }
     if (mounted) {
       setState(() => _currentPage = pageNumber);
@@ -286,15 +402,35 @@ class _ViewerScreenState extends State<ViewerScreen> {
     }
   }
 
+  void _loadHighlightPageText(PdfDocument document, int pageNumber) {
+    unawaited(
+      context.read<HighlightProvider>().cachePageText(document, pageNumber),
+    );
+  }
+
   /// Called when the document reference notifies a document change (load / reload).
   void _onDocumentChanged(PdfDocument? document) {
     if (document == null || !mounted) return;
     setState(() => _totalPages = document.pages.length);
   }
 
+  void _onDocumentLoadFinished(PdfDocumentRef documentRef, bool succeeded) {
+    if (succeeded || !mounted) return;
+    final error = documentRef.resolveListenable().error;
+    final message = error is PdfPasswordException
+        ? 'This PDF could not be opened with the supplied password.'
+        : 'Failed to open PDF: ${error ?? 'unknown error'}';
+    Future<void>.microtask(() {
+      if (!mounted) return;
+      setState(() {
+        _error = message;
+        _isLoading = false;
+      });
+    });
+  }
+
   @override
   void dispose() {
-    _searchProvider.dispose();
     _pageSeekController.dispose();
     _pageSeekFocus.dispose();
     // Clear highlight page text cache for this document
@@ -314,8 +450,6 @@ class _ViewerScreenState extends State<ViewerScreen> {
   IconData _highlightModeIcon(BuildContext context) {
     final mode = context.watch<HighlightProvider>().highlightModeValue;
     switch (mode) {
-      case 'text':
-        return Icons.brush_rounded;
       case 'rectangle':
         return Icons.crop_free_rounded;
       default:
@@ -326,13 +460,69 @@ class _ViewerScreenState extends State<ViewerScreen> {
   String _highlightModeTooltip(BuildContext context) {
     final mode = context.watch<HighlightProvider>().highlightModeValue;
     switch (mode) {
-      case 'text':
-        return 'Text highlight mode (tap to switch)';
       case 'rectangle':
-        return 'Rectangle draw mode (tap to switch)';
+        return 'Draw mode ON (tap to turn off)';
       default:
-        return 'Highlight mode';
+        return 'Highlight (tap to enable draw mode)';
     }
+  }
+
+  /// Build the search button that shows indexing/ready status.
+  Widget _buildSearchButton(ColorScheme colorScheme) {
+    return Consumer<SearchProvider>(
+      builder: (context, provider, _) {
+        IconData icon;
+        Color? iconColor;
+        String tooltip;
+        VoidCallback? onPressed;
+
+        switch (provider.indexStatus) {
+          case IndexStatus.indexing:
+            icon = Icons.search_rounded;
+            iconColor = colorScheme.primary;
+            tooltip = 'Search indexed pages (still indexing)';
+            onPressed = () => provider.toggleSearchBar();
+          case IndexStatus.noText:
+            icon = Icons.search_off_rounded;
+            iconColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
+            tooltip = 'Search in document';
+            onPressed = () => provider.toggleSearchBar();
+          case IndexStatus.notIndexed:
+            icon = Icons.search_rounded;
+            iconColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
+            tooltip = 'Search in document';
+            onPressed = () => provider.toggleSearchBar();
+          case IndexStatus.error:
+            icon = Icons.error_outline_rounded;
+            iconColor = colorScheme.error;
+            tooltip = 'Search in document';
+            onPressed = () => provider.toggleSearchBar();
+          case IndexStatus.unavailable:
+            icon = Icons.search_off_rounded;
+            iconColor = colorScheme.onSurfaceVariant.withValues(alpha: 0.4);
+            tooltip = provider.searchUnavailableReason ?? 'Search in document';
+            onPressed = () => provider.toggleSearchBar();
+          case IndexStatus.ready:
+            icon = Icons.search_rounded;
+            iconColor = provider.showSearchBar
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
+            tooltip = 'Search in document';
+            onPressed = () {
+              provider.toggleSearchBar();
+            };
+        }
+
+        return IconButton(
+          icon: provider.indexStatus == IndexStatus.indexing
+              ? _IndexingAnimation(color: colorScheme.primary)
+              : Icon(icon, size: 20, color: iconColor),
+          tooltip: tooltip,
+          onPressed: onPressed,
+          visualDensity: VisualDensity.compact,
+        );
+      },
+    );
   }
 
   Future<void> _saveToLocal() async {
@@ -356,7 +546,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
           SnackBar(
             content: const Text('Failed to save file'),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         return;
@@ -365,7 +557,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
           SnackBar(
             content: Text('Already exists in:\n$destDir'),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
         return;
@@ -456,8 +650,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                   child: Row(
                     children: [
-                      Icon(Icons.article_outlined,
-                          size: 20, color: cs.primary),
+                      Icon(Icons.article_outlined, size: 20, color: cs.primary),
                       const SizedBox(width: 8),
                       Text(
                         'Contents',
@@ -504,21 +697,14 @@ class _ViewerScreenState extends State<ViewerScreen> {
   }
 
   /// Build a single outline entry tile.
-  Widget _buildOutlineTile(
-    BuildContext ctx,
-    PdfOutlineNode node,
-    int depth,
-  ) {
+  Widget _buildOutlineTile(BuildContext ctx, PdfOutlineNode node, int depth) {
     final controller = _pdfController;
     final cs = Theme.of(ctx).colorScheme;
     final hasDest = node.dest != null;
 
     return ListTile(
       dense: true,
-      contentPadding: EdgeInsets.only(
-        left: 16.0 + depth * 20.0,
-        right: 16,
-      ),
+      contentPadding: EdgeInsets.only(left: 16.0 + depth * 20.0, right: 16),
       leading: Icon(
         hasDest ? Icons.article_outlined : Icons.folder_outlined,
         size: 18,
@@ -532,8 +718,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           fontSize: 14,
-          fontWeight:
-              depth == 0 ? FontWeight.w600 : FontWeight.w400,
+          fontWeight: depth == 0 ? FontWeight.w600 : FontWeight.w400,
           color: cs.onSurface,
         ),
       ),
@@ -611,6 +796,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (SearchProvider.kTraceSearchStorm) SearchProvider.stormBuildCount++;
     final colorScheme = Theme.of(context).colorScheme;
     final settings = context.watch<SettingsProvider>();
 
@@ -643,7 +829,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
         actions: [
           if (widget.file.isEncrypted)
             IconButton(
-              icon: Icon(Icons.lock_rounded, size: 20, color: colorScheme.tertiary),
+              icon: Icon(
+                Icons.lock_rounded,
+                size: 20,
+                color: colorScheme.tertiary,
+              ),
               tooltip: 'Encrypted',
               onPressed: null,
             ),
@@ -676,7 +866,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
                           icon: Icon(
                             Icons.view_carousel_outlined,
                             size: 20,
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                           tooltip: 'Thumbnails',
                           onPressed: _showThumbnailGrid,
@@ -689,46 +881,41 @@ class _ViewerScreenState extends State<ViewerScreen> {
                               ? Icons.nightlight_round
                               : Icons.nightlight_outlined,
                           size: 20,
-                          color: settings.darkReadingMode ? colorScheme.primary : null,
+                          color: settings.darkReadingMode
+                              ? colorScheme.primary
+                              : null,
                         ),
                         tooltip: settings.darkReadingMode
                             ? 'Disable dark reading'
                             : 'Enable dark reading',
-                        onPressed: () =>
-                            settings.setDarkReadingMode(!settings.darkReadingMode),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      // Search
-                      IconButton(
-                        icon: Icon(
-                          Icons.search_rounded,
-                          size: 20,
-                          color: _showSearchBar ? colorScheme.primary : null,
+                        onPressed: () => settings.setDarkReadingMode(
+                          !settings.darkReadingMode,
                         ),
-                        tooltip: 'Search in document',
-                        onPressed: () {
-                          setState(() {
-                            if (_showSearchBar) _searchProvider.clearSearch();
-                            _showSearchBar = !_showSearchBar;
-                          });
-                        },
                         visualDensity: VisualDensity.compact,
                       ),
+
                       // Highlight mode
                       IconButton(
                         icon: Icon(
                           _highlightModeIcon(context),
                           size: 20,
-                          color: context.watch<HighlightProvider>().highlightMode
+                          color:
+                              context.watch<HighlightProvider>().highlightMode
                               ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              : colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
+                                ),
                         ),
                         tooltip: _highlightModeTooltip(context),
                         onPressed: () {
-                          context.read<HighlightProvider>().toggleHighlightMode();
+                          context
+                              .read<HighlightProvider>()
+                              .toggleHighlightMode();
                         },
                         visualDensity: VisualDensity.compact,
                       ),
+                      // Search in document
+                      _buildSearchButton(colorScheme),
                       // Highlights panel
                       IconButton(
                         icon: Icon(
@@ -736,7 +923,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
                           size: 20,
                           color: context.watch<HighlightProvider>().showPanel
                               ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                              : colorScheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
+                                ),
                         ),
                         tooltip: 'View highlights',
                         onPressed: () {
@@ -745,34 +934,57 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         visualDensity: VisualDensity.compact,
                       ),
                       // Bookmark
-                      IconButton(
-                        icon: Icon(
-                          context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
-                              ? Icons.bookmark_rounded
-                              : Icons.bookmark_border_rounded,
-                          size: 20,
-                          color: context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                        ),
-                        tooltip: context.watch<BookmarkProvider>().fileBookmarks.any((b) => b.pageNumber == _currentPage)
-                            ? 'Remove bookmark'
-                            : 'Bookmark this page',
-                        onPressed: () async {
-                          final provider = context.read<BookmarkProvider>();
-                          final existing = provider.fileBookmarks.where((b) => b.pageNumber == _currentPage);
-                          if (existing.isNotEmpty) {
-                            for (final b in existing) {
-                              await provider.removeBookmark(b.id);
-                            }
-                          } else {
-                            await provider.addBookmark(Bookmark(
-                              filePath: widget.file.path,
-                              pageNumber: _currentPage,
-                              label: null,
-                            ));
-                          }
+                      GestureDetector(
+                        onLongPress: () {
+                          context.read<BookmarkProvider>().setShowPanel(
+                            !context.read<BookmarkProvider>().showPanel,
+                          );
                         },
+                        child: IconButton(
+                          icon: Icon(
+                            context.watch<BookmarkProvider>().fileBookmarks.any(
+                                  (b) => b.pageNumber == _currentPage,
+                                )
+                                ? Icons.bookmark_rounded
+                                : Icons.bookmark_border_rounded,
+                            size: 20,
+                            color:
+                                context
+                                    .watch<BookmarkProvider>()
+                                    .fileBookmarks
+                                    .any((b) => b.pageNumber == _currentPage)
+                                ? colorScheme.primary
+                                : colorScheme.onSurfaceVariant.withValues(
+                                    alpha: 0.7,
+                                  ),
+                          ),
+                          tooltip:
+                              context
+                                  .watch<BookmarkProvider>()
+                                  .fileBookmarks
+                                  .any((b) => b.pageNumber == _currentPage)
+                              ? 'Remove bookmark'
+                              : 'Bookmark this page (long-press for list)',
+                          onPressed: () async {
+                            final provider = context.read<BookmarkProvider>();
+                            final existing = provider.fileBookmarks.where(
+                              (b) => b.pageNumber == _currentPage,
+                            );
+                            if (existing.isNotEmpty) {
+                              for (final b in existing) {
+                                await provider.removeBookmark(b.id);
+                              }
+                            } else {
+                              await provider.addBookmark(
+                                Bookmark(
+                                  filePath: widget.file.path,
+                                  pageNumber: _currentPage,
+                                  label: null,
+                                ),
+                              );
+                            }
+                          },
+                        ),
                       ),
                       // Save
                       IconButton(
@@ -794,95 +1006,106 @@ class _ViewerScreenState extends State<ViewerScreen> {
               )
             : null,
       ),
-      body: Column(
+      // The search bar is an OVERLAY over the viewer, not an item in the
+      // layout Column. When it lived in the Column inside an AnimatedSize,
+      // opening it RESIZED the PdfViewer — and pdfrx then re-rendered the
+      // visible page at the new size, repeatedly across the animation. On
+      // large image-heavy PDFs that is a multi-second CPU storm which trips
+      // Android's input-dispatch timeout -> ANR (reproduced on the HMD
+      // Skyline). As an overlay, toggling the bar never changes the
+      // viewer's size, so no re-render is triggered and opening the search
+      // bar is truly UI-only and safe.
+      body: Stack(
         children: [
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: _showSearchBar
-                ? SearchBarWidget(
-                    matchCount: _searchProvider.matchCount,
-                    currentMatchIndex: _searchProvider.matchCount > 0
-                        ? _searchProvider.currentMatchIndex + 1
-                        : 0,
-                    onSearchChanged: (query) {
-                      try {
-                        _searchProvider.search(query);
-                      } catch (e) {
-                        // If pdfrx's PdfTextSearcher throws internally
-                        // (e.g. document disposed mid-search), silently catch.
-                        debugPrint('SearchProvider.search error: $e');
-                      }
-                    },
-                    onNextMatch: () {
-                      try {
-                        _searchProvider.nextMatch();
-                      } catch (e) {
-                        debugPrint('SearchProvider.nextMatch error: $e');
-                      }
-                    },
-                    onPreviousMatch: () {
-                      try {
-                        _searchProvider.previousMatch();
-                      } catch (e) {
-                        debugPrint('SearchProvider.previousMatch error: $e');
-                      }
-                    },
-                    onClose: () {
-                      _searchProvider.clearSearch();
-                      setState(() => _showSearchBar = false);
-                    },
-                  )
-                : const SizedBox.shrink(),
+          Column(
+            children: [
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: context.watch<HighlightProvider>().showPanel
+                    ? SizedBox(
+                        height: 250,
+                        child: HighlightsPanel(
+                          onNavigateToPage: (page) {
+                            _pdfController?.goToPage(pageNumber: page);
+                            context
+                                .read<HighlightProvider>()
+                                .setShowPanel(false);
+                          },
+                          onClose: () => context
+                              .read<HighlightProvider>()
+                              .setShowPanel(false),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: context.watch<BookmarkProvider>().showPanel
+                    ? SizedBox(
+                        height: 250,
+                        child: BookmarksPanel(
+                          onNavigateToPage: (page) {
+                            _pdfController?.goToPage(pageNumber: page);
+                            context
+                                .read<BookmarkProvider>()
+                                .setShowPanel(false);
+                          },
+                          onClose: () => context
+                              .read<BookmarkProvider>()
+                              .setShowPanel(false),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeInOut,
+                  switchOutCurve: Curves.easeInOut,
+                  child: _buildBody(
+                    colorScheme,
+                    settings,
+                    key: ValueKey(settings.darkReadingMode),
+                  ),
+                ),
+              ),
+            ],
           ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: context.watch<HighlightProvider>().showPanel
-                ? SizedBox(
-                    height: 250,
-                    child: HighlightsPanel(
-                      onNavigateToPage: (page) {
-                        _pdfController?.goToPage(pageNumber: page);
-                        context.read<HighlightProvider>().setShowPanel(false);
-                      },
-                      onClose: () => context
-                          .read<HighlightProvider>()
-                          .setShowPanel(false),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeInOut,
-            alignment: Alignment.topCenter,
-            child: context.watch<BookmarkProvider>().showPanel
-                ? SizedBox(
-                    height: 250,
-                    child: BookmarksPanel(
-                      onNavigateToPage: (page) {
-                        _pdfController?.goToPage(pageNumber: page);
-                        context.read<BookmarkProvider>().setShowPanel(false);
-                      },
-                      onClose: () => context
-                          .read<BookmarkProvider>()
-                          .setShowPanel(false),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              switchInCurve: Curves.easeInOut,
-              switchOutCurve: Curves.easeInOut,
-              child: _buildBody(
-                colorScheme,
-                settings,
-                key: ValueKey(settings.darkReadingMode),
+          // Consumer-scoped so SearchProvider notifications (search bar
+          // open/close, match updates) rebuild ONLY this overlay subtree,
+          // not the main build — rebuilding the main build reconstructs the
+          // PdfViewer and triggers a pdfrx re-render, which ANRs on large
+          // image-heavy PDFs.
+          //
+          // RepaintBoundary: isolate the overlay's paint layer from the
+          // PdfViewer (wrapped in its own RepaintBoundary above) so the
+          // search bar mounting/animating never forces a viewer repaint.
+          // No AnimatedSwitcher: a cross-fade would schedule ~11 paint
+          // frames, each of which (without the boundaries) could pull the
+          // viewer into a re-render cascade. Instant show/hide is safer.
+          Consumer<SearchProvider>(
+            builder: (context, search, _) => Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: RepaintBoundary(
+                child: search.showSearchBar
+                    ? SearchBarWidget(
+                        key: const ValueKey('feya-search-bar-overlay'),
+                        matchCount: search.matchCount,
+                        currentMatchIndex: search.currentMatchIndex + 1,
+                        searchUnavailableReason: search.searchUnavailableReason,
+                        searchTruncated: search.searchTruncated,
+                        onSearchChanged: search.search,
+                        onNextMatch: search.nextMatch,
+                        onPreviousMatch: search.previousMatch,
+                        onClose: search.closeSearchBar,
+                      )
+                    : const SizedBox.shrink(),
               ),
             ),
           ),
@@ -919,13 +1142,13 @@ class _ViewerScreenState extends State<ViewerScreen> {
       ContextMenuButtonItem(
         onPressed: () async {
           // Get the selected text
-          final selectedText =
-              await params.textSelectionDelegate.getSelectedText();
+          final selectedText = await params.textSelectionDelegate
+              .getSelectedText();
           if (selectedText.isEmpty) return;
 
           // Get the text ranges to determine page
-          final ranges =
-              await params.textSelectionDelegate.getSelectedTextRanges();
+          final ranges = await params.textSelectionDelegate
+              .getSelectedTextRanges();
           if (ranges.isEmpty) return;
 
           final highlight = HighlightData(
@@ -941,7 +1164,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
             messenger.showSnackBar(
               SnackBar(
-                content: Text('Highlight added on page ${highlight.pageNumber}'),
+                content: Text(
+                  'Highlight added on page ${highlight.pageNumber}',
+                ),
                 behavior: SnackBarBehavior.floating,
                 duration: const Duration(seconds: 2),
               ),
@@ -977,7 +1202,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
             CircularProgressIndicator(color: colorScheme.primary),
             const SizedBox(height: 16),
             Text(
-              _isSvgFile ? 'Loading SVG...' : (widget.file.isEncrypted ? 'Decrypting...' : 'Loading PDF...'),
+              _isSvgFile
+                  ? 'Loading SVG...'
+                  : (widget.file.isEncrypted
+                        ? 'Decrypting...'
+                        : 'Loading PDF...'),
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
           ],
@@ -992,7 +1221,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline_rounded, size: 48, color: colorScheme.error),
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: colorScheme.error,
+              ),
               const SizedBox(height: 16),
               Text(
                 _error!,
@@ -1038,12 +1271,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
                 var y = params.margin;
                 final layouts = <Rect>[];
                 for (final page in pages) {
-                  layouts.add(Rect.fromLTWH(
-                    params.margin,
-                    y,
-                    page.width,
-                    page.height,
-                  ));
+                  layouts.add(
+                    Rect.fromLTWH(params.margin, y, page.width, page.height),
+                  );
                   y += page.height + params.margin;
                 }
                 return PdfPageLayout(
@@ -1057,11 +1287,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
             : null,
         // FEATURE 5 (Phase 2) — Text search match highlighting
         pagePaintCallbacks: [
-          _searchProvider.pagePaintCallback,
+          context.read<SearchProvider>().paintSearchMatches,
           context.read<HighlightProvider>().paintHighlights,
         ],
-        matchTextColor: const Color.fromARGB(80, 255, 255, 0), // light yellow
-        activeMatchTextColor: const Color.fromARGB(120, 255, 200, 0), // golden yellow
         // FEATURE 3 — Annotations / links overlay
         // pdfrx renders annotations natively (forms + appearances) by default
         // via PdfAnnotationRenderingMode.annotationAndForms, which preserves
@@ -1090,6 +1318,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
         textSelectionParams: const PdfTextSelectionParams(),
         buildContextMenu: _buildTextSelectionContextMenu,
         onDocumentChanged: _onDocumentChanged,
+        onDocumentLoadFinished: _onDocumentLoadFinished,
         onViewerReady: _onViewerReady,
         onPageChanged: _onPageChanged,
       ),
@@ -1129,17 +1358,22 @@ class _ViewerScreenState extends State<ViewerScreen> {
               child: CustomPaint(
                 painter: _DrawPreviewPainter(
                   drawRect: drawRect,
-                  contentToViewport:
-                      safeVisibleRect()?.topLeft ?? Offset.zero,
+                  contentToViewport: safeVisibleRect()?.topLeft ?? Offset.zero,
                   contentToViewportScale: () {
                     final v = safeVisibleRect();
                     final s = safeViewSize();
                     if (v == null || s == null || v.width <= 0) return 1.0;
                     return s.width / v.width; // = zoom
                   }(),
-                  color: Color(context.read<HighlightProvider>().fileHighlights.isNotEmpty
-                      ? context.read<HighlightProvider>().fileHighlights.last.color
-                      : 0xFFFFEB3B),
+                  color: Color(
+                    context.read<HighlightProvider>().fileHighlights.isNotEmpty
+                        ? context
+                              .read<HighlightProvider>()
+                              .fileHighlights
+                              .last
+                              .color
+                        : 0xFFFFEB3B,
+                  ),
                 ),
                 size: Size.infinite,
               ),
@@ -1150,33 +1384,44 @@ class _ViewerScreenState extends State<ViewerScreen> {
           Positioned(
             top: 8,
             right: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.crop_free_rounded, size: 14, color: colorScheme.onPrimaryContainer),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Draw mode',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+            child: GestureDetector(
+              onTap: () =>
+                  context.read<HighlightProvider>().toggleHighlightMode(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.crop_free_rounded,
+                      size: 14,
                       color: colorScheme.onPrimaryContainer,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    Text(
+                      'Draw mode — tap to exit',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1185,12 +1430,28 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
     return KeyedSubtree(
       key: key,
-      child: settings.darkReadingMode
-          ? ColorFiltered(
-              colorFilter: _invertColorFilter,
-              child: viewerWithDrawOverlay,
-            )
-          : viewerWithDrawOverlay,
+      child: RepaintBoundary(
+        // Isolate the PdfViewer's paint layer from sibling overlays (search
+        // bar, draw-mode badge).
+        child: ExcludeSemantics(
+          // Exclude the PdfViewer from the Flutter semantics tree. When
+          // SemanticsBinding.instance.semanticsEnabled is true (which it is
+          // on many Android devices where TalkBack / accessibility services
+          // are running), pdfrx builds Focus+Semantics widgets for every
+          // line of visible text. This creates a large semantics subtree
+          // (~500 nodes for 3 visible text pages). When the search bar's
+          // TextField+FocuNode mounts and Flutter reconciles the semantics
+          // tree synchronously on the main thread, processing pdfrx's nodes
+          // blocks the thread for 5s+ → "Input dispatching timed out for
+          // FocusEvent" ANR.
+          child: settings.darkReadingMode
+              ? ColorFiltered(
+                  colorFilter: _invertColorFilter,
+                  child: viewerWithDrawOverlay,
+                )
+              : viewerWithDrawOverlay,
+        ),
+      ),
     );
   }
 
@@ -1203,7 +1464,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.broken_image_outlined, size: 64, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            Icon(
+              Icons.broken_image_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 12),
             Text(
               'SVG preview unavailable',
@@ -1213,7 +1478,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
             Text(
               _svgError!,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
             ),
           ],
         ),
@@ -1230,9 +1498,8 @@ class _ViewerScreenState extends State<ViewerScreen> {
             child: SvgPicture.file(
               widget.file.file,
               fit: BoxFit.contain,
-              placeholderBuilder: (_) => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              placeholderBuilder: (_) =>
+                  const Center(child: CircularProgressIndicator()),
             ),
           ),
         ),
@@ -1243,7 +1510,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.insert_drive_file_outlined, size: 64, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+            Icon(
+              Icons.insert_drive_file_outlined,
+              size: 64,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 12),
             Text(
               'SVG preview unavailable',
@@ -1278,7 +1549,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
         border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
+          top: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
       ),
       child: SafeArea(
@@ -1341,7 +1614,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         hintText: '$_totalPages',
                         hintStyle: TextStyle(
                           fontSize: 13,
-                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.4,
+                          ),
                         ),
                       ),
                       onSubmitted: seekToPage,
@@ -1357,18 +1632,21 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         });
                       } else if (value == 'bookmark') {
                         final provider = context.read<BookmarkProvider>();
-                        final existing = provider.fileBookmarks
-                            .where((b) => b.pageNumber == _currentPage);
+                        final existing = provider.fileBookmarks.where(
+                          (b) => b.pageNumber == _currentPage,
+                        );
                         if (existing.isNotEmpty) {
                           for (final b in existing) {
                             provider.removeBookmark(b.id);
                           }
                         } else {
-                          provider.addBookmark(Bookmark(
-                            filePath: widget.file.path,
-                            pageNumber: _currentPage,
-                            label: null,
-                          ));
+                          provider.addBookmark(
+                            Bookmark(
+                              filePath: widget.file.path,
+                              pageNumber: _currentPage,
+                              label: null,
+                            ),
+                          );
                         }
                       }
                     },
@@ -1393,8 +1671,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
                             value: 'bookmark',
                             child: ListTile(
                               dense: true,
-                              leading:
-                                  Icon(Icons.bookmark_border_rounded, size: 18),
+                              leading: Icon(
+                                Icons.bookmark_border_rounded,
+                                size: 18,
+                              ),
                               title: Text('Bookmark this page'),
                               contentPadding: EdgeInsets.zero,
                             ),
@@ -1427,8 +1707,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w400,
-                              color:
-                                  colorScheme.primary.withValues(alpha: 0.6),
+                              color: colorScheme.primary.withValues(alpha: 0.6),
                             ),
                           ),
                           // Bookmark indicator (#08)
@@ -1437,8 +1716,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                               .fileBookmarks
                               .any((b) => b.pageNumber == _currentPage))
                             Padding(
-                              padding:
-                                  const EdgeInsets.only(left: 4),
+                              padding: const EdgeInsets.only(left: 4),
                               child: Icon(
                                 Icons.bookmark_rounded,
                                 size: 14,
@@ -1477,8 +1755,8 @@ class _ViewerScreenState extends State<ViewerScreen> {
 }
 
 class _DrawPreviewPainter extends CustomPainter {
-  final Rect? drawRect;             // content-space
-  final Offset contentToViewport;   // = visibleRect.topLeft
+  final Rect? drawRect; // content-space
+  final Offset contentToViewport; // = visibleRect.topLeft
   final double contentToViewportScale; // = zoom = viewSize.w / visibleRect.w
   final Color color;
 
@@ -1495,9 +1773,9 @@ class _DrawPreviewPainter extends CustomPainter {
 
     // content -> viewport: `viewport = (content - topLeft) * zoom`
     final r = Rect.fromLTRB(
-      (drawRect!.left   - contentToViewport.dx) * contentToViewportScale,
-      (drawRect!.top    - contentToViewport.dy) * contentToViewportScale,
-      (drawRect!.right  - contentToViewport.dx) * contentToViewportScale,
+      (drawRect!.left - contentToViewport.dx) * contentToViewportScale,
+      (drawRect!.top - contentToViewport.dy) * contentToViewportScale,
+      (drawRect!.right - contentToViewport.dx) * contentToViewportScale,
       (drawRect!.bottom - contentToViewport.dy) * contentToViewportScale,
     );
 
@@ -1517,8 +1795,59 @@ class _DrawPreviewPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _DrawPreviewPainter oldDelegate) {
     return oldDelegate.drawRect != drawRect ||
-           oldDelegate.contentToViewport != contentToViewport ||
-           oldDelegate.contentToViewportScale != contentToViewportScale ||
-           oldDelegate.color != color;
+        oldDelegate.contentToViewport != contentToViewport ||
+        oldDelegate.contentToViewportScale != contentToViewportScale ||
+        oldDelegate.color != color;
+  }
+}
+
+/// Pulsing search icon animation shown while text indexing is in progress.
+class _IndexingAnimation extends StatefulWidget {
+  final Color color;
+  const _IndexingAnimation({required this.color});
+
+  @override
+  State<_IndexingAnimation> createState() => _IndexingAnimationState();
+}
+
+class _IndexingAnimationState extends State<_IndexingAnimation>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    )..repeat();
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Icon(
+          Icons.search_rounded,
+          size: 20,
+          color: widget.color.withValues(
+            alpha: 0.4 + _scaleAnimation.value * 0.3,
+          ),
+        );
+      },
+    );
   }
 }

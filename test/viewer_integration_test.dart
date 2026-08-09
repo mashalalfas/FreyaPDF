@@ -29,6 +29,7 @@ import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
 import 'package:feya_pdf/features/encryption/encryption_provider.dart';
 import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
 import 'package:feya_pdf/features/highlights/highlight_provider.dart';
+import 'package:feya_pdf/features/viewer/providers/search_provider.dart';
 import 'package:feya_pdf/features/settings/settings_provider.dart';
 import 'package:feya_pdf/features/viewer/viewer_screen.dart';
 import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
@@ -89,6 +90,10 @@ Future<EncryptionProvider> _pumpViewer(
         ChangeNotifierProvider<BookmarkProvider>(
           create: (_) => BookmarkProvider(BookmarkService(prefs)),
         ),
+        // SearchProvider is accessed via context.read inside ViewerScreen
+        // (Tier 2 decoupled search document). Add a minimal instance so
+        // the screen can be instantiated in widget tests without crashing.
+        ChangeNotifierProvider<SearchProvider>(create: (_) => SearchProvider()),
       ],
       child: MaterialApp(
         home: ViewerScreen(file: file),
