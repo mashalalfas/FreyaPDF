@@ -1,0 +1,27 @@
+---
+name: Feature request
+about: Suggest an idea for Feya PDF
+title: "[Feature] "
+labels: enhancement
+assignees: ''
+
+---
+
+## Problem
+
+What problem does this feature solve? Who is it for?
+
+## Proposed solution
+
+Describe the feature you'd like.
+
+## Alternatives
+
+Any alternative approaches you considered.
+
+## Additional context
+
+Screenshots, links, or other context.
+
+> **Note:** Feya PDF is a privacy-first, offline app. Features that require a
+> backend, analytics, or data collection are out of scope.

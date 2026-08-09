@@ -52,6 +52,11 @@ graphify-out/
 legal-config.json
 legal/
 
+# Secrets
+key.properties
+*.jks
+*.keystore
+
 # Agent files
 AGENTS.md
 HEARTBEAT.md
@@ -59,4 +64,6 @@ IDENTITY.md
 SOUL.md
 TOOLS.md
 USER.md
-*.jks\nkey.properties\n
+
+# HERO sandbox state mirror
+.hero/

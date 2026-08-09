@@ -8,6 +8,7 @@ on:
 
 jobs:
   analyze:
+    name: Analyze
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,9 +16,11 @@ jobs:
         with:
           flutter-version: '3.x'
       - run: flutter pub get
-      - run: dart analyze
+      - name: flutter analyze
+        run: flutter analyze
 
   test:
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +28,19 @@ jobs:
         with:
           flutter-version: '3.x'
       - run: flutter pub get
-      # Run all fast tests (exclude the 1MB encryption round-trip)
-      # PBKDF2 600k iterations makes it ~50s
-      # Run all tests except the slow 1MB encryption round-trip
-      - run: flutter test test/widget_test.dart test/tag_service_test.dart test/settings_service_test.dart test/tag_provider_test.dart test/app_state_test.dart test/file_service_test.dart
+      # Full suite, excluding the tagged slow test (1MB encryption round-trip).
+      - name: flutter test
+        run: flutter test --exclude-tags=slow --concurrency=1
+
+  test-slow:
+    name: Test (slow, tagged)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+      - run: flutter pub get
+      # 1MB AES-GCM round-trip — runs separately to keep the main suite fast.
+      - name: flutter test (slow)
+        run: flutter test --tags=slow --concurrency=1

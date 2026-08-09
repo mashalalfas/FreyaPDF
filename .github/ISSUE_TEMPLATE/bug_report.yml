@@ -1,0 +1,40 @@
+---
+name: Bug report
+about: Report a reproducible bug in Feya PDF
+title: "[Bug] "
+labels: bug
+assignees: ''
+
+---
+
+## Description
+
+A clear, concise description of the bug.
+
+## Steps to reproduce
+
+1. Open …
+2. Tap …
+3. See …
+
+## Expected behavior
+
+What you expected to happen.
+
+## Actual behavior
+
+What actually happened.
+
+## Environment
+
+- **App version / build:** (from **Settings → About**, e.g. `1.2.0`, commit `870ad3c`)
+- **Device:** (e.g. HMD Skyline, Android 14)
+- **PDF file:** size / page count / scanned vs text, if relevant
+
+## Logs / screenshots
+
+Paste any relevant logcat output (anonymize personal data) or screenshots.
+
+## Additional context
+
+Anything else that may help.

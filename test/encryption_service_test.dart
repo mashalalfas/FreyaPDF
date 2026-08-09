@@ -79,15 +79,19 @@ void main() {
     // Arrange: 1 MB of pseudo-random bytes seeded with a fixed Random
     // Act: encrypt then decrypt round-trip
     // Assert: decrypted bytes equal original 1 MB payload
-    test('large payload (1MB random data) round-trips correctly', () {
-      final random = Random(42);
-      final original = Uint8List.fromList(
-        List.generate(1 * 1024 * 1024, (_) => random.nextInt(256)),
-      );
-      final encrypted = EncryptionService.encryptBytes(original, passphrase);
-      final decrypted = EncryptionService.decryptBytes(encrypted, passphrase);
-      expect(decrypted, equals(original));
-    });
+    test(
+      'large payload (1MB random data) round-trips correctly',
+      () {
+        final random = Random(42);
+        final original = Uint8List.fromList(
+          List.generate(1 * 1024 * 1024, (_) => random.nextInt(256)),
+        );
+        final encrypted = EncryptionService.encryptBytes(original, passphrase);
+        final decrypted = EncryptionService.decryptBytes(encrypted, passphrase);
+        expect(decrypted, equals(original));
+      },
+      tags: {'slow'}, // excluded from CI to keep the suite fast
+    );
 
     // Arrange: same plaintext encrypted with two different passphrases
     // Act: compare ciphertexts
