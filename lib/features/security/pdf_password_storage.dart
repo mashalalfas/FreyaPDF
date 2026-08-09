@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

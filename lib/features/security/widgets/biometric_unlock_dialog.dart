@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';

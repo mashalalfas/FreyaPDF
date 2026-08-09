@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 import 'package:freya_pdf/features/bookmarks/bookmark.dart';
 import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';

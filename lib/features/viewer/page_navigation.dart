@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 /// Validates a page number input against the total page count.
 ///
 /// Returns the parsed page number if valid (1-based), or null if invalid.

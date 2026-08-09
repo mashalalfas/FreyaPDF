@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';

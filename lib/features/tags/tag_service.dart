@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:freya_pdf/features/tags/tag.dart';

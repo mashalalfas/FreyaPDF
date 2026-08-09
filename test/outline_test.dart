@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — outline flattening logic tests (pure logic, uses pdfrx types)
 
 import 'package:flutter_test/flutter_test.dart';

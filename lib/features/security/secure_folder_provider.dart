@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';

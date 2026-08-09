@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Unit tests for BiometricPassphraseStorage.
 //
 // Verifies that the secure-storage-based class behaves correctly and

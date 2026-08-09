@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — service tests backed by mock SharedPreferences (no real I/O, milliseconds)
 
 import 'package:flutter_test/flutter_test.dart';

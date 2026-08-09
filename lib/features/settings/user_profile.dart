@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 class UserProfile {
   final String name;
   final String email;

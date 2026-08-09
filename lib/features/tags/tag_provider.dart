@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/foundation.dart';
 import 'package:freya_pdf/features/tags/tag.dart';
 import 'package:freya_pdf/features/tags/tag_service.dart';

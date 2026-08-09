@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: medium — integration tests for AppState (ChangeNotifier + real file I/O)
 
 import 'dart:io';

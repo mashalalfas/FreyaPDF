@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: large — widget smoke tests (Flutter rendering baseline)
 //
 // These tests confirm the app's root widget tree builds without error.

@@ -1,0 +1,14 @@
+# FreyaPDF — Gitleaks configuration
+# Excludes build artifacts and generated cache files from secret scanning.
+#
+# The "private-key" rule fires on a PEM-header string comparison in compiled
+# Dart cache files (pointycastle PEM parser). This is a false positive — not
+# an actual private key.
+
+[allowlist]
+description = "FreyaPDF false-positive exclusions"
+paths = [
+    '''build/''',
+    '''archive/''',
+    '''.dart_tool/''',
+]

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 
 /// Common password patterns that are trivially guessable.

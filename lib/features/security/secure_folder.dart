@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 class SecureFolder {
   final String name;
   final String path;

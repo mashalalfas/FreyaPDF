@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — passphrase strength evaluation tests (pure logic, no I/O)
 
 import 'package:flutter/material.dart';

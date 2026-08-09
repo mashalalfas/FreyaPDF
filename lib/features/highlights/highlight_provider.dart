@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';

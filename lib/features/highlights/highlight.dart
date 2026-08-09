@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:math';
 
 /// A single text highlight within a PDF document.

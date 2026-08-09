@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 
 /// Small lock badge shown on encrypted file tiles.

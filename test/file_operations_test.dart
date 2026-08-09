@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: medium — integration tests for FileOperationsProvider (ChangeNotifier + file I/O)
 //
 // Coverage breakdown (target 15% integration):

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: large — widget integration tests for ViewerScreen
 // (Flutter rendering, pumpWidget, finders — slower than service tests)
 //

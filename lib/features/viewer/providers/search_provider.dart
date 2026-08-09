@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:async';
 
 import 'package:flutter/material.dart';

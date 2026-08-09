@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: medium — failure-path tests for folder scanning pipeline
 //
 // Verifies that the fixes for isolate error handling, cache invalidation,

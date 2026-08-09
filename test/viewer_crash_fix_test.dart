@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Regression tests for the "Null check operator used on a null value"
 // crash that hit ViewerScreen when draw mode was activated while pdfrx's
 // internal _viewSize was still null.

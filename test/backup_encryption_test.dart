@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Tests for the encrypted `.freya` backup format added to BackupService.
 //
 // Covers:

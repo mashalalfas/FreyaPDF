@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: medium — integration tests for FileService (file system I/O, seconds)
 //
 // Tests use real temp directories; setUpAll/tearDownAll manage cleanup.

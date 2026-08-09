@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — page navigation validation tests (pure logic, no I/O)
 
 import 'package:flutter_test/flutter_test.dart';

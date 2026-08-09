@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — isolated unit tests for BiometricAuthService
 // Uses a mock LocalAuthPlatform to test biometric-available and
 // biometric-unavailable branches.

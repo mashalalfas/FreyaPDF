@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: medium — tests for SelectionProvider and batch operations
 //
 // Coverage:

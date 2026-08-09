@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/foundation.dart';
 
 /// Manages multi-select state across the file browser.

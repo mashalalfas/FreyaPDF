@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — continuous scroll mode tests
 // (SettingsService with mock SharedPreferences + SettingsProvider)
 

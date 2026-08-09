@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — pure service tests backed by mock SharedPreferences (no I/O, milliseconds)
 
 import 'dart:convert';
