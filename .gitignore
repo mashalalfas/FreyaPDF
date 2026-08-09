@@ -52,6 +52,10 @@ graphify-out/
 legal-config.json
 legal/
 
+# Local / tooling artifacts
+Telegram Chat History/
+.graphify_*
+
 # Secrets
 key.properties
 *.jks
