@@ -30,6 +30,7 @@ import 'package:freya_pdf/features/update/update_provider.dart';
 import 'package:freya_pdf/theme.dart';
 import 'package:freya_pdf/features/file_management/home_screen.dart';
 import 'package:freya_pdf/features/security/widgets/app_lock_screen.dart';
+import 'package:freya_pdf/features/security/widgets/root_security_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -135,7 +136,9 @@ class _FreyaPdfAppState extends State<FreyaPdfApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: settings.themeMode,
-      home: AppLockGate(child: const HomeScreen()),
+      home: RootSecurityGate(
+        child: AppLockGate(child: const HomeScreen()),
+      ),
     );
   }
 }
