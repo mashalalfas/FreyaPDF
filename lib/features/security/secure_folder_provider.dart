@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/security/secure_folder_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/security/secure_folder_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 
 /// Manages the secure folder — a dedicated encrypted directory.
 ///
@@ -218,7 +218,7 @@ class SecureFolderProvider extends ChangeNotifier {
       // For a sync check, we delegate to the service's async method —
       // the provider callers should use the static method directly if
       // they need a sync check. This method is kept for API consistency.
-      return path.contains('/FeyaPDF_Secure/');
+      return path.contains('/FreyaPDF_Secure/');
     } catch (_) {
       return false;
     }

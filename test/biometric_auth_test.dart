@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_platform_interface/local_auth_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:feya_pdf/features/security/biometric_auth_service.dart';
+import 'package:freya_pdf/features/security/biometric_auth_service.dart';
 
 /// Mock implementation of [LocalAuthPlatform] for testing authentication
 /// branches without a real biometric sensor.

@@ -7,7 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:feya_pdf/features/security/biometric_passphrase_storage.dart';
+import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
 
 // ── Mock FlutterSecureStorage ──
 // Extends the real class to satisfy the type check.
@@ -101,17 +101,17 @@ void main() {
       () async {
         // Seed legacy plaintext entry.
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('_feya_bio_passphrase', 'old-shared-prefs');
+        await prefs.setString('_freya_bio_passphrase', 'old-shared-prefs');
 
         // First read triggers migration.
         final value = await storage.read();
         expect(value, equals('old-shared-prefs'));
 
         // Legacy entry should be gone.
-        expect(prefs.getString('_feya_bio_passphrase'), isNull);
+        expect(prefs.getString('_freya_bio_passphrase'), isNull);
 
         // And the value should be in the secure store now.
-        expect(mockStorage._store['_feya_bio_passphrase'],
+        expect(mockStorage._store['_freya_bio_passphrase'],
             equals('old-shared-prefs'));
       },
     );
@@ -120,13 +120,13 @@ void main() {
       'migration is idempotent: re-running with no legacy entry is a no-op',
       () async {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('_feya_bio_passphrase', 'something');
+        await prefs.setString('_freya_bio_passphrase', 'something');
         // First read migrates + clears legacy.
         await storage.read();
         // No legacy entry anymore — second read does nothing special.
         final again = await storage.read();
         expect(again, equals('something'));
-        expect(prefs.getString('_feya_bio_passphrase'), isNull);
+        expect(prefs.getString('_freya_bio_passphrase'), isNull);
       },
     );
 
@@ -135,7 +135,7 @@ void main() {
       () async {
         // Legacy entry from an older install.
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('_feya_bio_passphrase', 'legacy');
+        await prefs.setString('_freya_bio_passphrase', 'legacy');
 
         // But secure storage already holds a *different* (newer) value.
         await storage.write('secure');
@@ -144,7 +144,7 @@ void main() {
 
         // Secure value wins; legacy entry is cleared regardless.
         expect(await storage.read(), equals('secure'));
-        expect(prefs.getString('_feya_bio_passphrase'), isNull);
+        expect(prefs.getString('_freya_bio_passphrase'), isNull);
       },
     );
   });

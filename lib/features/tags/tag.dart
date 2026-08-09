@@ -31,7 +31,7 @@ class Tag {
     0xFF90A4AE, // Gray
   ];
 
-  /// Default color for new tags (Teal — matches Feya brand).
+  /// Default color for new tags (Teal — matches Freya brand).
   static int get defaultColor => palette[6];
 
   /// Returns a contrasting foreground color (black87 or white) for the given

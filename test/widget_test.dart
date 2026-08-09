@@ -5,27 +5,27 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/main.dart';
-import 'package:feya_pdf/features/file_management/app_state.dart';
-import 'package:feya_pdf/features/settings/backup_provider.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/file_management/favorites_provider.dart';
-import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
-import 'package:feya_pdf/features/highlights/highlight_provider.dart';
-import 'package:feya_pdf/features/file_management/recent_files_provider.dart';
-import 'package:feya_pdf/features/file_management/scanned_paths_provider.dart';
-import 'package:feya_pdf/features/security/secure_folder_provider.dart';
-import 'package:feya_pdf/features/file_management/selection_provider.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
-import 'package:feya_pdf/features/file_management/sort_search_provider.dart';
-import 'package:feya_pdf/features/tags/tag_provider.dart';
-import 'package:feya_pdf/features/update/update_provider.dart';
-import 'package:feya_pdf/features/settings/backup_service.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
-import 'package:feya_pdf/features/highlights/highlight_service.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
-import 'package:feya_pdf/features/tags/tag_service.dart';
+import 'package:freya_pdf/main.dart';
+import 'package:freya_pdf/features/file_management/app_state.dart';
+import 'package:freya_pdf/features/settings/backup_provider.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/file_management/favorites_provider.dart';
+import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:freya_pdf/features/highlights/highlight_provider.dart';
+import 'package:freya_pdf/features/file_management/recent_files_provider.dart';
+import 'package:freya_pdf/features/file_management/scanned_paths_provider.dart';
+import 'package:freya_pdf/features/security/secure_folder_provider.dart';
+import 'package:freya_pdf/features/file_management/selection_provider.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/file_management/sort_search_provider.dart';
+import 'package:freya_pdf/features/tags/tag_provider.dart';
+import 'package:freya_pdf/features/update/update_provider.dart';
+import 'package:freya_pdf/features/settings/backup_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/highlights/highlight_service.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/tags/tag_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,7 +34,7 @@ void main() {
     // Arrange: nothing beyond the default test environment
     // Act: build the app root widget via MelodyPDFApp
     // Assert: widget builds without throwing, Scaffold is in the tree
-    testWidgets('FeyaPdfApp builds without throwing', (tester) async {
+    testWidgets('FreyaPdfApp builds without throwing', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final settingsService = SettingsService(prefs);
@@ -74,7 +74,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => SelectionProvider()),
             ChangeNotifierProvider(create: (_) => UpdateProvider()),
           ],
-          child: const FeyaPdfApp(),
+          child: const FreyaPdfApp(),
         ),
       );
       await tester.pumpAndSettle();
@@ -83,7 +83,7 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('FeyaPdfApp shows a MaterialApp on first frame', (tester) async {
+    testWidgets('FreyaPdfApp shows a MaterialApp on first frame', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final settingsService = SettingsService(prefs);
@@ -123,7 +123,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => SelectionProvider()),
             ChangeNotifierProvider(create: (_) => UpdateProvider()),
           ],
-          child: const FeyaPdfApp(),
+          child: const FreyaPdfApp(),
         ),
       );
       await tester.pumpAndSettle();

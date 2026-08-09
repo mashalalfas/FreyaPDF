@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/file_management/file_service.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/file_management/file_service.dart';
 
 class ScannedPathsProvider extends ChangeNotifier {
   static const String _scannedPathsKey = 'scanned_paths';

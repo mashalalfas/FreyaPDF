@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
 
 /// Persists [Bookmark] per PDF file using SharedPreferences.
 ///
 /// Data layout:
-///   key = 'feya_pdf_bookmarks' => JSON map { filePath -> [bookmarkJSON, ...] }
+///   key = 'freya_pdf_bookmarks' => JSON map { filePath -> [bookmarkJSON, ...] }
 class BookmarkService {
-  static const _kBookmarks = 'feya_pdf_bookmarks';
+  static const _kBookmarks = 'freya_pdf_bookmarks';
 
   final SharedPreferences _prefs;
 

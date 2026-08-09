@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
 
 /// Manages favorite file paths, backed by [SettingsService].
 class FavoritesProvider extends ChangeNotifier {

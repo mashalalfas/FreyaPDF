@@ -8,14 +8,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'package:feya_pdf/features/settings/backup_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
-import 'package:feya_pdf/features/file_management/favorites_provider.dart';
-import 'package:feya_pdf/features/highlights/highlight_provider.dart';
-import 'package:feya_pdf/features/file_management/recent_files_provider.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
-import 'package:feya_pdf/features/tags/tag_provider.dart';
+import 'package:freya_pdf/features/settings/backup_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/features/file_management/favorites_provider.dart';
+import 'package:freya_pdf/features/highlights/highlight_provider.dart';
+import 'package:freya_pdf/features/file_management/recent_files_provider.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/tags/tag_provider.dart';
 
 /// Manages backup export/import UI and orchestration.
 class BackupProvider extends ChangeNotifier {
@@ -36,7 +36,7 @@ class BackupProvider extends ChangeNotifier {
   // ---- Export ----
 
   /// Collect all app state, encrypt it with a user-supplied passphrase,
-  /// write the result to a `.feya` file, and share it.
+  /// write the result to a `.freya` file, and share it.
   Future<void> exportBackup(BuildContext context) async {
     if (_isExporting) return;
     _isExporting = true;
@@ -71,10 +71,10 @@ class BackupProvider extends ChangeNotifier {
         recentFilePaths: recentFilesProvider.recentFilePaths.toList(),
       );
 
-      // 3. Encrypt + write to a temp file with `.feya` extension.
+      // 3. Encrypt + write to a temp file with `.freya` extension.
       final dir = await getApplicationDocumentsDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${dir.path}/FeyaPDF_backup_$timestamp.feya';
+      final filePath = '${dir.path}/FreyaPDF_backup_$timestamp.freya';
       final payload = _backupService.encryptBackupJson(json, passphrase);
       final file = File(filePath);
       await file.writeAsBytes(payload);
@@ -84,14 +84,14 @@ class BackupProvider extends ChangeNotifier {
       // 4. Share the encrypted backup file.
       await Share.shareXFiles(
         [XFile(filePath)],
-        text: 'FeyaPDF Backup (encrypted)',
+        text: 'FreyaPDF Backup (encrypted)',
       );
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Encrypted backup saved: FeyaPDF_backup_$timestamp.feya'),
+                'Encrypted backup saved: FreyaPDF_backup_$timestamp.freya'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -119,16 +119,16 @@ class BackupProvider extends ChangeNotifier {
 
   // ---- Import ----
 
-  /// Pick a backup file (`.json` plain or `.feya` encrypted), confirm
+  /// Pick a backup file (`.json` plain or `.freya` encrypted), confirm
   /// with the user, then restore.
   Future<void> importBackup(BuildContext context) async {
     if (_isImporting) return;
 
     // Step 1: Pick a file — accept both the legacy `.json` extension and
-    // the new encrypted `.feya` extension.
+    // the new encrypted `.freya` extension.
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['feya', 'json'],
+      allowedExtensions: ['freya', 'json'],
     );
     if (result == null || result.files.isEmpty) return;
 

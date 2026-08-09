@@ -1,7 +1,7 @@
 // Size: small — page navigation validation tests (pure logic, no I/O)
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/viewer/page_navigation.dart';
+import 'package:freya_pdf/features/viewer/page_navigation.dart';
 
 void main() {
   group('Page Navigation — validatePageNumber', () {

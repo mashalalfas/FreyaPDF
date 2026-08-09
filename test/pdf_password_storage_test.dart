@@ -1,7 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feya_pdf/features/security/pdf_password_storage.dart';
+import 'package:freya_pdf/features/security/pdf_password_storage.dart';
 
 class _MockSecureStorage extends FlutterSecureStorage {
   final Map<String, String> values = {};

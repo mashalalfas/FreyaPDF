@@ -1,4 +1,4 @@
-# FeyaPDF — Roadmap & Plan Status
+# FreyaPDF — Roadmap & Plan Status
 
 Consolidated from the archived `plans/` directory.
 

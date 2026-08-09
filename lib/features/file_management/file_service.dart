@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'package:flutter/foundation.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
 
 class FileService {
   /// Scan a directory (non-recursive) for .pdf files, sorted by modified time (newest first).

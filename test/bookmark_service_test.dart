@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
 
 void main() {
   group('BookmarkService', () {
@@ -159,7 +159,7 @@ void main() {
     });
 
     test('handles malformed JSON gracefully', () async {
-      await prefs.setString('feya_pdf_bookmarks', 'not valid json at all');
+      await prefs.setString('freya_pdf_bookmarks', 'not valid json at all');
 
       final loaded = service.loadAll();
       expect(loaded, isEmpty);
@@ -168,7 +168,7 @@ void main() {
     test('handles partially malformed JSON gracefully', () async {
       // Store valid JSON for file A, but file B has non-list value
       await prefs.setString(
-        'feya_pdf_bookmarks',
+        'freya_pdf_bookmarks',
         '{"good.pdf": [{"id":"b1","filePath":"good.pdf","pageNumber":1,"createdAt":1000}], "bad.pdf": "oops"}',
       );
 

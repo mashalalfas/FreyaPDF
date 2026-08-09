@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/digests/sha256.dart';
 
-import 'package:feya_pdf/features/security/app_lock_service.dart';
+import 'package:freya_pdf/features/security/app_lock_service.dart';
 
 // ── Mock FlutterSecureStorage ──
 // Same shape as the existing app_lock_test.dart; we duplicate it here so

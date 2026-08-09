@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
 
 class RecentFilesProvider extends ChangeNotifier {
   static const int _maxRecentFiles = 5;

@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/security/app_lock_service.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/security/app_lock_service.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
 
 /// Full-screen lock overlay shown on cold start when app lock is enabled.
 /// On successful PIN or biometric unlock, [child] is revealed via a fade.
@@ -201,7 +201,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
         ),
         const SizedBox(height: 20),
         Text(
-          'Feya PDF',
+          'Freya PDF',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/features/settings/user_profile.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/settings/user_profile.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
 
 /// Manages settings state: theme, auto-encrypt flag, user profile, last read positions.
 class SettingsProvider extends ChangeNotifier {

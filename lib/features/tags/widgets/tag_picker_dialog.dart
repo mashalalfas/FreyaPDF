@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/tags/tag_provider.dart';
-import 'package:feya_pdf/features/tags/widgets/tag_chip.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/tag_provider.dart';
+import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 
 /// Show a multi-select dialog for tagging a single file.
 ///

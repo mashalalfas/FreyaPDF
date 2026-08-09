@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/features/settings/user_profile.dart';
+import 'package:freya_pdf/features/settings/user_profile.dart';
 
 /// Thin wrapper over SharedPreferences.
 /// EncryptionProvider is single source of truth for passphrase —

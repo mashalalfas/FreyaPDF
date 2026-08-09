@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/security/biometric_auth_service.dart';
-import 'package:feya_pdf/features/security/biometric_passphrase_storage.dart';
-import 'package:feya_pdf/features/encryption/passphrase_strength.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/security/biometric_auth_service.dart';
+import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
+import 'package:freya_pdf/features/encryption/passphrase_strength.dart';
 
 /// Shows a biometric unlock dialog with fallback to passphrase entry.
 ///

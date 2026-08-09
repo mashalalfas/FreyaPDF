@@ -98,7 +98,7 @@ class AppLockService {
   Future<bool> authenticateWithBiometrics() async {
     try {
       return await _auth.authenticate(
-        localizedReason: 'Unlock Feya PDF',
+        localizedReason: 'Unlock Freya PDF',
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );

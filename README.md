@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/logo/FEYA PDF.png" width="120" alt="Feya PDF logo" />
+  <img src="assets/logo/FREYA PDF.png" width="120" alt="Freya PDF logo" />
 </p>
 
-<h1 align="center">Feya PDF</h1>
+<h1 align="center">Freya PDF</h1>
 
 <p align="center">
   A clean, fast, ad-free PDF reader for Android with end-to-end encryption,
@@ -11,7 +11,7 @@
   <br />
   <img alt="Flutter" src="https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter" />
   <img alt="Android" src="https://img.shields.io/badge/Android-API_21%2B-3ddc84?logo=android" />
-  <img alt="CI" src="https://github.com/mashalalfas/FeyaPDF/actions/workflows/ci.yml/badge.svg" />
+  <img alt="CI" src="https://github.com/mashalalfas/FreyaPDF/actions/workflows/ci.yml/badge.svg" />
   <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-blueviolet" />
 </p>
 
@@ -19,7 +19,7 @@
 
 ## About
 
-Feya PDF is a private, offline-first PDF reader. Your files stay on your device —
+Freya PDF is a private, offline-first PDF reader. Your files stay on your device —
 data is never collected, there are no accounts, and no backend is required.
 Protected documents are encrypted with AES-256-GCM and derived keys (PBKDF2) so
 they can't be read without your passphrase.
@@ -105,8 +105,8 @@ test suite on every push/PR to `master`.
 
 ## Website
 
-The Feya PDF landing page is deployed via the `gh-pages` branch:
-https://mashalalfas.github.io/FeyaPDF/
+The Freya PDF landing page is deployed via the `gh-pages` branch:
+https://mashalalfas.github.io/FreyaPDF/
 
 ## Contributing
 

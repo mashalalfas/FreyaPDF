@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/tags/widgets/tag_chip.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 
 class FileListTile extends StatelessWidget {
   final PdfFile file;

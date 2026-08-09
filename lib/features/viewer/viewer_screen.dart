@@ -6,22 +6,22 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdfrx/pdfrx.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
-import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
-import 'package:feya_pdf/features/security/widgets/biometric_unlock_dialog.dart';
-import 'package:feya_pdf/features/viewer/widgets/thumbnail_grid.dart';
-import 'package:feya_pdf/features/highlights/widgets/highlights_panel.dart';
-import 'package:feya_pdf/features/highlights/highlight_provider.dart';
-import 'package:feya_pdf/features/highlights/highlight.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
-import 'package:feya_pdf/features/bookmarks/widgets/bookmarks_panel.dart';
-import 'package:feya_pdf/features/viewer/providers/search_provider.dart';
-import 'package:feya_pdf/features/viewer/widgets/search_bar.dart';
-import 'package:feya_pdf/features/viewer/widgets/pdf_password_dialog.dart';
-import 'package:feya_pdf/features/security/pdf_password_storage.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:freya_pdf/features/security/widgets/biometric_unlock_dialog.dart';
+import 'package:freya_pdf/features/viewer/widgets/thumbnail_grid.dart';
+import 'package:freya_pdf/features/highlights/widgets/highlights_panel.dart';
+import 'package:freya_pdf/features/highlights/highlight_provider.dart';
+import 'package:freya_pdf/features/highlights/highlight.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/features/bookmarks/widgets/bookmarks_panel.dart';
+import 'package:freya_pdf/features/viewer/providers/search_provider.dart';
+import 'package:freya_pdf/features/viewer/widgets/search_bar.dart';
+import 'package:freya_pdf/features/viewer/widgets/pdf_password_dialog.dart';
+import 'package:freya_pdf/features/security/pdf_password_storage.dart';
 
 /// Color matrix that inverts all RGB channels (255 - value) while preserving alpha.
 /// Used by Dark Reading Mode to create a negative effect on the PDF canvas.
@@ -1095,7 +1095,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
               child: RepaintBoundary(
                 child: search.showSearchBar
                     ? SearchBarWidget(
-                        key: const ValueKey('feya-search-bar-overlay'),
+                        key: const ValueKey('freya-search-bar-overlay'),
                         matchCount: search.matchCount,
                         currentMatchIndex: search.currentMatchIndex + 1,
                         searchUnavailableReason: search.searchUnavailableReason,

@@ -6,14 +6,14 @@ import 'package:pointycastle/export.dart';
 /// Secure, per-file storage for passwords belonging to external PDFs.
 ///
 /// Password values never enter SharedPreferences, backups, logs, or the
-/// app-wide FeyaPDF encryption passphrase. The secure index contains only
+/// app-wide FreyaPDF encryption passphrase. The secure index contains only
 /// opaque storage keys so the entries can be cleared later.
 class PdfPasswordStorage {
   PdfPasswordStorage({FlutterSecureStorage? storage})
     : _storage = storage ?? const FlutterSecureStorage();
 
-  static const _indexKey = '_feya_pdf_password_index';
-  static const _keyPrefix = '_feya_pdf_password_';
+  static const _indexKey = '_freya_pdf_password_index';
+  static const _keyPrefix = '_freya_pdf_password_';
 
   final FlutterSecureStorage _storage;
 

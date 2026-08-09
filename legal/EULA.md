@@ -1,9 +1,9 @@
-# End-User License Agreement (EULA) — Feya PDF
+# End-User License Agreement (EULA) — Freya PDF
 
 **Last updated:** 7 July 2026
 **Effective date:** 7 July 2026
 
-This End-User License Agreement (the "**Agreement**" or "**EULA**") is a legal contract between you ("**you**", "**your**", or the "**User**") and **Mashal Alfas** ("**the Developer**", "**we**", "**us**", or "**our**"), the creator and copyright holder of the **Feya PDF** mobile application (the "**App**").
+This End-User License Agreement (the "**Agreement**" or "**EULA**") is a legal contract between you ("**you**", "**your**", or the "**User**") and **Mashal Alfas** ("**the Developer**", "**we**", "**us**", or "**our**"), the creator and copyright holder of the **Freya PDF** mobile application (the "**App**").
 
 By installing, copying, downloading, accessing, or otherwise using the App, you agree to be bound by the terms of this Agreement. If you do not agree, do not install or use the App, and remove it from your device.
 
@@ -31,7 +31,7 @@ You agree **not** to:
 5. **Use the App for any unlawful purpose**, including the storage, encryption, or distribution of content that infringes the rights of any third party.
 6. **Use the App to provide services to third parties**, including but not limited to PDF-reading-as-a-service, document-encryption-as-a-service, or any commercial hosting or SaaS offering.
 
-The **source code** of the App is publicly available at <https://github.com/mashalalfas/FeyaPDF> under the terms of its open-source license. This EULA governs the **compiled, distributed application** that you install on your device; the source code is governed by its own open-source license, which is published in the repository.
+The **source code** of the App is publicly available at <https://github.com/mashalalfas/FreyaPDF> under the terms of its open-source license. This EULA governs the **compiled, distributed application** that you install on your device; the source code is governed by its own open-source license, which is published in the repository.
 
 ---
 
@@ -39,7 +39,7 @@ The **source code** of the App is publicly available at <https://github.com/mash
 
 The App — including its design, source code, object code, graphics, user interface, animations, copy, and documentation — is the exclusive intellectual property of the Developer and is protected by copyright, trademark, design-right, and other applicable laws of the United Arab Emirates and other jurisdictions. No title to or ownership of any intellectual property in the App is transferred to you under this Agreement. **All rights not expressly granted in this Agreement are reserved by the Developer.**
 
-"**Feya PDF**" and the Feya PDF logo are trademarks of the Developer. You may not use these marks, or any confusingly similar marks, without the Developer's prior written permission.
+"**Freya PDF**" and the Freya PDF logo are trademarks of the Developer. You may not use these marks, or any confusingly similar marks, without the Developer's prior written permission.
 
 ---
 
@@ -102,7 +102,7 @@ Some jurisdictions do not allow the exclusion or limitation of certain damages o
 
 ## 8. Auto-Update (Non-Play Store Builds Only)
 
-In builds distributed outside the Google Play Store, the App may check for newer versions by contacting the public GitHub Releases API at `https://api.github.com/repos/mashalalfas/FeyaPDF/releases/latest`. The only information transmitted in this check is the standard, unauthenticated HTTPS request itself: GitHub will observe your IP address as the source of the request, exactly as with any internet request you make from a browser. **No user identifier, account token, device identifier, file content, or app-state data is sent.**
+In builds distributed outside the Google Play Store, the App may check for newer versions by contacting the public GitHub Releases API at `https://api.github.com/repos/mashalalfas/FreyaPDF/releases/latest`. The only information transmitted in this check is the standard, unauthenticated HTTPS request itself: GitHub will observe your IP address as the source of the request, exactly as with any internet request you make from a browser. **No user identifier, account token, device identifier, file content, or app-state data is sent.**
 
 Builds distributed via the **Google Play Store do not perform any auto-update check** and do not make this network request.
 
@@ -161,7 +161,7 @@ The Developer's failure to enforce any right or provision of this Agreement shal
 The Developer may update this Agreement from time to time. The "**Last updated**" date at the top of this document will reflect the date of the most recent change. Material changes will, where reasonable, be communicated:
 
 - In the release notes of the next App version, and
-- Via a notice in the public repository at <https://github.com/mashalalfas/FeyaPDF>.
+- Via a notice in the public repository at <https://github.com/mashalalfas/FreyaPDF>.
 
 Continued use of the App after the effective date of a revised Agreement constitutes your acceptance of the revised terms. If you do not agree, please uninstall the App and stop using it.
 
@@ -173,16 +173,16 @@ The App is provided on a **best-effort, community-supported basis**. There is no
 
 Bug reports, feature requests, security disclosures, and questions may be raised on the project's public issue tracker:
 
-🔗 **<https://github.com/mashalalfas/FeyaPDF/issues>**
+🔗 **<https://github.com/mashalalfas/FreyaPDF/issues>**
 
 ---
 
 ## 16. Contact
 
 - **Creator / Copyright holder:** Mashal Alfas
-- **Project repository:** <https://github.com/mashalalfas/FeyaPDF>
-- **Issue tracker / contact:** <https://github.com/mashalalfas/FeyaPDF/issues>
-- **Landing page:** <https://mashalalfas.github.io/FeyaPDF/>
+- **Project repository:** <https://github.com/mashalalfas/FreyaPDF>
+- **Issue tracker / contact:** <https://github.com/mashalalfas/FreyaPDF/issues>
+- **Landing page:** <https://mashalalfas.github.io/FreyaPDF/>
 - **License (source code):** See `LICENSE` in the public repository
 
 ---

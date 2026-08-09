@@ -8,17 +8,22 @@ import 'package:pointycastle/export.dart';
 /// Encrypts and decrypts PDF bytes using AES-256-GCM.
 ///
 /// Format:
-///   "FEYA" + version(1) + iv(12) + salt(32) + ciphertext + auth_tag(16)
+///   "FREYA" + version(1) + iv(12) + salt(32) + ciphertext + auth_tag(16)
 ///
 /// Key derivation: PBKDF2-SHA256, 600,000 iterations, 32-byte key.
-///
-/// Same format as Feya's encryption, just applied to PDF bytes.
 class EncryptionService {
-  static const _magic = [0x46, 0x45, 0x59, 0x41]; // "FEYA"
-  static const _version = 1;
+  static const _magic = [0x46, 0x52, 0x45, 0x59, 0x41]; // "FREYA"
+  static const _magicLength = 5;
+  static const _version = 2;
   static const _saltLength = 32;
   static const _ivLength = 12;
   static const _iterations = 600000; // OWASP recommendation
+
+  /// Offset of the version byte = length of the magic header.
+  static const _versionOffset = _magicLength;
+
+  /// Offset of the IV = magic + version.
+  static const _ivOffset = _versionOffset + 1;
 
   /// Encrypt raw bytes (e.g. a PDF) with the given passphrase.
   /// Returns raw bytes (magic + header + ciphertext).
@@ -52,21 +57,23 @@ class EncryptionService {
     }
 
     // Verify magic
-    if (data[0] != _magic[0] ||
-        data[1] != _magic[1] ||
-        data[2] != _magic[2] ||
-        data[3] != _magic[3]) {
-      throw const EncryptionException('Invalid file format');
+    for (var i = 0; i < _magicLength; i++) {
+      if (data[i] != _magic[i]) {
+        throw const EncryptionException('Invalid file format');
+      }
     }
 
-    final version = data[4];
+    final version = data[_versionOffset];
     if (version > _version) {
       throw EncryptionException('Unsupported version: $version');
     }
 
-    final iv = IV(data.sublist(5, 5 + _ivLength));
-    final salt = data.sublist(5 + _ivLength, 5 + _ivLength + _saltLength);
-    final ciphertext = data.sublist(5 + _ivLength + _saltLength);
+    final iv = IV(data.sublist(_ivOffset, _ivOffset + _ivLength));
+    final salt = data.sublist(
+      _ivOffset + _ivLength,
+      _ivOffset + _ivLength + _saltLength,
+    );
+    final ciphertext = data.sublist(_ivOffset + _ivLength + _saltLength);
 
     final key = _deriveKey(passphrase, Uint8List.fromList(salt));
     final encrypter = Encrypter(AES(key, mode: AESMode.gcm));
@@ -90,7 +97,8 @@ class EncryptionService {
     return Key(keyBytes);
   }
 
-  static const _minLength = 5 + _ivLength + _saltLength + 1; // minimal valid file
+  static const _minLength =
+      _magicLength + 1 + _ivLength + _saltLength; // magic + version + iv + salt
 
   /// Encrypt a file on disk and write the encrypted payload to [outputPath]
   /// (or to "`<inputPath>.enc`" if omitted). Returns the final output path.
@@ -138,20 +146,22 @@ class EncryptionService {
     if (data.length < _minLength) {
       throw const EncryptionException('File too small to be encrypted');
     }
-    if (data[0] != _magic[0] ||
-        data[1] != _magic[1] ||
-        data[2] != _magic[2] ||
-        data[3] != _magic[3]) {
-      throw const EncryptionException('Invalid file format');
+    for (var i = 0; i < _magicLength; i++) {
+      if (data[i] != _magic[i]) {
+        throw const EncryptionException('Invalid file format');
+      }
     }
-    final version = data[4];
+    final version = data[_versionOffset];
     if (version > _version) {
       throw EncryptionException('Unsupported version: $version');
     }
 
-    final iv = IV(data.sublist(5, 5 + _ivLength));
-    final salt = data.sublist(5 + _ivLength, 5 + _ivLength + _saltLength);
-    final ciphertext = data.sublist(5 + _ivLength + _saltLength);
+    final iv = IV(data.sublist(_ivOffset, _ivOffset + _ivLength));
+    final salt = data.sublist(
+      _ivOffset + _ivLength,
+      _ivOffset + _ivLength + _saltLength,
+    );
+    final ciphertext = data.sublist(_ivOffset + _ivLength + _saltLength);
 
     final key = _deriveKey(passphrase, Uint8List.fromList(salt));
     final encrypter = Encrypter(AES(key, mode: AESMode.gcm));

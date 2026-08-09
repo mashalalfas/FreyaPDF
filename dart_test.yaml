@@ -1,0 +1,5 @@
+tags:
+  slow:
+    description: >
+      Long-running tests (e.g. the 1MB AES-GCM encryption round-trip).
+      Excluded from the main CI suite; run separately with --tags=slow.

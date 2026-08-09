@@ -21,18 +21,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/file_management/app_state.dart';
-import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
-import 'package:feya_pdf/features/highlights/highlight_provider.dart';
-import 'package:feya_pdf/features/highlights/highlight_service.dart';
-import 'package:feya_pdf/features/viewer/providers/search_provider.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
-import 'package:feya_pdf/features/viewer/viewer_screen.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/file_management/app_state.dart';
+import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:freya_pdf/features/highlights/highlight_provider.dart';
+import 'package:freya_pdf/features/highlights/highlight_service.dart';
+import 'package:freya_pdf/features/viewer/providers/search_provider.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/viewer/viewer_screen.dart';
 import 'package:provider/provider.dart';
 
 Future<HighlightProvider> _pumpViewerWithDrawMode(

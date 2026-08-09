@@ -1,4 +1,4 @@
-// Tests for the encrypted `.feya` backup format added to BackupService.
+// Tests for the encrypted `.freya` backup format added to BackupService.
 //
 // Covers:
 //  - looksEncrypted correctly identifies the magic header
@@ -13,12 +13,12 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
-import 'package:feya_pdf/features/highlights/highlight_service.dart';
-import 'package:feya_pdf/features/settings/backup_service.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
-import 'package:feya_pdf/features/tags/tag_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/highlights/highlight_service.dart';
+import 'package:freya_pdf/features/settings/backup_service.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/tags/tag_service.dart';
 
 void main() {
   late BackupService backupService;
@@ -51,8 +51,8 @@ void main() {
 
     test('returns true for bytes prefixed with F-E-Y-A magic', () {
       final bytes = Uint8List.fromList(const [
-        0x46, 0x45, 0x59, 0x41, // 'FEYA'
-        0x46, 0x45, 0x59, 0x41, // 'FEYA' (inner encryption magic)
+        0x46, 0x45, 0x59, 0x41, // 'FREYA'
+        0x46, 0x45, 0x59, 0x41, // 'FREYA' (inner encryption magic)
         0x01,
         // ... rest doesn't matter for the test
       ]);
@@ -70,7 +70,7 @@ void main() {
   group('BackupService encrypt/decrypt round-trip', () {
     const passphrase = 'backup-passphrase-2026';
 
-    test('encrypted output starts with FEYA magic', () {
+    test('encrypted output starts with FREYA magic', () {
       final encrypted =
           backupService.encryptBackupJson('{"hello":"world"}', passphrase);
       expect(encrypted.length, greaterThan(4));
@@ -95,7 +95,7 @@ void main() {
       );
     });
 
-    test('decrypt throws when payload lacks FEYA magic', () {
+    test('decrypt throws when payload lacks FREYA magic', () {
       // Construct payload with invalid magic bytes to simulate corrupted data.
       final bare = Uint8List.fromList([
         0x00, 0x01, 0x02, 0x03, // invalid magic
@@ -112,7 +112,7 @@ void main() {
       final a = backupService.encryptBackupJson(json, passphrase);
       final b = backupService.encryptBackupJson(json, passphrase);
       expect(a, isNot(equals(b)));
-      // Both still start with FEYA magic.
+      // Both still start with FREYA magic.
       expect(a.sublist(0, 4), equals(b.sublist(0, 4)));
     });
 
@@ -120,7 +120,7 @@ void main() {
       const json = '{"a":1}';
       final raw = Uint8List.fromList(utf8.encode(json));
       final encrypted = backupService.encryptBackupJson(json, passphrase);
-      // Magic (4) + FEYA header (5) + iv (12) + salt (32) + tag (16)
+      // Magic (4) + FREYA header (5) + iv (12) + salt (32) + tag (16)
       // = 69 bytes of overhead minimum.
       expect(encrypted.length, greaterThan(raw.length + 60));
     });

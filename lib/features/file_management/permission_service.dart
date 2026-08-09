@@ -95,7 +95,7 @@ class PermissionService {
           ],
         ),
         content: const Text(
-          'Feya PDF needs access to storage to scan and read your PDF files.\n\n'
+          'Freya PDF needs access to storage to scan and read your PDF files.\n\n'
           'Please grant "All files access" permission in the next screen.',
         ),
         actions: [

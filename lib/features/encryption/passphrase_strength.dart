@@ -7,7 +7,7 @@ const commonPasswords = {
   'admin123', 'letmein1', 'welcome1', 'monkey12', 'dragon12',
   'master12', 'abc123', 'abc12345', 'trustno1', 'sunshine', 'iloveyou',
   'princess', 'football', 'shadow12', 'michael1', 'jordan23',
-  'superman', 'batman12', 'starwars', 'feyapdf1', 'melodypd',
+  'superman', 'batman12', 'starwars', 'freyapdf1', 'melodypd',
 };
 
 enum PassphraseStrength { weak, fair, strong, veryStrong }

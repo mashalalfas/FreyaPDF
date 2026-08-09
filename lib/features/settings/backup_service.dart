@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
-import 'package:feya_pdf/features/highlights/highlight.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/settings/user_profile.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
-import 'package:feya_pdf/features/highlights/highlight_service.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
-import 'package:feya_pdf/features/tags/tag_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/highlights/highlight.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/settings/user_profile.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/highlights/highlight_service.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/tags/tag_service.dart';
 
 /// Collects all app state into a single JSON backup and restores it.
 ///
@@ -44,17 +44,17 @@ class BackupService {
   });
 
   /// Encrypted backup magic header (4 ASCII bytes):
-  /// 'F' 'E' 'Y' 'A' — distinguishes encrypted `.feya` backups from the
+  /// 'F' 'E' 'Y' 'A' — distinguishes encrypted `.freya` backups from the
   /// legacy plain-JSON format (which starts with a `{`).
   static const int _backupVersion = 1;
 
   /// Encrypted backup magic header (4 ASCII bytes):
-  /// 'F' 'E' 'Y' 'A' — distinguishes encrypted `.feya` backups from the
+  /// 'F' 'E' 'Y' 'A' — distinguishes encrypted `.freya` backups from the
   /// legacy plain-JSON format (which starts with a `{`).
   static const List<int> _encryptedMagic = [0x46, 0x45, 0x59, 0x41];
 
-  /// Detect whether the given bytes look like an encrypted Feya PDF
-  /// backup (start with the `FEYA` magic) vs. a plain JSON backup.
+  /// Detect whether the given bytes look like an encrypted Freya PDF
+  /// backup (start with the `FREYA` magic) vs. a plain JSON backup.
   static bool looksEncrypted(Uint8List bytes) {
     if (bytes.length < _encryptedMagic.length) return false;
     for (var i = 0; i < _encryptedMagic.length; i++) {
@@ -66,16 +66,16 @@ class BackupService {
   /// Encrypt the JSON produced by [exportAll] with [passphrase] using the
   /// shared AES-256-GCM [EncryptionService]. The result is a self-contained
   /// payload (magic + version + iv + salt + ciphertext + tag) that can be
-  /// written to disk as a `.feya` file.
+  /// written to disk as a `.freya` file.
   ///
-  /// The returned bytes always start with the `FEYA` magic so callers can
+  /// The returned bytes always start with the `FREYA` magic so callers can
   /// detect the encrypted format at restore time without any external hints.
   Uint8List encryptBackupJson(String json, String passphrase) {
     final plain = Uint8List.fromList(utf8.encode(json));
     final encrypted = EncryptionService.encryptBytes(plain, passphrase);
 
     // Prepend our own 4-byte format marker so plain-JSON backups and
-    // encrypted `.feya` backups can be distinguished before we even try
+    // encrypted `.freya` backups can be distinguished before we even try
     // to feed the bytes to the encryption / parser.
     final builder = BytesBuilder();
     builder.add(_encryptedMagic);
@@ -83,7 +83,7 @@ class BackupService {
     return builder.toBytes();
   }
 
-  /// Inverse of [encryptBackupJson]. Removes the `FEYA` magic, decrypts
+  /// Inverse of [encryptBackupJson]. Removes the `FREYA` magic, decrypts
   /// using [passphrase], and returns the original JSON string.
   /// Throws [EncryptionException] on wrong passphrase or corruption.
   String decryptBackupToJson(Uint8List payload, String passphrase) {

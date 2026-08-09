@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Feya PDF are documented here. Version format follows
+All notable changes to Freya PDF are documented here. Version format follows
 `pubspec.yaml` (`1.2.0+6` = version 1.2.0, build 6).
 
 ## [1.2.0+6] — 2026-08-09

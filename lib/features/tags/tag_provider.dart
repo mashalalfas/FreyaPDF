@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/tags/tag_service.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/tag_service.dart';
 
 /// State holder for user-defined tags and the active tag filter.
 ///

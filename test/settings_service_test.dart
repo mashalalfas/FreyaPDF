@@ -1,8 +1,8 @@
 // Size: small — service tests backed by mock SharedPreferences (no real I/O, milliseconds)
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/settings/user_profile.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/settings/user_profile.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

@@ -1,6 +1,6 @@
 # Security Policy
 
-Feya PDF is an offline, privacy-first PDF reader. It stores encrypted documents
+Freya PDF is an offline, privacy-first PDF reader. It stores encrypted documents
 and secrets (encryption passphrases, app-lock PIN, remembered PDF passwords),
 so security is a priority.
 
@@ -8,8 +8,8 @@ so security is a priority.
 
 **Please report vulnerabilities privately — do not open a public issue.**
 
-- Email: <feya.security@example.com>
-- Subject prefix: `[FeyaPDF Security]`
+- Email: <freya.security@example.com>
+- Subject prefix: `[FreyaPDF Security]`
 
 Please include:
 
@@ -41,7 +41,7 @@ before public disclosure.
 
 ## Scope
 
-In scope: the Feya PDF Android app and its handling of encrypted files,
+In scope: the Freya PDF Android app and its handling of encrypted files,
 passphrases, PIN/biometric auth, and remembered PDF passwords.
 
 Out of scope: third-party dependencies (report those to their respective

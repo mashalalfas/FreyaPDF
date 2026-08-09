@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
 
 /// A bottom-drawer panel that lists all bookmarks for the current file.
 ///

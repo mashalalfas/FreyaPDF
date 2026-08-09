@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 /// Handles Android "Open with" intents — receives PDF URIs from other apps.
 class IntentHandler {
-  static const _channel = MethodChannel('com.feya.feya_pdf/intent');
+  static const _channel = MethodChannel('com.freya.freya_pdf/intent');
   static final _controller = StreamController<String>.broadcast();
 
   /// Stream of file paths received from "Open with" intents.

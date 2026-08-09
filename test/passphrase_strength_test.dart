@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/encryption/passphrase_strength.dart';
+import 'package:freya_pdf/features/encryption/passphrase_strength.dart';
 
 void main() {
   group('PassphraseStrength — calculateStrength', () {
@@ -190,8 +190,8 @@ void main() {
       expect(isCommonPassword('iloveyou'), isTrue);
     });
 
-    test('isCommonPassword("feyapdf1") returns true', () {
-      expect(isCommonPassword('feyapdf1'), isTrue);
+    test('isCommonPassword("freyapdf1") returns true', () {
+      expect(isCommonPassword('freyapdf1'), isTrue);
     });
 
     test('isCommonPassword("MyUniqueP@ss!42") returns false', () {

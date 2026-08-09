@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/build_info.dart';
-import 'package:feya_pdf/features/settings/backup_provider.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
-import 'package:feya_pdf/features/security/app_lock_service.dart';
-import 'package:feya_pdf/features/encryption/widgets/passphrase_dialog.dart';
-import 'package:feya_pdf/features/update/update_provider.dart';
-import 'package:feya_pdf/features/update/widgets/update_dialog.dart';
-import 'package:feya_pdf/features/security/pdf_password_storage.dart';
+import 'package:freya_pdf/build_info.dart';
+import 'package:freya_pdf/features/settings/backup_provider.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/security/app_lock_service.dart';
+import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
+import 'package:freya_pdf/features/update/update_provider.dart';
+import 'package:freya_pdf/features/update/widgets/update_dialog.dart';
+import 'package:freya_pdf/features/security/pdf_password_storage.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -275,13 +275,13 @@ class SettingsScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       Image.asset(
-                        'assets/logo/FEYA PDF.png',
+                        'assets/logo/FREYA PDF.png',
                         width: 64,
                         height: 64,
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Feya PDF',
+                        'Freya PDF',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
@@ -355,7 +355,7 @@ class SettingsScreen extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => showLicensePage(
                     context: context,
-                    applicationName: 'Feya PDF',
+                    applicationName: 'Freya PDF',
                     applicationVersion: context
                         .read<UpdateProvider>()
                         .currentVersion,

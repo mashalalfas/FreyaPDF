@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
 
 /// SharedPreferences-backed persistence for tags and file→tag mappings.
 ///

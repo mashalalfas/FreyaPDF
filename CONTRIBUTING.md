@@ -1,6 +1,6 @@
-# Contributing to Feya PDF
+# Contributing to Freya PDF
 
-Thanks for your interest in contributing! Feya PDF is a private, commercial
+Thanks for your interest in contributing! Freya PDF is a private, commercial
 project, but small contributions that respect the project's privacy and
 security posture are welcome.
 

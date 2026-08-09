@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/tags/tag_provider.dart';
-import 'package:feya_pdf/features/tags/widgets/tag_chip.dart';
-import 'package:feya_pdf/features/tags/widgets/tag_picker_dialog.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/tag_provider.dart';
+import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
+import 'package:freya_pdf/features/tags/widgets/tag_picker_dialog.dart';
 
 /// Full tag management screen — list, create, edit, delete.
 class TagsScreen extends StatelessWidget {

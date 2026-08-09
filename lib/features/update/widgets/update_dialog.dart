@@ -97,7 +97,7 @@ class _UpdateDialog extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'A new version of Feya PDF is available: v$newVersion',
+              'A new version of Freya PDF is available: v$newVersion',
               style: const TextStyle(fontSize: 14),
             ),
             if (release != null && release.body.isNotEmpty) ...[

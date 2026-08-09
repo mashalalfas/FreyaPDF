@@ -1,4 +1,4 @@
-# FeyaPDF — Architecture
+# FreyaPDF — Architecture
 
 Flutter (Dart) PDF reader with provider-based state management and E2E encryption.
 

@@ -2,14 +2,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:feya_pdf/features/security/secure_folder_provider.dart';
-import 'package:feya_pdf/features/file_management/app_state.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/file_management/widgets/file_list_tile.dart';
-import 'package:feya_pdf/features/encryption/widgets/passphrase_dialog.dart';
-import 'package:feya_pdf/features/security/widgets/secure_folder_import_dialog.dart';
-import 'package:feya_pdf/features/viewer/viewer_screen.dart';
+import 'package:freya_pdf/features/security/secure_folder_provider.dart';
+import 'package:freya_pdf/features/file_management/app_state.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/file_management/widgets/file_list_tile.dart';
+import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
+import 'package:freya_pdf/features/security/widgets/secure_folder_import_dialog.dart';
+import 'package:freya_pdf/features/viewer/viewer_screen.dart';
 
 /// A card widget displaying the secure folder on the home screen.
 ///
@@ -129,7 +129,7 @@ class _SecureFolderCardState extends State<SecureFolderCard> {
   Future<void> _exportSecureFile(PdfFile file) async {
     try {
       final docsDir = await getApplicationDocumentsDirectory();
-      final exportDir = Directory('${docsDir.path}/FeyaPDF_Exports');
+      final exportDir = Directory('${docsDir.path}/FreyaPDF_Exports');
       if (!await exportDir.exists()) {
         await exportDir.create(recursive: true);
       }
@@ -144,7 +144,7 @@ class _SecureFolderCardState extends State<SecureFolderCard> {
       if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Exported to FeyaPDF_Exports'),
+            content: Text('Exported to FreyaPDF_Exports'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

@@ -9,14 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// with root can read.
 ///
 /// On a one-time migration we read any legacy value still stored in
-/// [SharedPreferences] under `_feya_bio_passphrase`, copy it into the
+/// [SharedPreferences] under `_freya_bio_passphrase`, copy it into the
 /// secure store, and then erase the plaintext copy.
 class BiometricPassphraseStorage {
   BiometricPassphraseStorage({FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();
 
-  static const _key = '_feya_bio_passphrase';
-  static const _legacyPrefsKey = '_feya_bio_passphrase';
+  static const _key = '_freya_bio_passphrase';
+  static const _legacyPrefsKey = '_freya_bio_passphrase';
 
   final FlutterSecureStorage _storage;
 

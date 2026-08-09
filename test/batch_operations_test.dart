@@ -8,9 +8,9 @@
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/file_management/selection_provider.dart';
-import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/file_management/selection_provider.dart';
+import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 
 /// Temp root for batch filesystem tests.
 late Directory _tempRoot;
@@ -29,7 +29,7 @@ File _writePdf(Directory parent, String name, {int sizeBytes = 100}) {
 
 void main() {
   setUpAll(() {
-    _tempRoot = Directory.systemTemp.createTempSync('feya_pdf_batch_');
+    _tempRoot = Directory.systemTemp.createTempSync('freya_pdf_batch_');
   });
 
   tearDownAll(() {

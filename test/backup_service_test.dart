@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/highlights/highlight.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/settings/backup_service.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
-import 'package:feya_pdf/features/highlights/highlight_service.dart';
-import 'package:feya_pdf/features/settings/settings_service.dart';
-import 'package:feya_pdf/features/tags/tag_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/highlights/highlight.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/settings/backup_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/highlights/highlight_service.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
+import 'package:freya_pdf/features/tags/tag_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {

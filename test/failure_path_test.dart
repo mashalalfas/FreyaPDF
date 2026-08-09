@@ -6,8 +6,8 @@
 
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/file_management/file_service.dart';
-import 'package:feya_pdf/features/file_management/app_state.dart';
+import 'package:freya_pdf/features/file_management/file_service.dart';
+import 'package:freya_pdf/features/file_management/app_state.dart';
 
 /// Shared temp root for filesystem tests; cleaned up in tearDownAll.
 late Directory _tempRoot;
@@ -26,7 +26,7 @@ File _writePdf(Directory parent, String name, {int sizeBytes = 100}) {
 
 void main() {
   setUpAll(() {
-    _tempRoot = Directory.systemTemp.createTempSync('feya_pdf_failure_path_');
+    _tempRoot = Directory.systemTemp.createTempSync('freya_pdf_failure_path_');
   });
 
   tearDownAll(() {

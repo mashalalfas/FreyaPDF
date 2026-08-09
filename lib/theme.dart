@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Warm, earthy palette — matches Feya exactly
+  // Warm, earthy palette — matches Freya exactly
   static const _teal = Color(0xFF00897B);
   static const _amber = Color(0xFFD4A04A);
   static const _amberDark = Color(0xFFE0B054);

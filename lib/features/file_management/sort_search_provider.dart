@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
 
 enum SortBy { name, modified, size }
 enum SortOrder { asc, desc }

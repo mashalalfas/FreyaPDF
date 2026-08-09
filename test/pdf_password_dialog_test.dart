@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:feya_pdf/features/viewer/widgets/pdf_password_dialog.dart';
+import 'package:freya_pdf/features/viewer/widgets/pdf_password_dialog.dart';
 
 void main() {
   testWidgets('submits password and remember choice', (tester) async {

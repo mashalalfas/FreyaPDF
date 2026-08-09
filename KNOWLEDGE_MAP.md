@@ -1,4 +1,4 @@
-# FeyaPDF Knowledge Map
+# FreyaPDF Knowledge Map
 
 > Updated from graphify code analysis (2026-08-09, commit `02cc1f46`) — 2,283 nodes, 3,570 edges, 125 communities. This refresh used deterministic AST extraction; semantic document extraction requires an LLM API key.
 
@@ -11,7 +11,7 @@
 
 ## High-Level Architecture
 
-FeyaPDF is a Flutter-based PDF reader with advanced features including encryption, bookmarks, highlights, tags, and secure folder management. The architecture follows a provider-based state management pattern with clear separation of concerns.
+FreyaPDF is a Flutter-based PDF reader with advanced features including encryption, bookmarks, highlights, tags, and secure folder management. The architecture follows a provider-based state management pattern with clear separation of concerns.
 
 ### Core Layers
 
@@ -345,4 +345,4 @@ lib/
 
 ---
 
-*This knowledge map is based on static analysis of the FeyaPDF codebase. For interactive exploration, open `graphify-out/graph.html` in a browser.*
+*This knowledge map is based on static analysis of the FreyaPDF codebase. For interactive exploration, open `graphify-out/graph.html` in a browser.*

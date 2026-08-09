@@ -2,31 +2,31 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:feya_pdf/features/file_management/app_state.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_provider.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/file_management/favorites_provider.dart';
-import 'package:feya_pdf/features/tags/tag_provider.dart';
-import 'package:feya_pdf/features/file_management/sort_search_provider.dart';
-import 'package:feya_pdf/features/file_management/selection_provider.dart';
-import 'package:feya_pdf/features/file_management/file_operations_provider.dart';
-import 'package:feya_pdf/features/file_management/recent_files_provider.dart';
-import 'package:feya_pdf/features/file_management/scanned_paths_provider.dart';
-import 'package:feya_pdf/features/settings/settings_provider.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/file_management/widgets/file_list_tile.dart';
-import 'package:feya_pdf/features/tags/widgets/tag_chip.dart';
-import 'package:feya_pdf/features/tags/widgets/tag_picker_dialog.dart';
-import 'package:feya_pdf/features/encryption/widgets/encryption_badge.dart';
-import 'package:feya_pdf/features/encryption/widgets/passphrase_dialog.dart';
-import 'package:feya_pdf/features/security/widgets/secure_folder_card.dart';
-import 'package:feya_pdf/features/file_management/permission_service.dart';
-import 'package:feya_pdf/features/file_management/intent_handler.dart';
-import 'package:feya_pdf/features/security/secure_folder_service.dart';
-import 'package:feya_pdf/features/viewer/viewer_screen.dart';
-import 'package:feya_pdf/features/settings/settings_screen.dart';
-import 'package:feya_pdf/features/tags/tags_screen.dart';
+import 'package:freya_pdf/features/file_management/app_state.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/file_management/favorites_provider.dart';
+import 'package:freya_pdf/features/tags/tag_provider.dart';
+import 'package:freya_pdf/features/file_management/sort_search_provider.dart';
+import 'package:freya_pdf/features/file_management/selection_provider.dart';
+import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
+import 'package:freya_pdf/features/file_management/recent_files_provider.dart';
+import 'package:freya_pdf/features/file_management/scanned_paths_provider.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/file_management/widgets/file_list_tile.dart';
+import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
+import 'package:freya_pdf/features/tags/widgets/tag_picker_dialog.dart';
+import 'package:freya_pdf/features/encryption/widgets/encryption_badge.dart';
+import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
+import 'package:freya_pdf/features/security/widgets/secure_folder_card.dart';
+import 'package:freya_pdf/features/file_management/permission_service.dart';
+import 'package:freya_pdf/features/file_management/intent_handler.dart';
+import 'package:freya_pdf/features/security/secure_folder_service.dart';
+import 'package:freya_pdf/features/viewer/viewer_screen.dart';
+import 'package:freya_pdf/features/settings/settings_screen.dart';
+import 'package:freya_pdf/features/tags/tags_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -510,14 +510,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: Image.asset(
-                      'assets/logo/FEYA PDF.png',
+                      'assets/logo/FREYA PDF.png',
                       width: 28,
                       height: 28,
                       fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text('Feya PDF'),
+                  const Text('Freya PDF'),
                 ],
               ),
         actions: [
@@ -684,7 +684,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                'assets/logo/FEYA PDF.png',
+                'assets/logo/FREYA PDF.png',
                 width: 64,
                 height: 64,
                 fit: BoxFit.contain,

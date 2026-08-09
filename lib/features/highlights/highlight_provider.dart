@@ -2,8 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
-import 'package:feya_pdf/features/highlights/highlight.dart';
-import 'package:feya_pdf/features/highlights/highlight_service.dart';
+import 'package:freya_pdf/features/highlights/highlight.dart';
+import 'package:freya_pdf/features/highlights/highlight_service.dart';
 
 /// Manages text and rectangle highlights for PDF documents.
 ///

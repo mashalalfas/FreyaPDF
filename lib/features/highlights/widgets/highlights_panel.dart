@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/highlights/highlight.dart';
-import 'package:feya_pdf/features/highlights/highlight_provider.dart';
+import 'package:freya_pdf/features/highlights/highlight.dart';
+import 'package:freya_pdf/features/highlights/highlight_provider.dart';
 
 /// A bottom-drawer panel that lists all highlights for the current file.
 ///

@@ -1,22 +1,22 @@
-# Privacy Policy — Feya PDF
+# Privacy Policy — Freya PDF
 
 **Last updated:** 7 July 2026
 **Effective date:** 7 July 2026
 
-> **The short version.** Feya PDF does not collect, store, transmit, sell, or share your personal data. All your PDFs, encryption keys, app-lock credentials, annotations, tags, and reading activity stay on your device. The only outbound network call the App can make is an optional, unauthenticated check of a public GitHub Releases API endpoint — and only in builds distributed outside the Google Play Store.
+> **The short version.** Freya PDF does not collect, store, transmit, sell, or share your personal data. All your PDFs, encryption keys, app-lock credentials, annotations, tags, and reading activity stay on your device. The only outbound network call the App can make is an optional, unauthenticated check of a public GitHub Releases API endpoint — and only in builds distributed outside the Google Play Store.
 
 ---
 
 ## 1. About the App and the Developer
 
-**Feya PDF** (the "**App**") is a free, open-source PDF reader for Android. The App provides local PDF viewing, annotation, tagging, search, and optional on-device encryption of PDF files. The App does not require a user account, does not run a backend, and does not sync your data to any cloud.
+**Freya PDF** (the "**App**") is a free, open-source PDF reader for Android. The App provides local PDF viewing, annotation, tagging, search, and optional on-device encryption of PDF files. The App does not require a user account, does not run a backend, and does not sync your data to any cloud.
 
 The App is developed and maintained by:
 
 - **Mashal Alfas** (the "**Developer**", "**we**", "**us**")
-- **Repository:** <https://github.com/mashalalfas/FeyaPDF>
-- **Landing page:** <https://mashalalfas.github.io/FeyaPDF/>
-- **Contact (issues only):** <https://github.com/mashalalfas/FeyaPDF/issues>
+- **Repository:** <https://github.com/mashalalfas/FreyaPDF>
+- **Landing page:** <https://mashalalfas.github.io/FreyaPDF/>
+- **Contact (issues only):** <https://github.com/mashalalfas/FreyaPDF/issues>
 
 This Privacy Policy explains what information the App does and does not handle. We have written it in plain language because privacy disclosures should be readable.
 
@@ -57,7 +57,7 @@ The App stores the following data **exclusively in app-private storage on your d
 
 **The App explicitly opts out of OS-level data extraction.** The Android manifest sets `android:allowBackup="false"` and the App's backup and data-extraction rule files are empty. **Your on-device data is not included in Google Drive auto-backups, device-to-device transfer, or any other Android-level data-movement flow.** This is a deliberate privacy choice.
 
-You can erase all on-device data at any time by **uninstalling the App**, or by clearing its data from Android Settings → Apps → Feya PDF → Storage → Clear data.
+You can erase all on-device data at any time by **uninstalling the App**, or by clearing its data from Android Settings → Apps → Freya PDF → Storage → Clear data.
 
 ---
 
@@ -100,13 +100,13 @@ The App contains **no third-party analytics, no advertising SDK, no crash report
 The **only** outbound network request the App can make is:
 
 - **GitHub Releases API**
-  - **Endpoint:** `https://api.github.com/repos/mashalalfas/FeyaPDF/releases/latest`
+  - **Endpoint:** `https://api.github.com/repos/mashalalfas/FreyaPDF/releases/latest`
   - **Purpose:** Check whether a newer version is available for self-update
   - **Trigger:** Either (a) you tap "Check for updates" in Settings, or (b) an automatic check on app launch (configurable in Settings)
   - **Data sent:** A standard, **unauthenticated** HTTPS `GET` request. The request includes an `Accept` header set to `application/vnd.github+json` and an `X-GitHub-Api-Version` header. It does **not** include any user identifier, account token, device identifier, file content, or app-state data. GitHub (Microsoft Corporation) will observe your IP address as the source of the request, as is inherent in any internet request.
   - **Data received:** Public release metadata (version string, release notes, download URL, asset size).
   - **Retention:** Subject to GitHub's standard API logging and retention; we have no control over it.
-  - **Availability:** **Disabled entirely in Google Play Store builds.** If you install Feya PDF from the Play Store, this network call is never made.
+  - **Availability:** **Disabled entirely in Google Play Store builds.** If you install Freya PDF from the Play Store, this network call is never made.
 
 GitHub's privacy practices are governed by GitHub's own privacy statement, available at <https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement>. The Developer is not responsible for GitHub's data-handling practices.
 
@@ -177,7 +177,7 @@ No system is perfectly secure. The Developer makes no warranty of absolute secur
 The Developer may update this Privacy Policy from time to time. The "**Last updated**" date at the top of this document will reflect the most recent change. Material changes will, where reasonable, be communicated:
 
 - In the release notes of the next App version, and
-- Via a notice in the project repository at <https://github.com/mashalalfas/FeyaPDF>.
+- Via a notice in the project repository at <https://github.com/mashalalfas/FreyaPDF>.
 
 Continued use of the App after the effective date of a revised Privacy Policy indicates that you have read and accepted the updated policy. If you do not agree, please **uninstall the App** and stop using it.
 
@@ -189,16 +189,16 @@ A history of significant changes will be summarised at the bottom of this docume
 
 This is a community-supported, open-source project. The best way to reach the Developer is via the public issue tracker. The Developer aims to respond to privacy-relevant issues within a reasonable time, but makes **no service-level commitment**.
 
-- **Issue tracker / contact:** <https://github.com/mashalalfas/FeyaPDF/issues>
-- **Repository:** <https://github.com/mashalalfas/FeyaPDF>
-- **Landing page:** <https://mashalalfas.github.io/FeyaPDF/>
+- **Issue tracker / contact:** <https://github.com/mashalalfas/FreyaPDF/issues>
+- **Repository:** <https://github.com/mashalalfas/FreyaPDF>
+- **Landing page:** <https://mashalalfas.github.io/FreyaPDF/>
 - **Creator:** Mashal Alfas
 
 ---
 
 ## 14. Effective Date and Version
 
-This Privacy Policy is effective as of **7 July 2026** and applies to all versions of Feya PDF from **1.1.4** onwards. Earlier versions, if any, are covered by the Privacy Policy shipped with their respective release.
+This Privacy Policy is effective as of **7 July 2026** and applies to all versions of Freya PDF from **1.1.4** onwards. Earlier versions, if any, are covered by the Privacy Policy shipped with their respective release.
 
 ---
 
@@ -206,7 +206,7 @@ This Privacy Policy is effective as of **7 July 2026** and applies to all versio
 
 For anyone who just wants the gist:
 
-- Feya PDF is a PDF reader that **keeps everything on your phone**.
+- Freya PDF is a PDF reader that **keeps everything on your phone**.
 - The Developer **does not run a server** that receives your data.
 - The Developer **does not know who you are**, because you never tell the App.
 - The Developer **cannot see your files**, because they never leave your device.

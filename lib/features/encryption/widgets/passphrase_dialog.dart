@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/encryption/passphrase_strength.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/encryption/passphrase_strength.dart';
 
 /// Shows a dialog to set/view/change the session passphrase.
 /// Returns true if passphrase was set, false if cancelled.

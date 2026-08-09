@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a FeyaPDF APK with the current git commit hash embedded.
+# Build a FreyaPDF APK with the current git commit hash embedded.
 #
 # Usage:
 #   ./tool/build_apk.sh [release|profile|debug] [--install]

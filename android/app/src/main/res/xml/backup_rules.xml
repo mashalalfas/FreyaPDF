@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Pre-Android 12 (API < 31) auto-backup configuration for Feya PDF.
+  Pre-Android 12 (API < 31) auto-backup configuration for Freya PDF.
 
   This app handles sensitive material (encrypted PDFs, PIN hashes,
   biometric passphrases). Excluding every path keeps that data out of

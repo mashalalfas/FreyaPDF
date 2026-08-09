@@ -1,6 +1,6 @@
 ---
 name: Pull Request
-about: Propose a change to Feya PDF
+about: Propose a change to Freya PDF
 title: ""
 labels: ""
 assignees: ""

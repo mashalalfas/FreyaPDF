@@ -1,9 +1,9 @@
 // Size: small — provider tests backed by mock SharedPreferences (no real I/O, milliseconds)
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
-import 'package:feya_pdf/features/tags/tag_provider.dart';
-import 'package:feya_pdf/features/tags/tag_service.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/tag_provider.dart';
+import 'package:freya_pdf/features/tags/tag_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Build a TagProvider backed by a fresh mock SharedPreferences.

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12+ (API 31+) data extraction rules for Feya PDF.
+  Android 12+ (API 31+) data extraction rules for Freya PDF.
 
   Used as android:dataExtractionRules="@xml/data_extraction_rules" in
   AndroidManifest.xml. Both device-to-device transfer and cloud backup
-  are explicitly disabled — Feya stores encrypted PDFs, PIN hashes and
+  are explicitly disabled — Freya stores encrypted PDFs, PIN hashes and
   biometric passphrases that must never leave the device via OS-level
   flows.
 -->

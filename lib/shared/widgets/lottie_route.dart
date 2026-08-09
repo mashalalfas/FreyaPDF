@@ -104,13 +104,13 @@ class _LottieOverlayState extends State<_LottieOverlay> {
               ),
               const SizedBox(height: 16),
               Image.asset(
-                'assets/logo/FEYA PDF.png',
+                'assets/logo/FREYA PDF.png',
                 width: 32,
                 height: 32,
               ),
               const SizedBox(height: 8),
               Text(
-                'Feya PDF',
+                'Freya PDF',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:feya_pdf/build_config.dart';
+import 'package:freya_pdf/build_config.dart';
 
 /// Describes a single GitHub release asset (e.g. the APK).
 class GitHubAsset {
@@ -81,7 +81,7 @@ typedef DownloadProgress = void Function(double? progress);
 
 class UpdateService {
   static const _owner = 'mashalalfas';
-  static const _repo = 'FeyaPDF';
+  static const _repo = 'FreyaPDF';
   static const _releasesUrl =
       'https://api.github.com/repos/$_owner/$_repo/releases/latest';
 

@@ -5,7 +5,7 @@
 -keep class io.flutter.embedding.engine.FlutterEngine { *; }
 
 # Flutter plugins
--keep class com.feya.feya_pdf.** { *; }
+-keep class com.freya.freya_pdf.** { *; }
 
 # http / dart
 -dontwarn javax.annotation.**

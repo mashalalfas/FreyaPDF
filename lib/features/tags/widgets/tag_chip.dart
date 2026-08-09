@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/features/tags/tag.dart';
+import 'package:freya_pdf/features/tags/tag.dart';
 
 /// Material-3 style chip for a [Tag].
 ///

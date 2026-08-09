@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark.dart';
-import 'package:feya_pdf/features/bookmarks/bookmark_service.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark.dart';
+import 'package:freya_pdf/features/bookmarks/bookmark_service.dart';
 
 /// Manages bookmarks for PDF documents.
 ///

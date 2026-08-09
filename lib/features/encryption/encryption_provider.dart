@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
-import 'package:feya_pdf/features/security/biometric_passphrase_storage.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
 
 /// Manages passphrase state and file encryption/decryption.
 ///

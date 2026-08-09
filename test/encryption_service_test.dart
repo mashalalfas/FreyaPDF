@@ -3,7 +3,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
 
 
 void main() {
@@ -14,7 +14,7 @@ void main() {
     // Act: encrypt + decrypt round-trip
     // Assert: decrypted bytes equal original
     test('encrypt then decrypt returns same bytes', () {
-      final original = Uint8List.fromList('Hello Feya PDF!'.codeUnits);
+      final original = Uint8List.fromList('Hello Freya PDF!'.codeUnits);
       final encrypted = EncryptionService.encryptBytes(original, passphrase);
       final decrypted = EncryptionService.decryptBytes(encrypted, passphrase);
       expect(decrypted, equals(original));
@@ -105,17 +105,18 @@ void main() {
     });
 
     // Arrange: encrypt any payload
-    // Act: inspect first 4 bytes of ciphertext
-    // Assert: bytes match ASCII 'FEYA' magic header (0x46 0x45 0x59 0x41)
-    test('encrypted output has magic header FEYA', () {
+    // Act: inspect first 5 bytes of ciphertext
+    // Assert: bytes match ASCII 'FREYA' magic header (0x46 0x52 0x45 0x59 0x41)
+    test('encrypted output has magic header FREYA', () {
       final encrypted = EncryptionService.encryptBytes(
         Uint8List.fromList('header check'.codeUnits),
         passphrase,
       );
-      expect(encrypted[0], equals(0x46));
-      expect(encrypted[1], equals(0x45));
-      expect(encrypted[2], equals(0x59));
-      expect(encrypted[3], equals(0x41));
+      expect(encrypted[0], equals(0x46)); // F
+      expect(encrypted[1], equals(0x52)); // R
+      expect(encrypted[2], equals(0x45)); // E
+      expect(encrypted[3], equals(0x59)); // Y
+      expect(encrypted[4], equals(0x41)); // A
     });
 
     // Arrange: all 256 possible byte values (not valid UTF-8 as a whole)

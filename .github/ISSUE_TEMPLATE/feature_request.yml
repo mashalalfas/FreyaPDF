@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for Feya PDF
+about: Suggest an idea for Freya PDF
 title: "[Feature] "
 labels: enhancement
 assignees: ''
@@ -23,5 +23,5 @@ Any alternative approaches you considered.
 
 Screenshots, links, or other context.
 
-> **Note:** Feya PDF is a privacy-first, offline app. Features that require a
+> **Note:** Freya PDF is a privacy-first, offline app. Features that require a
 > backend, analytics, or data collection are out of scope.

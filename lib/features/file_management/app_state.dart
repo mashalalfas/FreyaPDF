@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/file_management/file_service.dart';
-import 'package:feya_pdf/features/file_management/intent_handler.dart';
-import 'package:feya_pdf/features/file_management/sort_search_provider.dart';
-import 'package:feya_pdf/features/file_management/scanned_paths_provider.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/file_management/file_service.dart';
+import 'package:freya_pdf/features/file_management/intent_handler.dart';
+import 'package:freya_pdf/features/file_management/sort_search_provider.dart';
+import 'package:freya_pdf/features/file_management/scanned_paths_provider.dart';
 
 class AppState extends ChangeNotifier {
   String? _currentDir;

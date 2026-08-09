@@ -1,5 +1,5 @@
-name: feya_pdf
-description: "Feya PDF — a clean, fast, ad-free PDF reader with E2E encryption."
+name: freya_pdf
+description: "Freya PDF — a clean, fast, ad-free PDF reader with E2E encryption."
 publish_to: 'none'
 version: 1.2.0+6
 
@@ -61,7 +61,7 @@ flutter_launcher_icons:
   android: true
   ios: false
   remove_alpha_ios: false
-  image_path: "assets/logo/FEYA PDF.png"
+  image_path: "assets/logo/FREYA PDF.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/logo/FEYA PDF.png"
+  adaptive_icon_foreground: "assets/logo/FREYA PDF.png"
   min_sdk_android: 21

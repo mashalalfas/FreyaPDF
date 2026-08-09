@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:feya_pdf/features/highlights/highlight.dart';
+import 'package:freya_pdf/features/highlights/highlight.dart';
 
 /// Persists [HighlightData] per PDF file using SharedPreferences.
 ///
 /// Data layout (v2):
-///   key = 'feya_pdf_highlights' => JSON map { filePath -> [highlightJSON, ...] }
+///   key = 'freya_pdf_highlights' => JSON map { filePath -> [highlightJSON, ...] }
 class HighlightService {
-  static const _kHighlights = 'feya_pdf_highlights';
+  static const _kHighlights = 'freya_pdf_highlights';
 
   final SharedPreferences _prefs;
 

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:feya_pdf/features/file_management/app_state.dart';
-import 'package:feya_pdf/features/security/secure_folder_provider.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/file_management/app_state.dart';
+import 'package:freya_pdf/features/security/secure_folder_provider.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
 
 /// Shows a dialog for importing files into the secure folder.
 ///

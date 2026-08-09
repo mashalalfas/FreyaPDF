@@ -1,6 +1,6 @@
-# FeyaPDF — Documentation
+# FreyaPDF — Documentation
 
-A clean, consolidated documentation set for the FeyaPDF codebase. Old, superseded, and one-off working notes have been archived under `docs/archive/`.
+A clean, consolidated documentation set for the FreyaPDF codebase. Old, superseded, and one-off working notes have been archived under `docs/archive/`.
 
 ## Index
 

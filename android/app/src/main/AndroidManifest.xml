@@ -5,7 +5,7 @@
     <!-- For APK installation -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <application
-        android:label="Feya PDF"
+        android:label="Freya PDF"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

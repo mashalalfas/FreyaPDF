@@ -3,11 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:feya_pdf/core/models/pdf_file.dart';
-import 'package:feya_pdf/features/file_management/file_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_service.dart';
-import 'package:feya_pdf/features/encryption/encryption_provider.dart';
-import 'package:feya_pdf/features/security/pdf_password_storage.dart';
+import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/file_management/file_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
+import 'package:freya_pdf/features/security/pdf_password_storage.dart';
 
 enum SaveResult { success, alreadyExists, failure }
 
@@ -193,7 +193,7 @@ class FileOperationsProvider extends ChangeNotifier {
     }
   }
 
-  /// Save a file to a target directory, or the app's local documents FeyaPDF
+  /// Save a file to a target directory, or the app's local documents FreyaPDF
   /// folder if [targetDir] is null.
   /// Returns a [SaveResult] indicating success, alreadyExists, or failure.
   Future<(SaveResult, String?)> saveToLocal(
@@ -206,7 +206,7 @@ class FileOperationsProvider extends ChangeNotifier {
         destDirPath = targetDir;
       } else {
         final docsDir = await getApplicationDocumentsDirectory();
-        destDirPath = '${docsDir.path}/FeyaPDF';
+        destDirPath = '${docsDir.path}/FreyaPDF';
       }
 
       final localDir = Directory(destDirPath);
