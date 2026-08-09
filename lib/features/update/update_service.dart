@@ -7,6 +7,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:freya_pdf/build_config.dart';
+import 'package:freya_pdf/core/security/secure_http_client.dart';
 
 /// Describes a single GitHub release asset (e.g. the APK).
 class GitHubAsset {
@@ -88,7 +89,8 @@ class UpdateService {
 
   final http.Client _client;
 
-  UpdateService({http.Client? client}) : _client = client ?? http.Client();
+  UpdateService({http.Client? client})
+      : _client = client ?? SecureHttpClient.create();
 
   // ── Play Store gating ─────────────────────────────────────────────
 

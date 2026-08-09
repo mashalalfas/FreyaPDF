@@ -28,6 +28,8 @@ dependencies:
   package_info_plus: ^8.0.0
   http: ^1.2.0
   open_filex: ^4.5.0
+  crypto: ^3.0.7
+  flutter_jailbreak_detection_plus: ^1.10.7
 
 dev_dependencies:
   flutter_test:
