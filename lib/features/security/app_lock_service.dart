@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -30,8 +31,23 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// backoff merely by restarting the app. The failure counter and the
 /// absolute lockout expiry (epoch milliseconds) are both stored; on a
 /// fresh build the pref keys ship empty/default so no lockout is assumed.
+/// Run in a background isolate: derive a PBKDF2 hash off the UI thread so
+/// setting a PIN does not freeze the UI. Inputs/outputs are isolate-safe
+/// plain values (String / Uint8List via [Isolate.run]).
+Uint8List _derivePbkdf2InIsolate(String pin, Uint8List salt, int iterations) {
+  // 32-byte derived key (matches AppLockService._pbkdf2KeyLength).
+  const keyLength = 32;
+  final params = Pbkdf2Parameters(salt, iterations, keyLength);
+  final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
+  pbkdf2.init(params);
+  return Uint8List.fromList(
+    pbkdf2.process(Uint8List.fromList(utf8.encode(pin))),
+  );
+}
+
 class AppLockService {
   static const _kPinHash = 'app_lock_pin_hash';
+  static const _kPinLength = 'app_lock_pin_length';
   static const _kBiometricEnabled = 'app_lock_biometric';
 
   // ── Brute-force lockout configuration ──
@@ -127,13 +143,43 @@ class AppLockService {
   // ── PIN ──
 
   /// Set the user's PIN, overwriting any previously stored value.
-  /// Uses the v2 PBKDF2 format.
+  /// Uses the v2 PBKDF2 format. The key derivation runs in a background
+  /// isolate so the call does not block the UI thread.
+  /// Also persists the chosen PIN length so the lock screen can auto-submit
+  /// at exactly the configured length.
   Future<void> setPin(String pin) async {
     final salt = _generateSalt();
-    final hash = _deriveKeyPbkdf2(pin, salt, _pbkdf2Iterations);
+    // Derive off the UI thread (keeps the same v2 format / iteration count).
+    final hash = await Isolate.run(
+      () => _derivePbkdf2InIsolate(
+        pin,
+        salt,
+        _pbkdf2Iterations,
+      ),
+    );
     final value =
         '$_pbkdf2Prefix\$$_pbkdf2Iterations\$${base64.encode(salt)}\$${base64.encode(hash)}';
     await _store.write(key: _kPinHash, value: value);
+    // Range-check the length (defensive: treat out-of-range as unset so the
+    // legacy fallback / verify-at-current-length path applies).
+    if (pin.length >= 4 && pin.length <= 6) {
+      await _store.write(key: _kPinLength, value: '${pin.length}');
+    } else {
+      await _store.delete(key: _kPinLength);
+    }
+  }
+
+  /// The stored PIN length chosen via [setPin], or `null` when unset.
+  ///
+  /// Legacy installs (like the current one) have no stored length; a `null`
+  /// return tells the lock screen to fall back to a manual confirm/check
+  /// button that verifies at the current buffer length (4-6 digits).
+  Future<int?> getPinLength() async {
+    final raw = await _store.read(key: _kPinLength);
+    if (raw == null) return null;
+    final parsed = int.tryParse(raw);
+    if (parsed == null || parsed < 4 || parsed > 6) return null;
+    return parsed;
   }
 
   /// Verify a PIN. Returns `true` on match, `false` otherwise (including when
@@ -183,6 +229,7 @@ class AppLockService {
 
   Future<void> clearPin() async {
     await _store.delete(key: _kPinHash);
+    await _store.delete(key: _kPinLength);
     await _store.delete(key: _kBiometricEnabled);
   }
 

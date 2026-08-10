@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -17,17 +18,37 @@ class AppLockGate extends StatefulWidget {
   State<AppLockGate> createState() => _AppLockGateState();
 }
 
+/// The lifecycle states treated as "app went to background". Anything else
+/// (notably [AppLifecycleState.inactive], triggered by the notification shade,
+/// permission dialogs, split-screen, etc.) does NOT count as a return from
+/// background.
+///
+/// Exposed top-level so the re-lock decision is unit-testable in isolation.
+bool isBackgroundLifecycleState(AppLifecycleState state) =>
+    state == AppLifecycleState.paused ||
+    state == AppLifecycleState.hidden ||
+    state == AppLifecycleState.detached;
+
+/// Decide whether a lifecycle transition should re-trigger the lock screen.
+/// True only when moving from a true background state back to resumed.
+/// Notification-shade (inactive) cycles return false.
+///
+/// Exposed top-level for unit testing.
+bool shouldRelockOnResume(AppLifecycleState previous, AppLifecycleState next) =>
+    next == AppLifecycleState.resumed && isBackgroundLifecycleState(previous);
+
 class _AppLockGateState extends State<AppLockGate>
     with WidgetsBindingObserver {
   final AppLockService _lockService = AppLockService();
   bool _locked = true;
   bool _biometricAvailable = false;
+  AppLifecycleState _previousLifecycle = AppLifecycleState.resumed;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkLock();
+    _checkLock(isColdStart: true);
   }
 
   @override
@@ -38,13 +59,18 @@ class _AppLockGateState extends State<AppLockGate>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Re-lock when app returns from background
-    if (state == AppLifecycleState.resumed) {
+    // Only re-lock when transitioning from a true background state back to
+    // resumed. Dragging the notification shade fires inactive/resumed cycles,
+    // which we deliberately ignore: those must NOT re-trigger the lock screen
+    // or spam the biometric prompt.
+    final shouldRelock = shouldRelockOnResume(_previousLifecycle, state);
+    _previousLifecycle = state;
+    if (shouldRelock) {
       _checkLock();
     }
   }
 
-  Future<void> _checkLock() async {
+  Future<void> _checkLock({bool isColdStart = false}) async {
     final settings = context.read<SettingsProvider>();
     if (!settings.appLockEnabled) {
       if (mounted) setState(() => _locked = false);
@@ -58,8 +84,10 @@ class _AppLockGateState extends State<AppLockGate>
         _locked = true;
       });
     }
-    // Auto-attempt biometric if available
-    if (_biometricAvailable) {
+    // Auto-attempt biometric ONLY on cold start (first lock of the process).
+    // On a resume, show the PIN screen without instantly firing the system
+    // biometric prompt — the user can tap the fingerprint icon to retry.
+    if (_biometricAvailable && isColdStart) {
       final ok = await _lockService.authenticateWithBiometrics();
       if (ok && mounted) {
         setState(() => _locked = false);
@@ -109,9 +137,21 @@ class AppLockScreen extends StatefulWidget {
   State<AppLockScreen> createState() => _AppLockScreenState();
 }
 
+/// Decide whether the PIN buffer should auto-submit after adding [digit].
+/// True when a stored length is known and the buffer has just reached it. For
+/// legacy installs (no stored length) the buffer never auto-submits — the user
+/// presses the manual confirm/check button instead.
+///
+/// Exposed top-level for unit testing.
+bool shouldAutoSubmitPin(int bufferLength, int? storedPinLength) =>
+    storedPinLength != null && bufferLength == storedPinLength;
+
 class _AppLockScreenState extends State<AppLockScreen> {
   final _pinBuffer = <int>[];
-  static const int _pinLength = 6;
+  static const int _maxPinLength = 6;
+  // The configured PIN length (4-6), or `null` for legacy installs where no
+  // length was stored (fall back to a manual confirm/check button).
+  int? _pinLength;
   String? _errorText;
   bool _shake = false;
 
@@ -123,6 +163,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   @override
   void initState() {
     super.initState();
+    _initPinLength();
     _refreshLockout();
   }
 
@@ -131,6 +172,25 @@ class _AppLockScreenState extends State<AppLockScreen> {
     _lockoutTimer?.cancel();
     super.dispose();
   }
+
+  /// Load the stored PIN length. Legacy installs (no stored length) leave
+  /// [_pinLength] as `null`, which enables the manual confirm/check button and
+  /// lets the user submit at 4, 5, or 6 digits.
+  Future<void> _initPinLength() async {
+    final stored = await widget.lockService.getPinLength();
+    if (!mounted) return;
+    setState(() => _pinLength = stored);
+  }
+
+  /// Whether the legacy confirm/check button should be shown: only when no
+  /// stored length exists (legacy installs) or while the length is still being
+  /// resolved. The user can submit whenever the buffer is 4-6 digits.
+  bool get _useManualSubmit => _pinLength == null;
+
+  /// Total number of dots shown. For the stored-length path this matches the
+  /// configured length; for the legacy path we show a fixed 6 so the buffer
+  /// never visually overflows.
+  int get _dotCount => _pinLength ?? _maxPinLength;
 
   /// Refresh the lockout countdown from the service and, if still locked,
   /// schedule a re-check for one second later. Stops once the lock expires.
@@ -151,13 +211,14 @@ class _AppLockScreenState extends State<AppLockScreen> {
       HapticFeedback.selectionClick();
       return;
     }
-    if (_pinBuffer.length >= _pinLength) return;
+    if (_pinBuffer.length >= _maxPinLength) return;
     HapticFeedback.lightImpact();
     setState(() {
       _pinBuffer.add(digit);
       _errorText = null;
     });
-    if (_pinBuffer.length == _pinLength) {
+    // Auto-submit once the buffer reaches the stored length.
+    if (shouldAutoSubmitPin(_pinBuffer.length, _pinLength)) {
       _verifyPin();
     }
   }
@@ -171,8 +232,14 @@ class _AppLockScreenState extends State<AppLockScreen> {
     });
   }
 
+  /// Verify current buffer. For the legacy path, a wrong attempt at 4 digits
+  /// does NOT clear the buffer — it lets the user keep typing to 5 or 6 and
+  /// try again — but the failed attempt still counts toward the brute-force
+  /// lockout.
   Future<void> _verifyPin() async {
+    if (_pinBuffer.length < 4) return;
     final pin = _pinBuffer.join();
+    final wasManual = _useManualSubmit;
     final ok = await widget.lockService.verifyPin(pin);
     if (!mounted) return;
     if (ok) {
@@ -181,9 +248,13 @@ class _AppLockScreenState extends State<AppLockScreen> {
     } else {
       HapticFeedback.heavyImpact();
       setState(() {
-        _pinBuffer.clear();
         _errorText = 'Incorrect PIN';
         _shake = true;
+        // Legacy path: keep the buffer so the user can continue typing to a
+        // longer length. Stored-length path: clear as before.
+        if (!wasManual) {
+          _pinBuffer.clear();
+        }
       });
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
@@ -261,8 +332,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
 
         // PIN dots
         _PinDots(
-          length: _pinLength,
-          filledCount: _pinBuffer.length,
+          length: _dotCount,
+          filledCount: min(_pinBuffer.length, _dotCount),
           error: _errorText != null,
           colorScheme: colorScheme,
         ),
@@ -290,6 +361,21 @@ class _AppLockScreenState extends State<AppLockScreen> {
         ],
         const SizedBox(height: 12),
 
+        // Legacy path only: no stored PIN length, so a manual confirm/check
+        // lets the user submit at 4, 5, or 6 digits. Always visible (enabled
+        // only when buffer has 4-6 digits) so the user knows how to submit.
+        if (_useManualSubmit) ...[
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 220,
+            child: FilledButton(
+              onPressed:
+                  (_pinBuffer.length >= 4 && !_lockedOut) ? _verifyPin : null,
+              child: const Text('Check PIN'),
+            ),
+          ),
+        ],
+
         // Biometric button
         if (widget.biometricAvailable)
           IconButton(
@@ -298,7 +384,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
               size: 36,
               color: colorScheme.primary,
             ),
-            onPressed: _onBiometric,
+            onPressed: _lockedOut ? null : _onBiometric,
             tooltip: 'Unlock with biometrics',
           ),
 

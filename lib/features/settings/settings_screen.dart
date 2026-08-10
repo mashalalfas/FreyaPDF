@@ -814,6 +814,7 @@ class _AppLockTileState extends State<_AppLockTile> {
     String pin = '';
     String confirmPin = '';
     bool step2 = false;
+    bool step2Loading = false;
     String? step2Error;
 
     showDialog(
@@ -924,32 +925,52 @@ class _AppLockTileState extends State<_AppLockTile> {
                   ),
                 if (step2 && confirmPin.length >= 4)
                   FilledButton(
-                    onPressed: () async {
-                      if (pin == confirmPin) {
-                        await _lockService.setPin(pin);
-                        if (ctx.mounted) Navigator.pop(ctx);
-                        if (context.mounted) {
-                          final messenger = ScaffoldMessenger.of(context);
-                          await widget.settings.setAppLockEnabled(true);
-                          _loadState();
-                          messenger.showSnackBar(
-                            SnackBar(
-                              content: const Text('PIN set successfully'),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          );
-                        }
-                      } else {
-                        setDialogState(() {
-                          step2Error = 'PINs do not match';
-                          confirmPin = '';
-                        });
-                      }
-                    },
-                    child: const Text('Confirm'),
+                    onPressed: step2Loading
+                        ? null
+                        : () async {
+                            if (pin == confirmPin) {
+                              setDialogState(() {
+                                step2Loading = true;
+                                step2Error = null;
+                              });
+                              // setPin runs PBKDF2 in a background isolate; a
+                              // spinner + disabled buttons keep the dialog from
+                              // appearing frozen while it runs.
+                              await _lockService.setPin(pin);
+                              if (!ctx.mounted) return;
+                              setDialogState(() {
+                                step2Loading = false;
+                              });
+                              Navigator.pop(ctx);
+                              if (context.mounted) {
+                                final messenger =
+                                    ScaffoldMessenger.of(context);
+                                await widget.settings.setAppLockEnabled(true);
+                                _loadState();
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: const Text('PIN set successfully'),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                );
+                              }
+                            } else {
+                              setDialogState(() {
+                                step2Error = 'PINs do not match';
+                                confirmPin = '';
+                              });
+                            }
+                          },
+                    child: step2Loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Confirm'),
                   ),
               ],
             );

@@ -142,6 +142,71 @@ void main() {
     });
   });
 
+  group('AppLockService stored PIN length', () {
+    test('setPin stores the chosen PIN length', () async {
+      final storage = MockSecureStorage();
+      final service = AppLockService(storage: storage);
+      await service.setPin('1234');
+      expect(await service.getPinLength(), equals(4));
+      expect(storage.peek('app_lock_pin_length'), equals('4'));
+    });
+
+    test('setPin stores length for a 6-digit PIN too', () async {
+      final storage = MockSecureStorage();
+      final service = AppLockService(storage: storage);
+      await service.setPin('123456');
+      expect(await service.getPinLength(), equals(6));
+    });
+
+    test('getPinLength returns null when no length stored (legacy install)',
+        () async {
+      final storage = MockSecureStorage();
+      // Seed a legacy hash with NO length key — like the current install.
+      const pin = '424242';
+      const saltB64 = 'AAAAAAAAAAAAAAAAAAAAAA=='; // 16 zero bytes, base64
+      final legacy = '$saltB64:${_legacyHash(saltB64, pin)}';
+      await storage.write(key: 'app_lock_pin_hash', value: legacy);
+      final service = AppLockService(storage: storage);
+      expect(await service.getPinLength(), isNull);
+      // ...but the legacy PIN still verifies.
+      expect(await service.verifyPin(pin), isTrue);
+    });
+
+    test('verifyPin works at the stored length', () async {
+      final storage = MockSecureStorage();
+      final service = AppLockService(storage: storage);
+      await service.setPin('2401');
+      expect(await service.getPinLength(), equals(4));
+      expect(await service.verifyPin('2401'), isTrue);
+      expect(await service.verifyPin('24010'), isFalse);
+      expect(await service.verifyPin('240'), isFalse);
+    });
+
+    test('setPin completes and produces the v2 format (async isolate path)',
+        () async {
+      final storage = MockSecureStorage();
+      final service = AppLockService(storage: storage);
+      await service.setPin('9876');
+      final stored = storage.peek('app_lock_pin_hash')!;
+      expect(stored, startsWith(r'pbkdf2_sha256$'));
+      final parts = stored.split(r'$');
+      expect(parts, hasLength(4));
+      expect(parts[0], equals('pbkdf2_sha256'));
+      expect(int.parse(parts[1]), greaterThanOrEqualTo(100000));
+      expect(await service.verifyPin('9876'), isTrue);
+    });
+
+    test('clearPin also removes the stored length', () async {
+      final storage = MockSecureStorage();
+      final service = AppLockService(storage: storage);
+      await service.setPin('1234');
+      expect(await service.getPinLength(), equals(4));
+      await service.clearPin();
+      expect(await service.getPinLength(), isNull);
+      expect(storage.peek('app_lock_pin_length'), isNull);
+    });
+  });
+
   group('AppLockService legacy v1 SHA-256 migration', () {
     test('legacy v1 entry is verified and silently migrated to v2',
         () async {
