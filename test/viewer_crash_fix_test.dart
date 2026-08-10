@@ -34,6 +34,7 @@ import 'package:freya_pdf/features/viewer/providers/search_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/features/settings/settings_service.dart';
 import 'package:freya_pdf/features/viewer/viewer_screen.dart';
+import 'package:freya_pdf/features/viewer/widgets/reader_zoom_controls.dart';
 import 'package:provider/provider.dart';
 
 Future<HighlightProvider> _pumpViewerWithDrawMode(
@@ -160,6 +161,24 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'zoom controls are not rendered when no PDF controller is attached',
+    (tester) async {
+      // In the headless (no render-surface) environment the PDF fails to
+      // load, so _pdfController stays null. The floating zoom controls must
+      // be gated off in that state — they must not appear, and mounting the
+      // overlay code must not throw anything.
+      await _pumpViewerWithDrawMode(tester, drawModeActive: false);
+      expect(tester.takeException(), isNull);
+
+      expect(
+        find.byType(ReaderZoomControls),
+        findsNothing,
+        reason: 'Zoom controls should only surface once a PDF is loaded',
+      );
     },
   );
 }

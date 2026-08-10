@@ -22,6 +22,8 @@ import 'package:freya_pdf/features/bookmarks/widgets/bookmarks_panel.dart';
 import 'package:freya_pdf/features/viewer/providers/search_provider.dart';
 import 'package:freya_pdf/features/viewer/widgets/search_bar.dart';
 import 'package:freya_pdf/features/viewer/widgets/pdf_password_dialog.dart';
+import 'package:freya_pdf/features/viewer/pdf_zoom_math.dart';
+import 'package:freya_pdf/features/viewer/widgets/reader_zoom_controls.dart';
 import 'package:freya_pdf/features/security/pdf_password_storage.dart';
 
 /// Color matrix that inverts all RGB channels (255 - value) while preserving alpha.
@@ -795,6 +797,77 @@ class _ViewerScreenState extends State<ViewerScreen> {
     }
   }
 
+  /// Safely read [_pdfController]'s `currentZoom`. May throw when the
+  /// viewer is not laid out yet (same trap as [safeVisibleRect]); returns
+  /// null on that path so callers can bail out gracefully.
+  @visibleForTesting
+  double? safeCurrentZoom() {
+    try {
+      return _pdfController?.isReady == true ? _pdfController?.currentZoom : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Apply a zoom step ([PdfZoomMath.zoomIn] / [PdfZoomMath.zoomOut]) while
+  /// keeping the page centred.
+  ///
+  /// Device feedback reported pinch-zooming drifting the page off-centre on
+  /// large PDFs. The root cause is that pdfrx's InteractiveViewer runs with
+  /// an infinite boundary margin (`boundaryMargin: double.infinity` because
+  /// no `scrollPhysics` is configured), so after a gesture the viewport is
+  /// never re-clamped or re-centred and the page edge can end up off-screen.
+  ///
+  /// Instead of zooming about the gesture focal point (which sits off the
+  /// page centre and accumulates translation), this anchors every step on
+  /// the document point currently under the VIEWPORT centre via
+  /// [PdfViewerController.setZoom], so the page stays perfectly centred at
+  /// any zoom level. The numeric step itself is a pure transform in
+  /// [PdfZoomMath] so its direction is unit tested.
+  @visibleForTesting
+  Future<void> zoomByFactor(double factor) async {
+    final controller = _pdfController;
+    if (controller == null || controller.isReady != true) return;
+    try {
+      final next = PdfZoomMath.step(
+        controller.currentZoom,
+        factor,
+        min: controller.minScale,
+        max: controller.maxScale,
+      );
+      // `centerPosition` is the document coordinate under the centre of the
+      // viewport. Passing it as the zoom centre keeps that point pinned to
+      // the viewport centre, so the page never drifts off-centre.
+      await controller.setZoom(
+        controller.centerPosition,
+        next,
+        duration: const Duration(milliseconds: 200),
+      );
+    } catch (_) {
+      // Viewer not ready / matrix lock — nothing safe to do; ignore.
+    }
+  }
+
+  /// Reset the view so the current page is fully visible AND centred.
+  ///
+  /// Uses pdfrx's `/Fit` matrix (`calcMatrixForFit`), which scales the page
+  /// to fit the smallest viewport dimension and centres it — restoring the
+  /// fully-visible, centred layout even after the user zoomed in and the
+  /// page had drifted partially off-screen.
+  @visibleForTesting
+  Future<void> resetViewAndCenter() async {
+    final controller = _pdfController;
+    if (controller == null || controller.isReady != true) return;
+    try {
+      final fit = controller.calcMatrixForFit(pageNumber: _currentPage);
+      if (fit != null) {
+        await controller.goTo(fit, duration: const Duration(milliseconds: 200));
+      }
+    } catch (_) {
+      // Viewer not ready — ignore.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (SearchProvider.kTraceSearchStorm) SearchProvider.stormBuildCount++;
@@ -1110,6 +1183,23 @@ class _ViewerScreenState extends State<ViewerScreen> {
               ),
             ),
           ),
+          // Floating zoom controls (user-adopted fix for off-centre page +
+          // broken-feeling pinch on large PDFs). Only shown for the loaded
+          // PDF reader, not for SVG previews. Lives in this outer Stack so
+          // it overlays the viewer without resizing the PdfViewer (which
+          // would trigger a pdfrx re-render / ANR on large files).
+          if (!_isSvgFile && _totalPages > 0 && _pdfController != null)
+            Positioned(
+              right: 16,
+              bottom: 16,
+              child: RepaintBoundary(
+                child: ReaderZoomControls(
+                  onZoomIn: () => unawaited(zoomByFactor(PdfZoomMath.kZoomInFactor)),
+                  onZoomOut: () => unawaited(zoomByFactor(PdfZoomMath.kZoomOutFactor)),
+                  onReset: () => unawaited(resetViewAndCenter()),
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: !_isSvgFile && _totalPages > 0
