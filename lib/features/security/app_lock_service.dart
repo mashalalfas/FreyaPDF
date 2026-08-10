@@ -243,8 +243,19 @@ class AppLockService {
     }
   }
 
-  Future<bool> getBiometricEnabled() async =>
-      (await _store.read(key: _kBiometricEnabled)) == 'true';
+  /// Whether biometric unlock is enabled.
+  ///
+  /// Default-ON semantics: biometrics are enabled unless the user has
+  /// *explicitly* opted out by storing `false`. A fresh install, or a user who
+  /// set a PIN before the toggle existed, has never stored a value — returning
+  /// true for that case means fingerprint unlock works out of the box for
+  /// every user who sets a PIN on a device that supports biometrics (which is
+  /// the expected/ergonomic behavior; see device-feedback round 2).
+  Future<bool> getBiometricEnabled() async {
+    final stored = await _store.read(key: _kBiometricEnabled);
+    if (stored == null || stored.isEmpty) return true;
+    return stored == 'true';
+  }
 
   Future<void> setBiometricEnabled(bool enabled) async {
     await _store.write(

@@ -114,22 +114,27 @@ void main() {
       expect(await service.verifyPin('987654'), isTrue);
     });
 
-    test('biometricEnabled defaults to false', () async {
-      expect(await service.getBiometricEnabled(), isFalse);
+    test('biometricEnabled defaults to TRUE when never stored', () async {
+      // Default-ON semantics: a fresh install / user who set a PIN before the
+      // toggle existed has no stored value — biometrics should be on by default
+      // so fingerprint unlock works out of the box.
+      expect(await service.getBiometricEnabled(), isTrue);
     });
 
     test('setBiometricEnabled round-trips', () async {
-      await service.setBiometricEnabled(true);
-      expect(await service.getBiometricEnabled(), isTrue);
       await service.setBiometricEnabled(false);
       expect(await service.getBiometricEnabled(), isFalse);
+      await service.setBiometricEnabled(true);
+      expect(await service.getBiometricEnabled(), isTrue);
     });
 
-    test('clearPin also clears biometric flag', () async {
+    test('clearPin resets biometric flag to the default (ON)', () async {
       await service.setPin('123456');
-      await service.setBiometricEnabled(true);
-      await service.clearPin();
+      await service.setBiometricEnabled(false);
       expect(await service.getBiometricEnabled(), isFalse);
+      await service.clearPin();
+      // No stored value after clear -> default-on (true), not false.
+      expect(await service.getBiometricEnabled(), isTrue);
     });
 
     test('isBiometricAvailable returns false when no local auth provided',

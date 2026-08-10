@@ -27,7 +27,6 @@ import 'package:freya_pdf/features/security/widgets/app_lock_screen.dart';
 
 class MockSecureStorage extends FlutterSecureStorage {
   final _store = <String, String>{};
-
   MockSecureStorage() : super();
 
   @override
@@ -104,6 +103,31 @@ class ThrowingLocalAuthPlatform extends LocalAuthPlatform
   }
 }
 
+/// Controllable mock local-auth platform used to assert that the lock screen's
+/// biometric button triggers the system prompt and unlocks on success.
+class ControllableLocalAuthPlatform extends LocalAuthPlatform
+    with MockPlatformInterfaceMixin {
+  bool authenticateResult = true;
+  bool supported = true;
+  int authenticateCallCount = 0;
+
+  @override
+  Future<bool> deviceSupportsBiometrics() async => supported;
+
+  @override
+  Future<bool> isDeviceSupported() async => supported;
+
+  @override
+  Future<bool> authenticate({
+    required String localizedReason,
+    required Iterable<AuthMessages> authMessages,
+    AuthenticationOptions options = const AuthenticationOptions(),
+  }) async {
+    authenticateCallCount++;
+    return authenticateResult;
+  }
+}
+
 void main() {
   SharedPreferences.setMockInitialValues({});
 
@@ -118,19 +142,19 @@ void main() {
     });
 
     test(
-        'service: setPin stores length; verify works at stored length',
-        () async {
-      final storage = MockSecureStorage();
-      final service = AppLockService(storage: storage);
-      await service.setPin('2401');
-      expect(await service.getPinLength(), equals(4));
-      expect(await service.verifyPin('2401'), isTrue);
-      expect(await service.verifyPin('24010'), isFalse);
-      expect(await service.verifyPin('240'), isFalse);
-    });
+      'service: setPin stores length; verify works at stored length',
+      () async {
+        final storage = MockSecureStorage();
+        final service = AppLockService(storage: storage);
+        await service.setPin('2401');
+        expect(await service.getPinLength(), equals(4));
+        expect(await service.verifyPin('2401'), isTrue);
+        expect(await service.verifyPin('24010'), isFalse);
+        expect(await service.verifyPin('240'), isFalse);
+      },
+    );
 
-    test(
-        'service: legacy install (v2 hash, NO stored length) still verifies '
+    test('service: legacy install (v2 hash, NO stored length) still verifies '
         'at the actual length', () async {
       final storage = MockSecureStorage();
       final service = AppLockService(storage: storage);
@@ -146,16 +170,17 @@ void main() {
     });
 
     test(
-        'service: legacy install with a 6-digit PIN verifies only at 6',
-        () async {
-      final storage = MockSecureStorage();
-      final service = AppLockService(storage: storage);
-      await service.setPin('246810');
-      await storage.delete(key: 'app_lock_pin_length');
-      expect(await service.getPinLength(), isNull);
-      expect(await service.verifyPin('246810'), isTrue);
-      expect(await service.verifyPin('24681'), isFalse);
-    });
+      'service: legacy install with a 6-digit PIN verifies only at 6',
+      () async {
+        final storage = MockSecureStorage();
+        final service = AppLockService(storage: storage);
+        await service.setPin('246810');
+        await storage.delete(key: 'app_lock_pin_length');
+        expect(await service.getPinLength(), isNull);
+        expect(await service.verifyPin('246810'), isTrue);
+        expect(await service.verifyPin('24681'), isFalse);
+      },
+    );
   });
 
   group('BUG 2 — async PBKDF2 (v2 format unchanged)', () {
@@ -174,14 +199,14 @@ void main() {
   });
 
   group('BUG 3 — lifecycle-aware re-lock helpers', () {
-    test(
-        'notification-shade cycle (inactive -> resumed) does NOT re-lock',
-        () {
+    test('notification-shade cycle (inactive -> resumed) does NOT re-lock', () {
       // Dragging the shade: the app briefly becomes inactive then resumes.
       // This must not re-trigger the lock screen nor spam biometrics.
       expect(
         shouldRelockOnResume(
-            AppLifecycleState.inactive, AppLifecycleState.resumed),
+          AppLifecycleState.inactive,
+          AppLifecycleState.resumed,
+        ),
         isFalse,
       );
     });
@@ -189,17 +214,23 @@ void main() {
     test('true background return (paused -> resumed) DOES re-lock', () {
       expect(
         shouldRelockOnResume(
-            AppLifecycleState.paused, AppLifecycleState.resumed),
+          AppLifecycleState.paused,
+          AppLifecycleState.resumed,
+        ),
         isTrue,
       );
       expect(
         shouldRelockOnResume(
-            AppLifecycleState.hidden, AppLifecycleState.resumed),
+          AppLifecycleState.hidden,
+          AppLifecycleState.resumed,
+        ),
         isTrue,
       );
       expect(
         shouldRelockOnResume(
-            AppLifecycleState.detached, AppLifecycleState.resumed),
+          AppLifecycleState.detached,
+          AppLifecycleState.resumed,
+        ),
         isTrue,
       );
     });
@@ -212,27 +243,34 @@ void main() {
       expect(isBackgroundLifecycleState(AppLifecycleState.resumed), isFalse);
     });
 
-    test('resumed -> inactive -> paused -> resumed re-locks only at the end',
-        () {
-      // Real backgrounding goes resumed -> inactive -> paused -> inactive ->
-      // resumed. Only the background return should relock.
-      expect(
-        shouldRelockOnResume(
-            AppLifecycleState.inactive, AppLifecycleState.paused),
-        isFalse,
-      );
-      expect(
-        shouldRelockOnResume(
-            AppLifecycleState.paused, AppLifecycleState.resumed),
-        isTrue,
-      );
-    });
+    test(
+      'resumed -> inactive -> paused -> resumed re-locks only at the end',
+      () {
+        // Real backgrounding goes resumed -> inactive -> paused -> inactive ->
+        // resumed. Only the background return should relock.
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.inactive,
+            AppLifecycleState.paused,
+          ),
+          isFalse,
+        );
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.paused,
+            AppLifecycleState.resumed,
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 
   group('BUG 4 — biometric permission + graceful failure', () {
     test('AndroidManifest declares USE_BIOMETRIC', () {
-      final manifest =
-          File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+      final manifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
       expect(
         manifest,
         contains('android.permission.USE_BIOMETRIC'),
@@ -250,15 +288,102 @@ void main() {
       expect(await service.authenticateWithBiometrics(), isFalse);
     });
 
-    test('authenticateWithBiometrics returns false (no throw) on exception',
-        () async {
-      LocalAuthPlatform.instance =
-          ThrowingLocalAuthPlatform(throwOnAuthenticate: true);
+    test(
+      'authenticateWithBiometrics returns false (no throw) on exception',
+      () async {
+        LocalAuthPlatform.instance = ThrowingLocalAuthPlatform(
+          throwOnAuthenticate: true,
+        );
+        final service = AppLockService(
+          storage: MockSecureStorage(),
+          localAuth: LocalAuthentication(),
+        );
+        expect(await service.authenticateWithBiometrics(), isFalse);
+      },
+    );
+  });
+
+  group('BUG 5 — biometrics default-ON + lock-screen button', () {
+    test('getBiometricEnabled returns TRUE when nothing is stored', () async {
+      final service = AppLockService(storage: MockSecureStorage());
+      expect(await service.getBiometricEnabled(), isTrue);
+    });
+
+    test('getBiometricEnabled returns FALSE only when stored false', () async {
+      final service = AppLockService(storage: MockSecureStorage());
+      await service.setBiometricEnabled(false);
+      expect(await service.getBiometricEnabled(), isFalse);
+    });
+
+    test('isBiometricAvailable && default-on => biometric available', () async {
+      final platform = ControllableLocalAuthPlatform();
+      LocalAuthPlatform.instance = platform;
       final service = AppLockService(
         storage: MockSecureStorage(),
         localAuth: LocalAuthentication(),
       );
-      expect(await service.authenticateWithBiometrics(), isFalse);
+      expect(await service.isBiometricAvailable(), isTrue);
+      expect(await service.getBiometricEnabled(), isTrue);
     });
+
+    testWidgets(
+      'lock screen shows fingerprint button when bio available and tapping '
+      'it unlocks on success',
+      (tester) async {
+        final platform = ControllableLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        final service = AppLockService(
+          storage: MockSecureStorage(),
+          localAuth: LocalAuthentication(),
+        );
+
+        var unlocked = false;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: AppLockScreen(
+              lockService: service,
+              biometricAvailable: true,
+              onUnlock: () => unlocked = true,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final fingerprintButton = find.byIcon(Icons.fingerprint_rounded);
+        expect(
+          fingerprintButton,
+          findsOneWidget,
+          reason: 'fingerprint icon must show when biometrics are available',
+        );
+
+        await tester.tap(fingerprintButton);
+        await tester.pumpAndSettle();
+
+        expect(platform.authenticateCallCount, equals(1));
+        expect(
+          unlocked,
+          isTrue,
+          reason: 'successful biometric auth must unlock the screen',
+        );
+      },
+    );
+
+    testWidgets(
+      'lock screen hides fingerprint button when biometrics unavailable',
+      (tester) async {
+        final service = AppLockService(storage: MockSecureStorage());
+        await tester.pumpWidget(
+          MaterialApp(
+            home: AppLockScreen(
+              lockService: service,
+              biometricAvailable: false,
+              onUnlock: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byIcon(Icons.fingerprint_rounded), findsNothing);
+      },
+    );
   });
 }
