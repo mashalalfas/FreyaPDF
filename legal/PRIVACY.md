@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-10
 
 **freya_pdf** does not collect, store, or transmit any personal data.
 All data is processed locally on your device.

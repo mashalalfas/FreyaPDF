@@ -56,6 +56,10 @@ class MockSecureStorage extends FlutterSecureStorage {
 }
 
 void main() {
+  // The service now reads brute-force lockout state from SharedPreferences;
+  // initialise a mock store so verifyPin/setPin work in the test harness.
+  SharedPreferences.setMockInitialValues({});
+
   group('AppLockService (PIN only)', () {
     late AppLockService service;
 

@@ -18,7 +18,11 @@ class EncryptionService {
   static const _version = 2;
   static const _saltLength = 32;
   static const _ivLength = 12;
-  static const _iterations = 600000; // OWASP recommendation
+
+  /// PBKDF2-HMAC-SHA256 iteration count (OWASP recommendation). Exposed as a
+  /// public constant so a test asserts the exact configured value stays 600k —
+  /// a silent drop to weaker KDF parameters fails CI rather than sliding by.
+  static const iterations = 600000;
 
   /// Offset of the version byte = length of the magic header.
   static const _versionOffset = _magicLength;
@@ -89,7 +93,7 @@ class EncryptionService {
 
   /// Derive a 32-byte key from passphrase + salt using PBKDF2.
   static Key _deriveKey(String passphrase, Uint8List salt) {
-    final params = Pbkdf2Parameters(salt, _iterations, 32);
+    final params = Pbkdf2Parameters(salt, iterations, 32);
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
     pbkdf2.init(params);
     final keyBytes = pbkdf2.process(

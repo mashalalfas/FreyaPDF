@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 // Size: small — pure service tests (dart-only, no I/O, milliseconds)
 
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,13 @@ import 'package:freya_pdf/features/encryption/encryption_service.dart';
 void main() {
   group('EncryptionService', () {
     const passphrase = 'test-passphrase-123';
+
+    // Guard the OWASP-level KDF strength: a silent regression that lowers the
+    // iteration count (weakening the derived key) must fail CI.
+    test('PBKDF2 iteration count is exactly 600000', () {
+      expect(EncryptionService.iterations, equals(600000),
+          reason: 'the KDF iteration count must never silently drop');
+    });
 
     // Arrange: a known plaintext Uint8List
     // Act: encrypt + decrypt round-trip
@@ -129,6 +137,98 @@ void main() {
       final encrypted = EncryptionService.encryptBytes(original, passphrase);
       final decrypted = EncryptionService.decryptBytes(encrypted, passphrase);
       expect(decrypted, equals(original));
+    });
+  });
+
+  group('EncryptionService file-level IO (encryptFile/decryptFile)', () {
+    const passphrase = 'test-passphrase-123';
+    late Directory tmp;
+
+    setUp(() async {
+      tmp = await Directory.systemTemp.createTemp('freya_enc_test');
+    });
+
+    tearDown(() async {
+      if (await tmp.exists()) {
+        await tmp.delete(recursive: true);
+      }
+    });
+
+    // A real PDF-like binary payload (with a %PDF header and non-text bytes).
+    Uint8List samplePdfBytes() => Uint8List.fromList([
+          ...'%PDF-1.7\n'.codeUnits,
+          ...List.generate(512, (i) => (i * 7) % 251),
+          ...'%%EOF'.codeUnits,
+        ]);
+
+    test('encryptFile → decryptFile round-trips a real file', () async {
+      final plainFile = File('${tmp.path}/sample.pdf');
+      await plainFile.writeAsBytes(samplePdfBytes());
+
+      final encPath = await EncryptionService.encryptFile(
+        plainFile.path,
+        passphrase,
+      );
+      expect(encPath, equals('${plainFile.path}.enc'));
+      expect(File(encPath).existsSync(), isTrue);
+
+      final decrypted =
+          await EncryptionService.decryptFile(encPath, passphrase);
+      expect(decrypted, equals(await plainFile.readAsBytes()));
+    });
+
+    test('encryptFile honours an explicit output path', () async {
+      final plainFile = File('${tmp.path}/a.pdf');
+      await plainFile.writeAsBytes(samplePdfBytes());
+      final outPath = '${tmp.path}/custom.enc';
+
+      final encPath =
+          await EncryptionService.encryptFile(plainFile.path, passphrase,
+              outputPath: outPath);
+      expect(encPath, equals(outPath));
+      expect(File(outPath).existsSync(), isTrue);
+
+      final decrypted = await EncryptionService.decryptFile(outPath, passphrase);
+      expect(decrypted, equals(await plainFile.readAsBytes()));
+    });
+
+    test('decryptFile rejects a wrong passphrase', () async {
+      final plainFile = File('${tmp.path}/secret.pdf');
+      await plainFile.writeAsBytes(samplePdfBytes());
+      final encPath =
+          await EncryptionService.encryptFile(plainFile.path, passphrase);
+
+      expect(
+        () => EncryptionService.decryptFile(encPath, 'wrong-passphrase'),
+        throwsA(isA<EncryptionException>()),
+      );
+    });
+
+    test('decryptFile rejects a corrupted encrypted file', () async {
+      final plainFile = File('${tmp.path}/c.pdf');
+      await plainFile.writeAsBytes(samplePdfBytes());
+      final encPath =
+          await EncryptionService.encryptFile(plainFile.path, passphrase);
+
+      // Flip a byte deep in the ciphertext, bypassing the header.
+      final corrupted = await File(encPath).readAsBytes();
+      corrupted[40] ^= 0xFF;
+      await File(encPath).writeAsBytes(corrupted);
+
+      expect(
+        () => EncryptionService.decryptFile(encPath, passphrase),
+        throwsA(isA<EncryptionException>()),
+      );
+    });
+
+    test('decryptFile rejects a file that was never encrypted', () async {
+      final fakeFile = File('${tmp.path}/plain.pdf');
+      await fakeFile.writeAsBytes('%PDF-1.7 not encrypted'.codeUnits);
+
+      expect(
+        () => EncryptionService.decryptFile(fakeFile.path, passphrase),
+        throwsA(isA<EncryptionException>()),
+      );
     });
   });
 }

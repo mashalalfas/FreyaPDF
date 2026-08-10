@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/digests/sha256.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:freya_pdf/features/security/app_lock_service.dart';
 
@@ -73,6 +74,10 @@ String _legacyHash(String saltB64, String pin) {
 }
 
 void main() {
+  // The service now reads brute-force lockout state from SharedPreferences;
+  // initialise a mock store so verifyPin/setPin work in the test harness.
+  SharedPreferences.setMockInitialValues({});
+
   group('AppLockService PBKDF2 hashing (v2)', () {
     late AppLockService service;
     late MockSecureStorage storage;

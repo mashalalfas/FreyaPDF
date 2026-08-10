@@ -115,7 +115,42 @@ class _AppLockScreenState extends State<AppLockScreen> {
   String? _errorText;
   bool _shake = false;
 
+  // Brute-force lockout surface: when non-null, the keypad is disabled and a
+  // countdown is shown until [lockoutRemaining] reaches zero.
+  Duration _lockoutRemaining = Duration.zero;
+  Timer? _lockoutTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshLockout();
+  }
+
+  @override
+  void dispose() {
+    _lockoutTimer?.cancel();
+    super.dispose();
+  }
+
+  /// Refresh the lockout countdown from the service and, if still locked,
+  /// schedule a re-check for one second later. Stops once the lock expires.
+  Future<void> _refreshLockout() async {
+    final remaining = await widget.lockService.getLockoutRemaining();
+    if (!mounted) return;
+    setState(() => _lockoutRemaining = remaining);
+    _lockoutTimer?.cancel();
+    if (remaining > Duration.zero) {
+      _lockoutTimer = Timer(const Duration(seconds: 1), _refreshLockout);
+    }
+  }
+
+  bool get _lockedOut => _lockoutRemaining > Duration.zero;
+
   void _onDigit(int digit) {
+    if (_lockedOut) {
+      HapticFeedback.selectionClick();
+      return;
+    }
     if (_pinBuffer.length >= _pinLength) return;
     HapticFeedback.lightImpact();
     setState(() {
@@ -128,7 +163,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 
   void _onDelete() {
-    if (_pinBuffer.isEmpty) return;
+    if (_lockedOut || _pinBuffer.isEmpty) return;
     HapticFeedback.selectionClick();
     setState(() {
       _pinBuffer.removeLast();
@@ -151,7 +186,10 @@ class _AppLockScreenState extends State<AppLockScreen> {
         _shake = true;
       });
       await Future.delayed(const Duration(milliseconds: 500));
-      if (mounted) setState(() => _shake = false);
+      if (!mounted) return;
+      setState(() => _shake = false);
+      // Engage the lockout countdown if the service has escalated.
+      await _refreshLockout();
     }
   }
 
@@ -209,9 +247,13 @@ class _AppLockScreenState extends State<AppLockScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Enter your PIN to unlock',
+          _lockedOut
+              ? 'Too many attempts. Try again later.'
+              : 'Enter your PIN to unlock',
           style: TextStyle(
-            color: colorScheme.onSurfaceVariant,
+            color: _lockedOut
+                ? colorScheme.error
+                : colorScheme.onSurfaceVariant,
             fontSize: 14,
           ),
         ),
@@ -235,6 +277,17 @@ class _AppLockScreenState extends State<AppLockScreen> {
             ),
           ),
         ],
+        if (_lockedOut) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Locked. Try again in ${_formatLockout(_lockoutRemaining)}.',
+            style: TextStyle(
+              color: colorScheme.error,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
 
         // Biometric button
@@ -251,17 +304,27 @@ class _AppLockScreenState extends State<AppLockScreen> {
 
         const Spacer(flex: 1),
 
-        // Numeric keypad
+        // Numeric keypad (disabled while locked out)
         _NumericKeypad(
           onDigit: _onDigit,
           onDelete: _onDelete,
           canDelete: _pinBuffer.isNotEmpty,
           colorScheme: colorScheme,
+          disabled: _lockedOut,
         ),
 
         const Spacer(flex: 2),
       ],
     );
+  }
+
+  /// Format a [Duration] as either `SSs` or `m:SS` for the lockout countdown.
+  String _formatLockout(Duration d) {
+    final total = d.inSeconds;
+    if (total < 60) return '${total}s';
+    final m = total ~/ 60;
+    final s = total % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 }
 
@@ -321,12 +384,14 @@ class _NumericKeypad extends StatelessWidget {
   final VoidCallback onDelete;
   final bool canDelete;
   final ColorScheme colorScheme;
+  final bool disabled;
 
   const _NumericKeypad({
     required this.onDigit,
     required this.onDelete,
     required this.canDelete,
     required this.colorScheme,
+    this.disabled = false,
   });
 
   @override
@@ -343,7 +408,8 @@ class _NumericKeypad extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: row.map((d) => _KeyButton(
                   label: '$d',
-                  onTap: () => onDigit(d),
+                  onTap: disabled ? null : () => onDigit(d),
+                  disabled: disabled,
                 )).toList(),
           ),
           const SizedBox(height: 12),
@@ -355,12 +421,13 @@ class _NumericKeypad extends StatelessWidget {
             const SizedBox(width: 76),
             _KeyButton(
               label: '0',
-              onTap: () => onDigit(0),
+              onTap: disabled ? null : () => onDigit(0),
+              disabled: disabled,
             ),
             _KeyButton(
               icon: Icons.backspace_outlined,
-              onTap: canDelete ? onDelete : null,
-              disabled: !canDelete,
+              onTap: (disabled || !canDelete) ? null : onDelete,
+              disabled: disabled || !canDelete,
             ),
           ],
         ),

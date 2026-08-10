@@ -10,14 +10,25 @@ import 'package:freya_pdf/core/security/root_detection.dart';
 /// in-app locks and dump keys, so we refuse to run on such a device rather
 /// than gate only the unlock screen (which a root can trivially bypass).
 ///
-/// The check is deliberately non-blocking and non-crashing:
-/// - Debug builds always pass (emulators are "rooted" by default).
-/// - If the plugin is unavailable or throws, the gate passes (unknown → safe).
-/// - Only a *confirmed* compromised device in a release build shows the block.
+/// Fail-closed policy (documented decision):
+/// - A *confirmed* compromised device (RootCheckOutcome.compromised) FAILS
+///   CLOSED — the block screen is shown and the app does not run.
+/// - Uncertain outcomes FAIL OPEN by design: debug builds always pass
+///   (emulators are "rooted" by default) and an unavailable/throwing plugin
+///   passes through, so a transient platform-channel glitch cannot brick a
+///   legitimate user's access to their PDFs. Availability wins over guessing
+///   when the check itself cannot run.
+///
+/// The check function is injectable so the compromised-block path can be
+/// exercised in widget tests (the plugin channel is not present there).
 class RootSecurityGate extends StatefulWidget {
   final Widget child;
 
-  const RootSecurityGate({super.key, required this.child});
+  /// Injection point for the root check; defaults to [RootDetector.check].
+  /// Tests use this to force a [RootCheckOutcome.compromised] result.
+  final Future<RootCheckOutcome> Function()? check;
+
+  const RootSecurityGate({super.key, required this.child, this.check});
 
   @override
   State<RootSecurityGate> createState() => _RootSecurityGateState();
@@ -39,9 +50,10 @@ class _RootSecurityGateState extends State<RootSecurityGate> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       RootCheckOutcome outcome;
       try {
-        outcome = await RootDetector.check();
+        outcome = await (widget.check ?? RootDetector.check)();
       } catch (_) {
-        // Never crash the app on the security gate; treat errors as clean.
+        // Fail open on check failure: a transient error must not brick access
+        // to the user's PDFs. Only an explicit compromised result blocks.
         outcome = RootCheckOutcome.clean;
       }
       if (!mounted) return;

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:pointycastle/export.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service for managing app-level PIN and biometric authentication.
 ///
@@ -23,9 +24,33 @@ import 'package:pointycastle/export.dart';
 ///                low-entropy PINs). 32-byte derived key.
 ///
 /// Biometric state is stored separately at `app_lock_biometric`.
+///
+/// Brute-force lockout state is persisted in [SharedPreferences] so it
+/// survives a process kill — a determined attacker cannot bypass the
+/// backoff merely by restarting the app. The failure counter and the
+/// absolute lockout expiry (epoch milliseconds) are both stored; on a
+/// fresh build the pref keys ship empty/default so no lockout is assumed.
 class AppLockService {
   static const _kPinHash = 'app_lock_pin_hash';
   static const _kBiometricEnabled = 'app_lock_biometric';
+
+  // ── Brute-force lockout configuration ──
+  // Tiered exponential backoff. After `threshold` consecutive failures the
+  // lock engages for `duration`. All values are overridable so a host or test
+  // can inject a stricter/looser policy.
+  static const int lockoutThreshold1 = 5;
+  static const Duration lockoutDuration1 = Duration(seconds: 30);
+  static const int lockoutThreshold2 = 10;
+  static const Duration lockoutDuration2 = Duration(minutes: 5);
+  static const int lockoutThreshold3 = 15;
+  static const Duration lockoutDuration3 = Duration(minutes: 30);
+
+  /// Persistent (SharedPreferences) key holding the consecutive-failure count.
+  static const _kFailedAttempts = 'app_lock_failed_attempts';
+
+  /// Persistent (SharedPreferences) key holding the absolute lockout expiry
+  /// as epoch milliseconds (0 = not locked).
+  static const _kLockedUntil = 'app_lock_locked_until';
 
   // PBKDF2 parameters
   static const _pbkdf2Prefix = 'pbkdf2_sha256';
@@ -35,13 +60,69 @@ class AppLockService {
 
   final FlutterSecureStorage? _storage;
   final LocalAuthentication? _localAuth;
+  final SharedPreferences? _prefs;
 
-  AppLockService({FlutterSecureStorage? storage, LocalAuthentication? localAuth})
-      : _storage = storage,
-        _localAuth = localAuth;
+  AppLockService({
+    FlutterSecureStorage? storage,
+    LocalAuthentication? localAuth,
+    SharedPreferences? prefs,
+  })  : _storage = storage,
+        _localAuth = localAuth,
+        _prefs = prefs;
 
   FlutterSecureStorage get _store => _storage ?? const FlutterSecureStorage();
   LocalAuthentication get _auth => _localAuth ?? LocalAuthentication();
+  Future<SharedPreferences> get _preferences async =>
+      _prefs ?? await SharedPreferences.getInstance();
+
+  /// Clear the persistent brute-force counter. Called after a correct PIN so
+  /// the lock never carries a stale failure history into a new session.
+  Future<void> clearFailedAttempts() async {
+    final prefs = await _preferences;
+    await prefs.remove(_kFailedAttempts);
+  }
+
+  /// Number of consecutive incorrect PIN attempts recorded.
+  Future<int> getFailedAttempts() async {
+    final prefs = await _preferences;
+    return prefs.getInt(_kFailedAttempts) ?? 0;
+  }
+
+  /// Lockout duration (backoff tier) for the current failure count.
+  Duration lockoutDurationFor(int attempts) {
+    if (attempts >= lockoutThreshold3) return lockoutDuration3;
+    if (attempts >= lockoutThreshold2) return lockoutDuration2;
+    if (attempts >= lockoutThreshold1) return lockoutDuration1;
+    return Duration.zero;
+  }
+
+  /// True if a lockout is currently active (now < expiry).
+  Future<bool> isLockedOut() async {
+    return (await getLockoutRemaining()) > Duration.zero;
+  }
+
+  /// Remaining lockout time; [Duration.zero] when not locked.
+  Future<Duration> getLockoutRemaining() async {
+    final prefs = await _preferences;
+    final expiry = prefs.getInt(_kLockedUntil) ?? 0;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final remainingMs = expiry - now;
+    return remainingMs > 0 ? Duration(milliseconds: remainingMs) : Duration.zero;
+  }
+
+  /// Record a failed attempt, escalating the backoff tier, and return the
+  /// new lockout duration if the lock has been engaged (else [Duration.zero]).
+  Future<Duration> recordFailedAttempt() async {
+    final prefs = await _preferences;
+    final next = (prefs.getInt(_kFailedAttempts) ?? 0) + 1;
+    await prefs.setInt(_kFailedAttempts, next);
+    final duration = lockoutDurationFor(next);
+    if (duration > Duration.zero) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      await prefs.setInt(_kLockedUntil, now + duration.inMilliseconds);
+    }
+    return duration;
+  }
 
   // ── PIN ──
 
@@ -55,23 +136,50 @@ class AppLockService {
     await _store.write(key: _kPinHash, value: value);
   }
 
-  /// Verify a PIN. Returns `true` on match.
+  /// Verify a PIN. Returns `true` on match, `false` otherwise (including when
+  /// the lock is currently engaged).
   ///
-  /// If the stored value is in the legacy v1 format, a successful match
-  /// is migrated to v2 (PBKDF2) before returning. The verify call still
-  /// succeeds from the caller's perspective either way.
+  /// The lock is checked first: if a lockout is active, verification is refused
+  /// without consuming PBKDF2 work. On a correct match the failure counter is
+  /// cleared. On a wrong match the counter is incremented and, at a tier
+  /// threshold, a progressive backoff lock is engaged (persisted, so it
+  /// survives a process kill).
+  ///
+  /// If the stored value is in the legacy v1 format, a successful match is
+  /// migrated to v2 (PBKDF2) before returning.
   Future<bool> verifyPin(String pin) async {
+    if (await isLockedOut()) return false;
+
     final stored = await _store.read(key: _kPinHash);
     if (stored == null) return false;
 
+    bool ok;
     if (_isLegacyFormat(stored)) {
-      return _verifyLegacyAndMigrate(pin, stored);
+      ok = await _verifyLegacyAndMigrate(pin, stored);
+    } else {
+      ok = _verifyPbkdf2(pin, stored);
     }
-    return _verifyPbkdf2(pin, stored);
+
+    if (ok) {
+      await clearFailedAttempts();
+    } else {
+      await recordFailedAttempt();
+    }
+    return ok;
   }
 
   Future<bool> hasPin() async =>
       (await _store.read(key: _kPinHash)) != null;
+
+  /// Re-authentication gate used before a destructive lock change (change or
+  /// remove). Returns true only if a PIN exists AND [pin] matches it — so a
+  /// caller may proceed with setPin/clearPin only after proving knowledge of
+  /// the current PIN. When no PIN is set there is nothing to protect, so it
+  /// returns false (a caller setting a brand-new PIN must not require one).
+  Future<bool> confirmCurrentPin(String pin) async {
+    if (!await hasPin()) return false;
+    return verifyPin(pin);
+  }
 
   Future<void> clearPin() async {
     await _store.delete(key: _kPinHash);

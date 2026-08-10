@@ -256,6 +256,17 @@
       ]
     },
     {
+      "name": "flutter_jailbreak_detection_plus",
+      "version": "1.10.7",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ]
+    },
+    {
       "name": "flutter_launcher_icons",
       "version": "0.14.4",
       "licenses": [

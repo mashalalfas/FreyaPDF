@@ -668,7 +668,15 @@ class _AppLockTileState extends State<_AppLockTile> {
             style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
           ),
           trailing: const Icon(Icons.chevron_right_rounded),
-          onTap: () => _showPinSetupDialog(context),
+          onTap: () async {
+            // Changing an existing PIN must first verify the current PIN (or
+            // biometric) so a bystander with a few seconds of access cannot
+            // silently reset the lock. Setting a brand-new PIN (no PIN exists)
+            // requires no re-authentication.
+            if (_hasPin && !await _requireCurrentPin(context)) return;
+            if (!context.mounted) return;
+            _showPinSetupDialog(context);
+          },
         ),
 
         // Biometric toggle (only if available and PIN is set)
@@ -714,6 +722,91 @@ class _AppLockTileState extends State<_AppLockTile> {
           ),
       ],
     );
+  }
+
+  /// Require the user to prove they know the current PIN (falling back to
+  /// biometrics if enabled) before a destructive lock operation. Returns true
+  /// when re-authentication succeeds.
+  Future<bool> _requireCurrentPin(BuildContext context) async {
+    final controller = TextEditingController();
+    String? error;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Enter current PIN'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Confirm your current PIN to continue.',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                obscureText: true,
+                maxLength: 6,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: 'Current PIN',
+                  errorText: error,
+                  counterText: '',
+                  border: const OutlineInputBorder(),
+                ),
+                onSubmitted: (_) async {
+                  setDialogState(() => error = null);
+                  final verified =
+                      await _lockService.confirmCurrentPin(controller.text);
+                  if (verified && ctx.mounted) {
+                    Navigator.pop(ctx, true);
+                  } else {
+                    setDialogState(() => error = 'Incorrect PIN');
+                    controller.clear();
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            if (_biometricAvailable)
+              TextButton(
+                onPressed: () async {
+                  final bioOk =
+                      await _lockService.authenticateWithBiometrics();
+                  if (bioOk && ctx.mounted) Navigator.pop(ctx, true);
+                },
+                child: const Text('Use biometrics'),
+              ),
+            FilledButton(
+              onPressed: () async {
+                setDialogState(() => error = null);
+                final verified =
+                    await _lockService.confirmCurrentPin(controller.text);
+                if (verified && ctx.mounted) {
+                  Navigator.pop(ctx, true);
+                } else {
+                  setDialogState(() => error = 'Incorrect PIN');
+                  controller.clear();
+                }
+              },
+              child: const Text('Verify'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return ok ?? false;
   }
 
   void _showPinSetupDialog(BuildContext context) {
@@ -866,8 +959,12 @@ class _AppLockTileState extends State<_AppLockTile> {
     );
   }
 
-  void _confirmRemovePin(BuildContext context) {
+  Future<void> _confirmRemovePin(BuildContext context) async {
     final colorScheme = Theme.of(context).colorScheme;
+    // Must verify the current PIN (or biometric) first so the lock cannot be
+    // silently disabled in an unlocked session by a bystander.
+    if (!await _requireCurrentPin(context)) return;
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
