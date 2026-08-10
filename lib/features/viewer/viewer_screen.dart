@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -50,6 +51,64 @@ const ColorFilter _invertColorFilter = ColorFilter.matrix([
   1,
   0,
 ]);
+
+/// Result of laying out pages in continuous-scroll mode: the screen-space
+/// rect for each page plus the total document size (logical px).
+@immutable
+class ContinuousScrollPageLayout {
+  /// Screen-space rect per page, in the same order as the input pages.
+  final List<Rect> pageLayouts;
+
+  /// Total document canvas size. Width always equals the viewport width;
+  /// height is the cumulative layout height.
+  final Size documentSize;
+
+  const ContinuousScrollPageLayout({
+    required this.pageLayouts,
+    required this.documentSize,
+  });
+}
+
+/// Lay out PDF pages for continuous (vertical) scroll, scaling each page so its
+/// width fits the viewport width with the aspect ratio preserved, never larger
+/// than the viewport, and horizontally centered.
+///
+/// Raw PDF page sizes are in points (72 dpi) and a Letter/A4 page is typically
+/// ~595-612pt wide — far wider than a phone viewport (~360-410dp). Without
+/// scaling such pages overflow the right edge ("full page left to right" with
+/// the right side cut off). This mirrors single-page mode, where
+/// `calcMatrixForFit` scales the page to fit the smallest viewport dimension.
+///
+/// Pure and unit-testable: it takes the page width/height pairs and returns the
+/// rects plus document size, with no dependency on pdfrx native rendering.
+@visibleForTesting
+ContinuousScrollPageLayout layoutContinuousScrollPages(
+  List<Size> pageSizes,
+  double viewportWidth,
+  double margin,
+) {
+  final pageLayouts = <Rect>[];
+  var y = margin;
+  // Content area available inside the horizontal margins.
+  final contentWidth = math.max(0.0, viewportWidth - margin * 2);
+  for (final page in pageSizes) {
+    // Scale to fit the viewport width preserving aspect ratio. Clamp to <=1 so
+    // a page is never upscaled beyond its natural size on a wide viewport.
+    final scale = page.width <= 0 || contentWidth <= 0
+        ? 1.0
+        : math.min(1.0, contentWidth / page.width);
+    final w = page.width * scale;
+    final h = page.height * scale;
+    // Horizontally center within the full viewport width.
+    final x = margin + (contentWidth - w) / 2;
+    pageLayouts.add(Rect.fromLTWH(x, y, w, h));
+    y += h + margin;
+  }
+  return ContinuousScrollPageLayout(
+    pageLayouts: pageLayouts,
+    documentSize: Size(viewportWidth, y),
+  );
+}
 
 class ViewerScreen extends StatefulWidget {
   final PdfFile file;
@@ -803,7 +862,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
   @visibleForTesting
   double? safeCurrentZoom() {
     try {
-      return _pdfController?.isReady == true ? _pdfController?.currentZoom : null;
+      return _pdfController?.isReady == true
+          ? _pdfController?.currentZoom
+          : null;
     } catch (_) {
       return null;
     }
@@ -1103,9 +1164,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         child: HighlightsPanel(
                           onNavigateToPage: (page) {
                             _pdfController?.goToPage(pageNumber: page);
-                            context
-                                .read<HighlightProvider>()
-                                .setShowPanel(false);
+                            context.read<HighlightProvider>().setShowPanel(
+                              false,
+                            );
                           },
                           onClose: () => context
                               .read<HighlightProvider>()
@@ -1124,9 +1185,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         child: BookmarksPanel(
                           onNavigateToPage: (page) {
                             _pdfController?.goToPage(pageNumber: page);
-                            context
-                                .read<BookmarkProvider>()
-                                .setShowPanel(false);
+                            context.read<BookmarkProvider>().setShowPanel(
+                              false,
+                            );
                           },
                           onClose: () => context
                               .read<BookmarkProvider>()
@@ -1194,8 +1255,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
               bottom: 16,
               child: RepaintBoundary(
                 child: ReaderZoomControls(
-                  onZoomIn: () => unawaited(zoomByFactor(PdfZoomMath.kZoomInFactor)),
-                  onZoomOut: () => unawaited(zoomByFactor(PdfZoomMath.kZoomOutFactor)),
+                  onZoomIn: () =>
+                      unawaited(zoomByFactor(PdfZoomMath.kZoomInFactor)),
+                  onZoomOut: () =>
+                      unawaited(zoomByFactor(PdfZoomMath.kZoomOutFactor)),
                   onReset: () => unawaited(resetViewAndCenter()),
                 ),
               ),
@@ -1351,68 +1414,82 @@ class _ViewerScreenState extends State<ViewerScreen> {
       return const Center(child: Text('No PDF loaded'));
     }
 
-    final pdfViewerWidget = PdfViewer(
-      _documentRef!,
-      controller: _pdfController,
-      initialPageNumber: _currentPage,
-      params: PdfViewerParams(
-        // FEATURE 1.5 — Continuous scroll mode vs single-page mode
-        layoutPages: settings.continuousScroll
-            ? (pages, params) {
-                var y = params.margin;
-                final layouts = <Rect>[];
-                for (final page in pages) {
-                  layouts.add(
-                    Rect.fromLTWH(params.margin, y, page.width, page.height),
-                  );
-                  y += page.height + params.margin;
-                }
-                return PdfPageLayout(
-                  pageLayouts: layouts,
-                  documentSize: Size(
-                    pages.isEmpty ? 0 : pages.first.width + params.margin * 2,
-                    y,
-                  ),
-                );
-              }
-            : null,
-        // FEATURE 5 (Phase 2) — Text search match highlighting
-        pagePaintCallbacks: [
-          context.read<SearchProvider>().paintSearchMatches,
-          context.read<HighlightProvider>().paintHighlights,
-        ],
-        // FEATURE 3 — Annotations / links overlay
-        // pdfrx renders annotations natively (forms + appearances) by default
-        // via PdfAnnotationRenderingMode.annotationAndForms, which preserves
-        // clickable link hotspots without any visible highlight on the page.
-        //
-        // We intentionally do *not* paint translucent link badges here any
-        // more: the old blue overlay produced a "pale blue selection boxes
-        // everywhere" effect on PDFs with many links, which interfered with
-        // normal reading. Link metadata is still loaded into `_pageLinks`
-        // (see [_loadPageLinks]) for any future overlay-free features
-        // (e.g. a long-press link menu), but nothing is rendered on top of
-        // the PDF canvas.
-        pageOverlaysBuilder: (context, pageRect, page) {
-          final pageLinks = _pageLinks[page.pageNumber];
-          if (pageLinks == null || pageLinks.isEmpty) return const [];
-          return const [];
-        },
-        // FEATURE 6 — Text selection & copy
-        // Enable pdfrx's built-in text selection which handles:
-        // - Long-press to select words on any page
-        // - Draggable start/end selection handles
-        // - Semi-transparent blue selection highlight
-        // - Floating toolbar with Copy button via buildContextMenu
-        // - Clipboard copy via PdfTextSelectionDelegate.copyTextSelection()
-        // - Dismiss on tap-elsewhere, back-navigation, or after copy
-        textSelectionParams: const PdfTextSelectionParams(),
-        buildContextMenu: _buildTextSelectionContextMenu,
-        onDocumentChanged: _onDocumentChanged,
-        onDocumentLoadFinished: _onDocumentLoadFinished,
-        onViewerReady: _onViewerReady,
-        onPageChanged: _onPageChanged,
-      ),
+    final pdfViewerWidget = LayoutBuilder(
+      builder: (context, constraints) {
+        // Capture the viewport width so the continuous-scroll layout (which
+        // pdfrx calls with only the page list + PdfViewerParams — no viewport
+        // size) can scale each page to fit the screen width.
+        final viewportWidth = constraints.maxWidth;
+        return PdfViewer(
+          _documentRef!,
+          controller: _pdfController,
+          initialPageNumber: _currentPage,
+          params: PdfViewerParams(
+            // FEATURE 1.5 — Continuous scroll mode vs single-page mode.
+            //
+            // Single-page mode uses pdfrx's /Fit matrix (calcMatrixForFit) which
+            // scales the page to fit the smallest viewport dimension and centres it.
+            //
+            // Continuous-scroll mode builds a custom vertical page stack. Raw PDF
+            // page sizes are in points (Letter/A4 ≈ 595-612pt wide) and are far
+            // wider than a phone viewport (~360-410dp); laying them out at their
+            // native size overflows the right edge. We therefore scale each page to
+            // fit the viewport width (aspect preserved, never upscaled) and centre
+            // it, using the viewport width captured above from the LayoutBuilder.
+            // documentSize width = viewport so the document fits the screen
+            // exactly and never overflows horizontally.
+            layoutPages: settings.continuousScroll
+                ? (pages, params) {
+                    final laidOut = layoutContinuousScrollPages(
+                      [for (final p in pages) Size(p.width, p.height)],
+                      viewportWidth,
+                      params.margin,
+                    );
+                    return PdfPageLayout(
+                      pageLayouts: laidOut.pageLayouts,
+                      documentSize: laidOut.documentSize,
+                    );
+                  }
+                : null,
+            // FEATURE 5 (Phase 2) — Text search match highlighting
+            pagePaintCallbacks: [
+              context.read<SearchProvider>().paintSearchMatches,
+              context.read<HighlightProvider>().paintHighlights,
+            ],
+            // FEATURE 3 — Annotations / links overlay
+            // pdfrx renders annotations natively (forms + appearances) by default
+            // via PdfAnnotationRenderingMode.annotationAndForms, which preserves
+            // clickable link hotspots without any visible highlight on the page.
+            //
+            // We intentionally do *not* paint translucent link badges here any
+            // more: the old blue overlay produced a "pale blue selection boxes
+            // everywhere" effect on PDFs with many links, which interfered with
+            // normal reading. Link metadata is still loaded into `_pageLinks`
+            // (see [_loadPageLinks]) for any future overlay-free features
+            // (e.g. a long-press link menu), but nothing is rendered on top of
+            // the PDF canvas.
+            pageOverlaysBuilder: (context, pageRect, page) {
+              final pageLinks = _pageLinks[page.pageNumber];
+              if (pageLinks == null || pageLinks.isEmpty) return const [];
+              return const [];
+            },
+            // FEATURE 6 — Text selection & copy
+            // Enable pdfrx's built-in text selection which handles:
+            // - Long-press to select words on any page
+            // - Draggable start/end selection handles
+            // - Semi-transparent blue selection highlight
+            // - Floating toolbar with Copy button via buildContextMenu
+            // - Clipboard copy via PdfTextSelectionDelegate.copyTextSelection()
+            // - Dismiss on tap-elsewhere, back-navigation, or after copy
+            textSelectionParams: const PdfTextSelectionParams(),
+            buildContextMenu: _buildTextSelectionContextMenu,
+            onDocumentChanged: _onDocumentChanged,
+            onDocumentLoadFinished: _onDocumentLoadFinished,
+            onViewerReady: _onViewerReady,
+            onPageChanged: _onPageChanged,
+          ),
+        );
+      },
     );
 
     // Wrap in a Stack to overlay a gesture detector for rectangle draw mode.
