@@ -2,7 +2,7 @@
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:math';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:pointycastle/export.dart';
@@ -251,11 +251,17 @@ class AppLockService {
   /// a greyed-out fingerprint button and falls back to PIN only.
   Future<bool> isBiometricUsable() async {
     try {
-      if (!await _auth.isDeviceSupported()) return false;
-      if (!await _auth.canCheckBiometrics) return false;
+      final deviceSupported = await _auth.isDeviceSupported();
+      final canCheck = await _auth.canCheckBiometrics;
       final enrolled = await _auth.getAvailableBiometrics();
-      return enrolled.isNotEmpty;
-    } catch (_) {
+      final usable = deviceSupported && canCheck && enrolled.isNotEmpty;
+      debugPrint(
+          '[biometric] isBiometricUsable: device=$deviceSupported '
+          'canCheck=$canCheck enrolled=${enrolled.isEmpty ? 0 : enrolled.length} '
+          'usable=$usable');
+      return usable;
+    } catch (e) {
+      debugPrint('[biometric] isBiometricUsable failed: $e');
       return false;
     }
   }
@@ -286,7 +292,8 @@ class AppLockService {
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[biometric] authenticate failed: $e');
       return false;
     }
   }

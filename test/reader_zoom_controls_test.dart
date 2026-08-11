@@ -223,13 +223,13 @@ void main() {
     expect(find.byIcon(Icons.fullscreen_rounded), findsOneWidget);
   });
 
-  testWidgets('auto-fade: tap restores to 1.0, +3s fades to 0.3 (still '
-      'tappable), +6s fully hidden and ignores pointer, re-tap restores',
-      (tester) async {
+  testWidgets('expanded row never auto-fades; collapsed fades 5s→0.3, '
+      '+5s→0.0+IgnorePointer; re-tap restores', (tester) async {
+    var zoomInCalls = 0;
     await tester.pumpWidget(
       _wrap(
         ReaderZoomControls(
-          onZoomIn: () {},
+          onZoomIn: () => zoomInCalls++,
           onZoomOut: () {},
           onReset: () {},
         ),
@@ -243,58 +243,56 @@ void main() {
       return ft.opacity.value;
     }
 
-    var zoomInCalls = 0;
-    await tester.pumpWidget(
-      _wrap(
-        ReaderZoomControls(
-          onZoomIn: () => zoomInCalls++,
-          onZoomOut: () {},
-          onReset: () {},
-        ),
-      ),
-    );
-
-    // Fully visible initially.
+    // Fully visible initially (collapsed).
     expect(fadeOpacity(), 1.0);
 
-    // Expand (an interaction) — stays at 1.0, still tappable.
+    // Expand (an interaction): stays at 1.0 and — critically — NEVER fades
+    // while expanded, even long after the old 3s/6s windows would have fired.
     await tester.tap(find.byIcon(Icons.zoom_in_rounded));
     await tester.pumpAndSettle();
     expect(fadeOpacity(), 1.0);
-    expect(
-      find.byKey(const ValueKey('zoom-controls-ignore')),
-      findsNothing,
-    );
-
-    // +3s of inactivity → faded to 0.3, still NOT wrapped in IgnorePointer.
-    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(seconds: 8));
     await tester.pumpAndSettle();
-    expect(fadeOpacity(), closeTo(0.3, 0.01));
-    expect(
-      find.byKey(const ValueKey('zoom-controls-ignore')),
-      findsNothing,
-    );
+    expect(fadeOpacity(), 1.0,
+        reason: 'Expanded controls must never auto-fade.');
+    expect(find.byKey(const ValueKey('zoom-controls-ignore')), findsNothing);
 
-    // While at 0.3 the control stays tappable: tapping zoom-in fires AND
-    // snaps the whole control back to 1.0 (fresh interaction restarts fade).
-    await tester.tap(find.byIcon(Icons.add_rounded));
+    // Collapse: starts the 5s countdown fresh; +5s of inactivity fades the
+    // collapsed control to the 0.3 floor (still tappable, not ignored).
+    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
     await tester.pumpAndSettle();
-    expect(zoomInCalls, 1);
     expect(fadeOpacity(), 1.0);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), closeTo(0.3, 0.01),
+        reason: 'Collapsed control floors at 0.3 after 5s idle.');
+    expect(find.byKey(const ValueKey('zoom-controls-ignore')), findsNothing,
+        reason: 'At the 0.3 floor the control must stay tappable.');
 
-    // Advance past the full 6s idle window → fully hidden (0.0) and wrapped in
-    // IgnorePointer (hit-testing disabled while invisible).
-    await tester.pump(const Duration(seconds: 4));
+    // Any interaction while visible resets timers back to full 1.0 (here: a
+    // re-expand before the full-hide fires).
+    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), 1.0,
+        reason: 'Interaction must reset the collapsed control to full opacity.');
+
+    // Expand: never fades, even after another long idle window.
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), 1.0,
+        reason: 'Expanded controls must never auto-fade.');
+
+    // Collapse again and run the full 10s idle window → 0.0 and IgnorePointer.
+    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
     expect(fadeOpacity(), closeTo(0.3, 0.01));
-    await tester.pump(const Duration(seconds: 4));
+    await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
-    expect(fadeOpacity(), 0.0);
-    // AnimatedBuilder re-runs build each fade tick, so IgnorePointer is attached
-    // exactly when the control is fully hidden.
-    expect(
-      find.byKey(const ValueKey('zoom-controls-ignore')),
-      findsOneWidget,
-    );
+    expect(fadeOpacity(), 0.0,
+        reason: 'After ~10s total idle the collapsed control fully hides.');
+    expect(find.byKey(const ValueKey('zoom-controls-ignore')), findsOneWidget,
+        reason: 'Only once fully hidden should the control be ignored.');
   });
 }

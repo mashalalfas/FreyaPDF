@@ -139,6 +139,38 @@ class ControllableLocalAuthPlatform extends LocalAuthPlatform
   }
 }
 
+/// LocalAuth platform where the first `authenticate()` returns false (simulating
+/// a frozen / never-attached system prompt on e.g. HMD Skyline) and every
+/// subsequent call returns true — used to assert `AppLockGate`'s retry-once
+/// behaviour after the initial auto-prompt fails.
+class _RetryLocalAuthPlatform extends LocalAuthPlatform
+    with MockPlatformInterfaceMixin {
+  int calls = 0;
+  bool supported = true;
+
+  @override
+  Future<bool> deviceSupportsBiometrics() async => supported;
+
+  @override
+  Future<bool> isDeviceSupported() async => supported;
+
+  @override
+  Future<List<BiometricType>> getEnrolledBiometrics() async {
+    if (!supported) return [];
+    return [BiometricType.fingerprint];
+  }
+
+  @override
+  Future<bool> authenticate({
+    required String localizedReason,
+    required Iterable<AuthMessages> authMessages,
+    AuthenticationOptions options = const AuthenticationOptions(),
+  }) async {
+    calls++;
+    return calls > 1; // first attempt fails, retries succeed
+  }
+}
+
 /// In-memory [FlutterSecureStoragePlatform] so AppLockGate's internally-built
 /// `AppLockService` (which uses a real `FlutterSecureStorage`) can resolve
 /// `getBiometricEnabled()` on the test host where the plugin channel is absent.
@@ -564,6 +596,12 @@ void main() {
         // Several pumps are needed because the deferral schedules a fresh
         // post-frame callback that itself performs another await.
         await tester.pumpAndSettle();
+        // The auto-prompt defers its system prompt by 500ms (so the Android
+        // Activity is confirmed resumed before BiometricPrompt attaches on e.g.
+        // HMD Skyline); advance the fake clock past that delay so the prompt
+        // actually fires and the mock's authenticate call is counted.
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
 
         expect(
           platform.authenticateCallCount,
@@ -603,6 +641,9 @@ void main() {
         );
         // Cold-start auto-prompt fires and unlocks.
         await tester.pumpAndSettle();
+        // Advance past the 500ms pre-authenticate delay so the prompt fires.
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
         expect(platform.authenticateCallCount, equals(1));
 
         // Simulate a true background → resume cycle (paused → resumed).
@@ -611,12 +652,76 @@ void main() {
           AppLifecycleState.resumed,
         );
         await tester.pumpAndSettle();
+        // Advance past the 500ms pre-authenticate delay on the resume prompt.
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
 
         expect(
           platform.authenticateCallCount,
           equals(2),
           reason: 'resume with biometrics available must auto-prompt again',
         );
+      },
+    );
+
+    testWidgets(
+      'AppLockGate retries the biometric prompt ONCE after the first attempt '
+      'fails (HMD Skyline / transient prompt-attach failure)',
+      (tester) async {
+        // First authenticate returns false (e.g. BiometricPrompt failed to
+        // attach), a retry after ~1s returns true and should unlock.
+        final platform = _RetryLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        var unlocked = false;
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+            ],
+            child: MaterialApp(
+              home: AppLockGate(
+                child: Builder(
+                  builder: (_) {
+                    unlocked = true;
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // Cold start: post-frame callback defers 500ms, first attempt fails.
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+        expect(
+          platform.calls,
+          greaterThanOrEqualTo(1),
+          reason: 'first attempt must be attempted',
+        );
+
+        // Advance past the ~1s retry delay, then the deferred 500ms prompt
+        // delay of the second attempt; the retry succeeds and unlocks.
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(
+          platform.calls,
+          greaterThanOrEqualTo(2),
+          reason: 'a failed first attempt must be retried once',
+        );
+        expect(unlocked, isTrue,
+            reason: 'the successful retry must unlock the gate');
       },
     );
   });

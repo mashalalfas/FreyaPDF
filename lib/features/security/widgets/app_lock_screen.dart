@@ -94,7 +94,21 @@ class _AppLockGateState extends State<AppLockGate>
     if (_biometricAvailable) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
-        final ok = await _lockService.authenticateWithBiometrics();
+        // Ensure the Android Activity is fully resumed/focused before
+        // local_auth's BiometricPrompt attaches. On some devices (e.g. HMD
+        // Skyline) the next frame fires before the Activity is truly resumed
+        // and the prompt silently no-ops, so wait a beat before firing.
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (!mounted) return;
+        var ok = await _lockService.authenticateWithBiometrics();
+        if (ok && mounted) {
+          setState(() => _locked = false);
+          return;
+        }
+        // If the first attempt failed, retry ONCE after a short delay.
+        await Future.delayed(const Duration(seconds: 1));
+        if (!mounted) return;
+        ok = await _lockService.authenticateWithBiometrics();
         if (ok && mounted) setState(() => _locked = false);
       });
     }

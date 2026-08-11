@@ -14,12 +14,14 @@
 // lets a page edge drift out of view. See
 // lib/features/viewer/pdf_zoom_math.dart for the pure math.
 //
-// The whole control auto-fades when idle: any interaction (tap to expand or an
-// action fire) snaps it back to fully visible, then after ~3s of inactivity it
-// fades to 30% opacity and after ~6s fully hides (double-tapping the empty area
-// behind it / re-tapping restores it). While at 30% it stays tappable; only
-// when fully hidden is it wrapped in IgnorePointer. This keeps the page
-// unobtrusive while reading.
+// The whole control auto-fades when COLLAPSED and idle: any interaction (tap
+// to expand or an action fire) snaps it back to fully visible, then after ~5s
+// of inactivity it fades to a 30% floor — never below that while collapsed —
+// and only after a further ~5s (≈10s total idle) fades to fully hidden (when
+// hidden, double-tapping the empty area behind it / re-tapping restores it).
+// While at 30% it stays tappable; only once fully hidden is it wrapped in
+// IgnorePointer. When EXPANDED it never auto-fades — it stays fully visible
+// until the user collapses it, so the control never vanishes mid-reading.
 
 import 'dart:async';
 
@@ -93,20 +95,29 @@ class _ReaderZoomControlsState extends State<ReaderZoomControls>
     super.dispose();
   }
 
-  /// Restarts the auto-fade: snap back to fully visible, then fade to 30%
-  /// after ~3s and to fully hidden after ~6s of no interaction. Cancels any
-  /// in-flight fade timers so a prior schedule never wins over a fresh tap.
+  /// Restarts the auto-fade according to the current state:
+  ///   * **Expanded** — snap to fully visible and NEVER auto-fade (no timers
+  ///     are scheduled so the row stays at full opacity while reading).
+  ///   * **Collapsed** — snap to fully visible, then after 5s of no interaction
+  ///     fade to a 0.3 floor (never below while collapsed); only after a
+  ///     further 5s (≈10s total idle) fade to 0.0, which detaches the control
+  ///     via IgnorePointer in [build].
+  /// Any interaction resets the timers (and snaps opacity back to 1.0) so no
+  /// stale schedule ever wins over a fresh tap. Timers are cancelled/recreated
+  /// here and cancelled in [dispose] so none leak into the test framework.
   void _startFade() {
     _fadeTimer?.cancel();
     _fadeTimer2?.cancel();
     _fadeController
       ..reset()
       ..forward();
-    _fadeTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
+    // Expanded: never auto-fade — stay fully visible until the user collapses.
+    if (_expanded) return;
+    _fadeTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted || _expanded) return;
       _fadeController.animateTo(0.3);
-      _fadeTimer2 = Timer(const Duration(seconds: 3), () {
-        if (!mounted) return;
+      _fadeTimer2 = Timer(const Duration(seconds: 5), () {
+        if (!mounted || _expanded) return;
         _fadeController.animateTo(0.0);
       });
     });

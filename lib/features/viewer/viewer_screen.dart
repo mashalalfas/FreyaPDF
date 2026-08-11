@@ -76,17 +76,21 @@ class ContinuousScrollPageLayout {
 ///  * **Portrait** pages (width <= height) keep the original behaviour — scale
 ///    so the width fits the viewport width (aspect preserved, never upscaled,
 ///    horizontally centered). Portrait pages stack naturally and stretch down.
-///  * **Landscape** pages (width > height) additionally scale to fit the
-///    viewport **height** (`min(contentWidth/page.width, viewportHeight/
-///    page.height)`). At native width a landscape A4 page would otherwise render
-///    much shorter than the viewport with huge side margins stripped off the
-///    right edge — by fitting both dimensions the page fills the screen.
+///  * **Landscape** pages (width > height) use the default 150% zoom behaviour:
+///    they fill left-to-right (`contentWidth / page.width`), capped at 1.5x so
+///    they never upscale past 150% on a wide viewport. This mirrors
+///    Google-Drive-style continuous reading: the page always fills the width
+///    edge to edge with no wasted side margins.
 ///
 /// Raw PDF page sizes are in points (72 dpi) and a Letter/A4 page is typically
 /// ~595-612pt wide — far wider than a phone viewport (~360-410dp). Without
 /// scaling such pages overflow the right edge ("full page left to right" with
 /// the right side cut off). This mirrors single-page mode, where
 /// `calcMatrixForFit` scales the page to fit the smallest viewport dimension.
+///
+/// [viewportHeight] is retained for API compatibility; the current spec gives
+/// priority to fill-left-to-right at <=1.5x and therefore does not height-constrain
+/// the scale (height-fitting would re-introduce side margins).
 ///
 /// Pure and unit-testable: it takes the page width/height pairs and returns the
 /// rects plus document size, with no dependency on pdfrx native rendering.
@@ -103,19 +107,17 @@ ContinuousScrollPageLayout layoutContinuousScrollPages(
   final contentWidth = math.max(0.0, viewportWidth - margin * 2);
   for (final page in pageSizes) {
     // Orientation-aware scale. Portrait keeps the width-fit behaviour (below a
-    // portrait page is never height-constrained); landscape fits BOTH the width
-    // and the viewport height so the page fills the whole screen edge to edge.
-    // Both paths clamp to <=1 so a page is never upscaled beyond its natural
-    // size on a wide viewport.
+    // portrait page is never height-constrained and never upscaled).
+    // Landscape fills left-to-right at the default 150% zoom: width-fit capped
+    // at 1.5x (Google-Drive-style). viewportHeight is intentionally NOT used to
+    // height-constrain the scale, because that would trade the guaranteed
+    // edge-to-edge fill for side margins.
     final double scale;
     if (page.width <= 0 || contentWidth <= 0) {
       scale = 1.0;
     } else if (page.width > page.height) {
-      // Landscape: fill the screen — no wasted side margins.
-      final hScale = viewportHeight > 0
-          ? viewportHeight / page.height
-          : double.infinity;
-      scale = math.min(1.0, math.min(contentWidth / page.width, hScale));
+      // Landscape: fill left-to-right, capped at 150%.
+      scale = math.min(1.5, contentWidth / page.width);
     } else {
       // Portrait: unchanged regression-safe fit-to-width.
       scale = math.min(1.0, contentWidth / page.width);
@@ -134,14 +136,17 @@ ContinuousScrollPageLayout layoutContinuousScrollPages(
 }
 
 /// AppBar wrapper that keeps the [AppBar] in the widget tree at all times but
-/// slides it up off-screen when `isFullscreen` is true.
+/// slides it up off-screen AND fades it to fully invisible when `isFullscreen`
+/// is true.
 ///
 /// Crucially it does NOT remove the AppBar from the tree (do not swap to
 /// `appBar: null`): removing/re-adding it shrinks the body and forces the
 /// PdfViewer to relayout and re-render, which ANRs on large image-heavy PDFs.
 /// AnimatedSlide only translates the already-reserved slot, so the viewer's
-/// size never changes. Reports the child's preferredSize so the Scaffold lays
-/// it out exactly as before.
+/// size never changes, and AnimatedOpacity drives the whole wrapper to
+/// `opacity: 0` so no residual chrome (background, border, or any bottom row
+/// the AppBar contributes) remains visible. Reports the child's preferredSize
+/// so the Scaffold lays it out exactly as before.
 class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _AnimatedAppBar({required this.isFullscreen, required this.child});
 
@@ -153,11 +158,20 @@ class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSlide(
-      offset: isFullscreen ? const Offset(0, -1) : Offset.zero,
+    final bool full = isFullscreen;
+    return AnimatedOpacity(
+      opacity: full ? 0.0 : 1.0,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
-      child: child,
+      child: IgnorePointer(
+        ignoring: full,
+        child: AnimatedSlide(
+          offset: full ? const Offset(0, -1) : Offset.zero,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          child: child,
+        ),
+      ),
     );
   }
 }
@@ -1007,12 +1021,20 @@ class _ViewerScreenState extends State<ViewerScreen> {
     final settings = context.watch<SettingsProvider>();
 
     final bool showToolbar = !_isSvgFile && _totalPages > 0;
+    // Landscape uses a slim, Google-Drive-density top bar: all action buttons
+    // live in the AppBar actions row (compact 48 high) and the portrait-only
+    // bottom toolbar row is removed. Portrait keeps the taller 80-px bar +
+    // bottom row unchanged.
+    final bool landscape =
+        MediaQuery.orientationOf(context) == Orientation.landscape;
 
     return Scaffold(
       appBar: _AnimatedAppBar(
         isFullscreen: _isFullscreen,
         child: AppBar(
-          toolbarHeight: showToolbar ? 80 : kToolbarHeight,
+          toolbarHeight: showToolbar
+              ? (landscape ? 48 : 80)
+              : kToolbarHeight,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           tooltip: 'Back',
@@ -1045,8 +1067,115 @@ class _ViewerScreenState extends State<ViewerScreen> {
               tooltip: 'Encrypted',
               onPressed: null,
             ),
+          // Landscape: compact single-row actions (Google Drive density).
+          if (landscape && showToolbar) ...[
+            _buildSearchButton(colorScheme),
+            IconButton(
+              icon: Icon(
+                Icons.article_outlined,
+                size: 20,
+                color: _outline != null && _outline!.isNotEmpty
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              tooltip: 'Table of Contents',
+              onPressed: _showOutline,
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              icon: Icon(
+                _highlightModeIcon(context),
+                size: 20,
+                color: context.watch<HighlightProvider>().highlightMode
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              tooltip: _highlightModeTooltip(context),
+              onPressed: () =>
+                  context.read<HighlightProvider>().toggleHighlightMode(),
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              icon: Icon(
+                context.watch<BookmarkProvider>().fileBookmarks.any(
+                      (b) => b.pageNumber == _currentPage,
+                    )
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                size: 20,
+                color: context.watch<BookmarkProvider>().fileBookmarks.any(
+                      (b) => b.pageNumber == _currentPage,
+                    )
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant,
+              ),
+              tooltip: 'Bookmark this page (long-press for list)',
+              onPressed: () async {
+                final provider = context.read<BookmarkProvider>();
+                final existing = provider.fileBookmarks.where(
+                  (b) => b.pageNumber == _currentPage,
+                );
+                if (existing.isNotEmpty) {
+                  for (final b in existing) {
+                    await provider.removeBookmark(b.id);
+                  }
+                } else {
+                  await provider.addBookmark(
+                    Bookmark(
+                      filePath: widget.file.path,
+                      pageNumber: _currentPage,
+                      label: null,
+                    ),
+                  );
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.share_rounded, size: 20),
+              tooltip: 'Share',
+              onPressed: _shareFile,
+              visualDensity: VisualDensity.compact,
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, size: 20),
+              tooltip: 'More options',
+              onSelected: (value) {
+                switch (value) {
+                  case 'dark':
+                    settings.setDarkReadingMode(!settings.darkReadingMode);
+                    break;
+                  case 'thumbnails':
+                    _showThumbnailGrid();
+                    break;
+                  case 'fullscreen':
+                    _toggleFullscreen();
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: 'dark',
+                  child: Text(
+                    settings.darkReadingMode
+                        ? 'Disable dark reading'
+                        : 'Enable dark reading',
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'thumbnails',
+                  child: Text('Thumbnails'),
+                ),
+                PopupMenuItem(
+                  value: 'fullscreen',
+                  child: Text(
+                    _isFullscreen ? 'Exit fullscreen' : 'Fullscreen',
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
-        bottom: showToolbar
+        bottom: showToolbar && !landscape
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(40),
                 child: Container(

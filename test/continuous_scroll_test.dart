@@ -242,17 +242,17 @@ void main() {
   );
 
   group(
-    'Continuous Scroll — landscape page fit (fill screen, no side margins)',
+    'Continuous Scroll — landscape page fit (150% fill left-to-right)',
     () {
-      // A landscape A4 page (842 x 595 pt) on a tall phone viewport. At native
-      // width it renders far shorter than the viewport with huge side margins;
-      // the landscape branch must scale to fit BOTH dimensions instead.
+      // A landscape A4 page (842 x 595 pt) on a phone viewport. The landscape
+      // branch fills the width at the default 150% zoom, capped at 1.5x, and
+      // does NOT height-constrain (which would re-introduce side margins).
       const landscapeA4 = Size(842, 595);
       const margin = 8.0;
       const viewportWidth = 360.0;
       const viewportHeight = 700.0;
 
-      test('landscape page scales to fit BOTH width and viewport height', () {
+      test('landscape page fills the width (≤150%), no side margins', () {
         final l = layoutContinuousScrollPages(
           [landscapeA4],
           viewportWidth,
@@ -261,77 +261,65 @@ void main() {
         );
         final rect = l.pageLayouts.single;
         final contentWidth = viewportWidth - margin * 2; // 344
-        // Scale must be the min of width-fit and height-fit.
-        final wScale = contentWidth / landscapeA4.width;
-        final hScale = viewportHeight / landscapeA4.height;
-        final expectedScale = math.min(1.0, math.min(wScale, hScale));
-        expect(rect.width, closeTo(landscapeA4.width * expectedScale, 0.0001));
-        expect(rect.height, closeTo(landscapeA4.height * expectedScale, 0.0001));
-      });
-
-      test('landscape page fills the screen (no side margins)', () {
-        final l = layoutContinuousScrollPages(
-          [landscapeA4],
-          viewportWidth,
-          margin,
-          viewportHeight,
-        );
-        final rect = l.pageLayouts.single;
-        // The landscape branch is width-bound here (A4 is very wide), so the
-        // page fills the full content width — no wasted side margins.
-        final contentWidth = viewportWidth - margin * 2; // 344
+        // Width-fit, capped at 1.5x: 344/842 < 1.5 so it fills the width.
         expect(rect.width, closeTo(contentWidth, 0.0001));
         // Left/right reach the content edges (centred means margins consumed).
         expect(rect.left, closeTo(margin, 0.0001));
         expect(rect.right, closeTo(viewportWidth - margin, 0.0001));
       });
 
-      test('landscape page respects the no-upscale clamp on huge viewports', () {
-        // A small landscape page on a huge viewport must not be upscaled.
+      test('landscape scale is exactly min(contentWidth/width, 1.5)', () {
+        final l = layoutContinuousScrollPages(
+          [landscapeA4],
+          viewportWidth,
+          margin,
+          viewportHeight,
+        );
+        final rect = l.pageLayouts.single;
+        final contentWidth = viewportWidth - margin * 2; // 344
+        final expectedScale = math.min(1.5, contentWidth / landscapeA4.width);
+        expect(rect.width, closeTo(landscapeA4.width * expectedScale, 0.0001));
+        expect(rect.height,
+            closeTo(landscapeA4.height * expectedScale, 0.0001));
+        // Aspect ratio preserved.
+        expect(rect.width / rect.height,
+            closeTo(landscapeA4.width / landscapeA4.height, 0.0001));
+      });
+
+      test('landscape scale is capped at 150% on huge viewports', () {
+        // A small landscape page on a huge viewport must never upscale past
+        // 1.5x (the new 150% default-zoom cap).
         const small = Size(400, 200);
         final l = layoutContinuousScrollPages([small], 1200, 8, 2000);
         final rect = l.pageLayouts.single;
-        expect(rect.width, equals(400));
-        expect(rect.height, equals(200));
+        expect(rect.width, closeTo(400 * 1.5, 0.0001));
+        expect(rect.height, closeTo(200 * 1.5, 0.0001));
       });
 
-      test('height-bound landscape page fills the viewport height', () {
-        // A very wide, short landscape page: height-fit dominates the scale, so
-        // the page fills the viewport height (proving viewportHeight is used).
-        const wide = Size(1200, 400);
-        const vw = 360.0;
-        const vh = 700.0;
-        const m = 8.0;
-        final l = layoutContinuousScrollPages([wide], vw, m, vh);
-        final rect = l.pageLayouts.single;
-        final contentWidth = vw - m * 2; // 344
-        final wScale = contentWidth / wide.width; // 0.2867
-        final hScale = vh / wide.height; // 1.75
-        // Height-fit (hScale) is smaller than width-fit? No — hScale is larger,
-        // so the page is width-bound here too; instead assert the computed scale
-        // equals min of the two (proving the formula uses both dimensions).
-        final expectedScale = math.min(1.0, math.min(wScale, hScale));
-        expect(expectedScale, closeTo(wScale, 0.0001));
-        expect(rect.width, closeTo(wide.width * expectedScale, 0.0001));
-        expect(rect.height, closeTo(wide.height * expectedScale, 0.0001));
-      });
-
-      test('landscape scale uses the viewport height (not just width)', () {
-        // Narrow the viewport height until height-fit becomes the binding
-        // constraint; the page must shrink accordingly rather than stay
-        // width-fit, otherwise the viewportHeight param is ignored.
+      test('landscape ignores viewportHeight (fill-width priority)', () {
+        // Even when height-fit would be the binding constraint, the landscape
+        // branch keeps the fill-left-to-right scale (≤150%) because that is
+        // the priority; changing the viewport height must not change layout.
         const square = Size(400, 300);
         const vw = 400.0;
         const m = 0.0;
-        // vh of 150 makes height-fit (0.5) smaller than width-fit (1.0).
-        final l = layoutContinuousScrollPages([square], vw, m, 150);
-        final rect = l.pageLayouts.single;
-        expect(rect.width, closeTo(400 * 0.5, 0.0001)); // 200
-        expect(rect.height, closeTo(150, 0.0001)); // fills the viewport height
+        final tall = layoutContinuousScrollPages([square], vw, m, 2000);
+        final short = layoutContinuousScrollPages([square], vw, m, 150);
+        expect(
+          tall.pageLayouts.single.width,
+          closeTo(short.pageLayouts.single.width, 0.0001),
+        );
+        expect(
+          tall.pageLayouts.single.height,
+          closeTo(short.pageLayouts.single.height, 0.0001),
+        );
+        // Scale is width-fit capped at 1.5: contentWidth/width = 400/400 = 1.0.
+        expect(short.pageLayouts.single.width, closeTo(400.0, 0.0001));
+        expect(short.pageLayouts.single.height, closeTo(300.0, 0.0001));
       });
 
       test('portrait page fit-to-width is UNCHANGED by the height param', () {
-        // Regression guard: the new viewportHeight argument must not change the
+        // Regression guard: the viewportHeight argument must not change the
         // portrait layout — a portrait page is still width-fit and height-agnostic.
         const a4 = Size(595, 842);
         final tall = layoutContinuousScrollPages([a4], 360, 8, 1500);
