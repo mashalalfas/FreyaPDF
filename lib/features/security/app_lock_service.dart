@@ -243,6 +243,23 @@ class AppLockService {
     }
   }
 
+  /// Whether a biometric is actually usable for unlock: the device supports
+  /// biometrics (hardware + secure hardware), can check biometrics, AND has at
+  /// least one enrolled biometric. local_auth's `canCheckBiometrics` can be
+  /// true with no enrolled credentials, so this additionally requires a non-
+  /// empty `getAvailableBiometrics()` result. When false, the lock screen shows
+  /// a greyed-out fingerprint button and falls back to PIN only.
+  Future<bool> isBiometricUsable() async {
+    try {
+      if (!await _auth.isDeviceSupported()) return false;
+      if (!await _auth.canCheckBiometrics) return false;
+      final enrolled = await _auth.getAvailableBiometrics();
+      return enrolled.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Whether biometric unlock is enabled.
   ///
   /// Default-ON semantics: biometrics are enabled unless the user has

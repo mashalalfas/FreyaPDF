@@ -15,13 +15,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_platform_interface/local_auth_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:freya_pdf/features/security/app_lock_service.dart';
 import 'package:freya_pdf/features/security/widgets/app_lock_screen.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
 
 // ── Test doubles ──
 
@@ -110,12 +114,19 @@ class ControllableLocalAuthPlatform extends LocalAuthPlatform
   bool authenticateResult = true;
   bool supported = true;
   int authenticateCallCount = 0;
+  List<BiometricType> enrolledBiometrics = [BiometricType.fingerprint];
 
   @override
   Future<bool> deviceSupportsBiometrics() async => supported;
 
   @override
   Future<bool> isDeviceSupported() async => supported;
+
+  @override
+  Future<List<BiometricType>> getEnrolledBiometrics() async {
+    if (!supported) return [];
+    return enrolledBiometrics;
+  }
 
   @override
   Future<bool> authenticate({
@@ -125,6 +136,58 @@ class ControllableLocalAuthPlatform extends LocalAuthPlatform
   }) async {
     authenticateCallCount++;
     return authenticateResult;
+  }
+}
+
+/// In-memory [FlutterSecureStoragePlatform] so AppLockGate's internally-built
+/// `AppLockService` (which uses a real `FlutterSecureStorage`) can resolve
+/// `getBiometricEnabled()` on the test host where the plugin channel is absent.
+class MockSecureStoragePlatform extends FlutterSecureStoragePlatform {
+  final _store = <String, String>{};
+
+  @override
+  Future<void> write({
+    required String key,
+    required String value,
+    required Map<String, String> options,
+  }) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<String?> read({
+    required String key,
+    required Map<String, String> options,
+  }) async {
+    return _store[key];
+  }
+
+  @override
+  Future<bool> containsKey({
+    required String key,
+    required Map<String, String> options,
+  }) async {
+    return _store.containsKey(key);
+  }
+
+  @override
+  Future<void> delete({
+    required String key,
+    required Map<String, String> options,
+  }) async {
+    _store.remove(key);
+  }
+
+  @override
+  Future<Map<String, String>> readAll({
+    required Map<String, String> options,
+  }) async {
+    return Map.unmodifiable(_store);
+  }
+
+  @override
+  Future<void> deleteAll({required Map<String, String> options}) async {
+    _store.clear();
   }
 }
 
@@ -326,6 +389,63 @@ void main() {
       expect(await service.getBiometricEnabled(), isTrue);
     });
 
+    test(
+      'isBiometricUsable returns true when a fingerprint is enrolled',
+      () async {
+        final platform = ControllableLocalAuthPlatform();
+        platform.enrolledBiometrics = [BiometricType.fingerprint];
+        LocalAuthPlatform.instance = platform;
+        final service = AppLockService(
+          storage: MockSecureStorage(),
+          localAuth: LocalAuthentication(),
+        );
+        expect(await service.isBiometricUsable(), isTrue);
+      },
+    );
+
+    test(
+      'isBiometricUsable returns false when NOTHING is enrolled',
+      () async {
+        final platform = ControllableLocalAuthPlatform();
+        platform.enrolledBiometrics = [];
+        LocalAuthPlatform.instance = platform;
+        final service = AppLockService(
+          storage: MockSecureStorage(),
+          localAuth: LocalAuthentication(),
+        );
+        expect(await service.isBiometricUsable(), isFalse);
+      },
+    );
+
+    test(
+      'isBiometricUsable returns false when the device is unsupported',
+      () async {
+        final platform = ControllableLocalAuthPlatform();
+        platform.supported = false;
+        LocalAuthPlatform.instance = platform;
+        final service = AppLockService(
+          storage: MockSecureStorage(),
+          localAuth: LocalAuthentication(),
+        );
+        expect(await service.isBiometricUsable(), isFalse);
+      },
+    );
+
+    test(
+      'isBiometricUsable treats only-face enrollment as usable (prompt still '
+      'fine, greyed only when nothing is enrolled)',
+      () async {
+        final platform = ControllableLocalAuthPlatform();
+        platform.enrolledBiometrics = [BiometricType.face];
+        LocalAuthPlatform.instance = platform;
+        final service = AppLockService(
+          storage: MockSecureStorage(),
+          localAuth: LocalAuthentication(),
+        );
+        expect(await service.isBiometricUsable(), isTrue);
+      },
+    );
+
     testWidgets(
       'lock screen shows fingerprint button when bio available and tapping '
       'it unlocks on success',
@@ -369,7 +489,8 @@ void main() {
     );
 
     testWidgets(
-      'lock screen hides fingerprint button when biometrics unavailable',
+      'lock screen GREYS OUT the fingerprint button when biometrics are '
+      'unavailable (present but disabled, PIN remains the only path)',
       (tester) async {
         final service = AppLockService(storage: MockSecureStorage());
         await tester.pumpWidget(
@@ -382,7 +503,120 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.byIcon(Icons.fingerprint_rounded), findsNothing);
+
+        // Not hidden — shown in a disabled/greyed state.
+        final button = find.ancestor(
+          of: find.byIcon(Icons.fingerprint_rounded),
+          matching: find.byType(IconButton),
+        );
+        expect(button, findsOneWidget);
+        final iconButton = tester.widget<IconButton>(button);
+        expect(
+          iconButton.onPressed,
+          isNull,
+          reason: 'fingerprint button must be disabled (greyed) when '
+              'biometrics are unavailable',
+        );
+      },
+    );
+  });
+
+  group('BUG 6 — AppLockGate cold-start biometric prompt', () {
+    testWidgets(
+      'AppLockGate fires the biometric prompt on cold start when lock is '
+      'enabled and biometrics are available',
+      (tester) async {
+        // AppLockGate builds its own AppLockService with a default
+        // LocalAuthentication, which delegates to the global
+        // LocalAuthPlatform, so overriding the platform here controls both the
+        // availability check and the authenticate() call. Its internal
+        // AppLockService also uses a default FlutterSecureStorage, so back it
+        // with an in-memory platform (default-on biometrics → true).
+        final platform = ControllableLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        var unlocked = false;
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+            ],
+            child: MaterialApp(
+              home: AppLockGate(
+                child: Builder(
+                  builder: (_) {
+                    unlocked = true;
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        // Let _checkLock's async availability/enabled checks complete, then the
+        // post-frame callback (which fires the system biometric prompt) run.
+        // Several pumps are needed because the deferral schedules a fresh
+        // post-frame callback that itself performs another await.
+        await tester.pumpAndSettle();
+
+        expect(
+          platform.authenticateCallCount,
+          equals(1),
+          reason: 'cold start with biometrics available must auto-prompt',
+        );
+
+        // Successful auth unlocks the gate.
+        expect(unlocked, isTrue);
+      },
+    );
+
+    testWidgets(
+      'AppLockGate auto-fires the biometric prompt again on a true '
+      'background → resume transition',
+      (tester) async {
+        // Mashal override: on resume the biometric prompt should auto-trigger
+        // too (PIN is only the fallback when no biometrics are available).
+        final platform = ControllableLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+            ],
+            child: MaterialApp(
+              home: AppLockGate(child: const SizedBox.shrink()),
+            ),
+          ),
+        );
+        // Cold-start auto-prompt fires and unlocks.
+        await tester.pumpAndSettle();
+        expect(platform.authenticateCallCount, equals(1));
+
+        // Simulate a true background → resume cycle (paused → resumed).
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          platform.authenticateCallCount,
+          equals(2),
+          reason: 'resume with biometrics available must auto-prompt again',
+        );
       },
     );
   });

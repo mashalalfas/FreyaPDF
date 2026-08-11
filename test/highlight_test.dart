@@ -1,9 +1,38 @@
 // Copyright (c) 2026 Freya. All rights reserved.
+import 'dart:ui' as ui;
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:freya_pdf/features/highlights/highlight.dart';
 import 'package:freya_pdf/features/highlights/highlight_service.dart';
 import 'package:freya_pdf/features/highlights/highlight_provider.dart';
+
+/// Records [Canvas.drawRect] calls so we can assert what a paint callback
+/// actually draws. All other canvas APIs are no-ops via [noSuchMethod].
+class _RecordingCanvas implements ui.Canvas {
+  final List<ui.Rect> drawRects = <ui.Rect>[];
+
+  @override
+  void drawRect(ui.Rect rect, ui.Paint paint) {
+    drawRects.add(rect);
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+/// Minimal [PdfPage] stub. Only [pageNumber] is consumed by the rectangle-.
+/// highlight paint path; every other member is a no-op via [noSuchMethod].
+class _FakePdfPage implements PdfPage {
+  _FakePdfPage(this.pageNumber);
+
+  @override
+  final int pageNumber;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
 
 void main() {
   group('HighlightData model', () {
@@ -355,6 +384,46 @@ void main() {
       expect(provider.isRectangleDrawMode, false);
       expect(provider.highlightMode, true);
     });
+
+    test(
+      "paintHighlights draws a rectangle highlight even when the page text "
+      'cache is empty/null',
+      () async {
+        // Regression: rectangle highlights used to be gated behind the page's
+        // structured-text cache (`if (pageText != null)`). On scanned /
+        // image-only pages (no selectable text) the cache stays null, so a
+        // drawn box was persisted but never rendered — no yellow box appeared.
+        // Rectangle highlights carry absolute coordinates and must paint
+        // regardless of whether text is available.
+        provider.openFile('/test.pdf');
+        final highlight = HighlightData(
+          filePath: '/test.pdf',
+          pageNumber: 1,
+          text: '',
+          type: 'rectangle',
+          rectLeft: 50.0,
+          rectTop: 100.0,
+          rectRight: 250.0,
+          rectBottom: 300.0,
+        );
+        await provider.addHighlight(highlight);
+
+        // The page-text cache is empty by default — no structured text was
+        // loaded, simulating a scanned/image-only page.
+        final canvas = _RecordingCanvas();
+        provider.paintHighlights(
+          canvas,
+          const ui.Rect.fromLTWH(0, 0, 600, 800),
+          _FakePdfPage(1),
+        );
+
+        expect(
+          canvas.drawRects,
+          isNotEmpty,
+          reason: 'rectangle highlight must paint without page text',
+        );
+      },
+    );
   });
 
   group('HighlightData rectangle type', () {

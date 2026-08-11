@@ -296,18 +296,23 @@ class HighlightProvider extends ChangeNotifier {
   ///
   /// Add this to [PdfViewerParams.pagePaintCallbacks].
   void paintHighlights(ui.Canvas canvas, Rect pageRect, PdfPage page) {
-    // Draw existing highlights for this page
-    if (_fileHighlights.isNotEmpty) {
-      final pageHighlights = _fileHighlights
-          .where((h) => h.pageNumber == page.pageNumber)
-          .toList();
-      if (pageHighlights.isNotEmpty) {
-        final pageText = _pageTextCache[page.pageNumber];
-        if (pageText != null) {
-          for (final highlight in pageHighlights) {
-            _paintHighlightOnPage(canvas, pageRect, page, pageText, highlight);
-          }
-        }
+    if (_fileHighlights.isEmpty) return;
+    final pageHighlights = _fileHighlights
+        .where((h) => h.pageNumber == page.pageNumber)
+        .toList();
+    if (pageHighlights.isEmpty) return;
+
+    // Rectangle highlights carry absolute coordinates and render without any
+    // page text, so paint them regardless of whether structured text has been
+    // loaded (text can be unavailable on scanned/image-only pages). Text
+    // highlights require the page's structured text cache and are skipped when
+    // it is not loaded the same way they always have been.
+    final pageText = _pageTextCache[page.pageNumber];
+    for (final highlight in pageHighlights) {
+      if (highlight.isRectangle) {
+        _paintRectangleHighlight(canvas, pageRect, page, highlight);
+      } else if (pageText != null) {
+        _paintTextHighlight(canvas, pageRect, page, pageText, highlight);
       }
     }
 
@@ -315,20 +320,6 @@ class HighlightProvider extends ChangeNotifier {
     // _DrawPreviewPainter in viewer_screen.dart, which uses the same
     // widget-space coordinates as the GestureDetector. Drawing it here
     // on the pdfrx canvas as well would cause a double-render (two boxes).
-  }
-
-  void _paintHighlightOnPage(
-    ui.Canvas canvas,
-    Rect pageRect,
-    PdfPage page,
-    PdfPageText pageText,
-    HighlightData highlight,
-  ) {
-    if (highlight.isRectangle) {
-      _paintRectangleHighlight(canvas, pageRect, page, highlight);
-    } else {
-      _paintTextHighlight(canvas, pageRect, page, pageText, highlight);
-    }
   }
 
   /// Paint a rectangle-type highlight (stored viewer content-space coords).

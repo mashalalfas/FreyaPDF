@@ -48,7 +48,7 @@ class _AppLockGateState extends State<AppLockGate>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _checkLock(isColdStart: true);
+    _checkLock();
   }
 
   @override
@@ -70,13 +70,13 @@ class _AppLockGateState extends State<AppLockGate>
     }
   }
 
-  Future<void> _checkLock({bool isColdStart = false}) async {
+  Future<void> _checkLock() async {
     final settings = context.read<SettingsProvider>();
     if (!settings.appLockEnabled) {
       if (mounted) setState(() => _locked = false);
       return;
     }
-    final bio = await _lockService.isBiometricAvailable();
+    final bio = await _lockService.isBiometricUsable();
     final bioEnabled = await _lockService.getBiometricEnabled();
     if (mounted) {
       setState(() {
@@ -84,14 +84,19 @@ class _AppLockGateState extends State<AppLockGate>
         _locked = true;
       });
     }
-    // Auto-attempt biometric ONLY on cold start (first lock of the process).
-    // On a resume, show the PIN screen without instantly firing the system
-    // biometric prompt — the user can tap the fingerprint icon to retry.
-    if (_biometricAvailable && isColdStart) {
-      final ok = await _lockService.authenticateWithBiometrics();
-      if (ok && mounted) {
-        setState(() => _locked = false);
-      }
+    // Auto-attempt biometric whenever the lock screen appears (cold start AND
+    // resume). PIN is only a fallback when no biometric hardware / enrolled
+    // biometrics are available (or the user disabled biometrics). Defer the
+    // system prompt until after the frame so the Android Activity is confirmed
+    // resumed/focused before local_auth's BiometricPrompt tries to attach —
+    // firing it during widget mount or the lifecycle transition silently
+    // no-ops and the user never sees it.
+    if (_biometricAvailable) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        final ok = await _lockService.authenticateWithBiometrics();
+        if (ok && mounted) setState(() => _locked = false);
+      });
     }
   }
 
@@ -295,19 +300,11 @@ class _AppLockScreenState extends State<AppLockScreen> {
       children: [
         const Spacer(flex: 2),
 
-        // App icon & title
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: colorScheme.primary,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(
-            Icons.picture_as_pdf_rounded,
-            size: 32,
-            color: Colors.white,
-          ),
+        // App logo & title
+        Image.asset(
+          'assets/logo/FREYA PDF.png',
+          width: 64,
+          height: 64,
         ),
         const SizedBox(height: 20),
         Text(
@@ -376,17 +373,19 @@ class _AppLockScreenState extends State<AppLockScreen> {
           ),
         ],
 
-        // Biometric button
-        if (widget.biometricAvailable)
-          IconButton(
-            icon: Icon(
-              Icons.fingerprint_rounded,
-              size: 36,
-              color: colorScheme.primary,
-            ),
-            onPressed: _lockedOut ? null : _onBiometric,
-            tooltip: 'Unlock with biometrics',
-          ),
+        // Biometric button. Always shown so the user knows fingerprint unlock
+        // is an option; greyed out (disabled) when biometrics aren't
+        // available/enrolled or the user disabled them, and while a lockout is
+        // active.
+        IconButton(
+          icon: const Icon(Icons.fingerprint_rounded, size: 36),
+          color: colorScheme.primary,
+          onPressed:
+              (widget.biometricAvailable && !_lockedOut) ? _onBiometric : null,
+          tooltip: widget.biometricAvailable
+              ? 'Unlock with biometrics'
+              : 'Biometrics unavailable — use PIN',
+        ),
 
         const Spacer(flex: 1),
 
