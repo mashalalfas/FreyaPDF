@@ -148,4 +148,153 @@ void main() {
     expect(find.byIcon(Icons.add_rounded), findsNothing);
     expect(find.byIcon(Icons.zoom_in_rounded), findsOneWidget);
   });
+
+  testWidgets('fullscreen action fires onToggleFullscreen and icon switches',
+      (tester) async {
+    var toggles = 0;
+    late StateSetter setParentState;
+    var isFullscreen = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              setParentState = setState;
+              return Stack(
+                children: [
+                  const SizedBox.expand(),
+                  ReaderZoomControls(
+                    onZoomIn: () {},
+                    onZoomOut: () {},
+                    onReset: () {},
+                    onToggleFullscreen: () {
+                      toggles++;
+                      setParentState(() => isFullscreen = !isFullscreen);
+                    },
+                    isFullscreen: isFullscreen,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    // Expand to reveal the row including the fullscreen action.
+    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.fullscreen_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.fullscreen_exit_rounded), findsNothing);
+
+    // Tap fullscreen: callback fires and the parent flips the flag so the
+    // row now shows the exit glyph.
+    await tester.tap(find.byIcon(Icons.fullscreen_rounded));
+    await tester.pumpAndSettle();
+    expect(toggles, 1);
+    expect(find.byIcon(Icons.fullscreen_rounded), findsNothing);
+    expect(find.byIcon(Icons.fullscreen_exit_rounded), findsOneWidget);
+
+    // Tap again to leave fullscreen; exit glyph reverts to the enter glyph.
+    await tester.tap(find.byIcon(Icons.fullscreen_exit_rounded));
+    await tester.pumpAndSettle();
+    expect(toggles, 2);
+    expect(find.byIcon(Icons.fullscreen_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.fullscreen_exit_rounded), findsNothing);
+  });
+
+  testWidgets('collapsed row hides fullscreen action (only expanded shows it)',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        ReaderZoomControls(
+          onZoomIn: () {},
+          onZoomOut: () {},
+          onReset: () {},
+        ),
+      ),
+    );
+
+    // Collapsed: no fullscreen glyph anywhere.
+    expect(find.byIcon(Icons.fullscreen_rounded), findsNothing);
+    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.fullscreen_rounded), findsOneWidget);
+  });
+
+  testWidgets('auto-fade: tap restores to 1.0, +3s fades to 0.3 (still '
+      'tappable), +6s fully hidden and ignores pointer, re-tap restores',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        ReaderZoomControls(
+          onZoomIn: () {},
+          onZoomOut: () {},
+          onReset: () {},
+        ),
+      ),
+    );
+
+    double fadeOpacity() {
+      final ft = tester.widget<FadeTransition>(
+        find.byKey(const ValueKey('zoom-controls-fade')),
+      );
+      return ft.opacity.value;
+    }
+
+    var zoomInCalls = 0;
+    await tester.pumpWidget(
+      _wrap(
+        ReaderZoomControls(
+          onZoomIn: () => zoomInCalls++,
+          onZoomOut: () {},
+          onReset: () {},
+        ),
+      ),
+    );
+
+    // Fully visible initially.
+    expect(fadeOpacity(), 1.0);
+
+    // Expand (an interaction) — stays at 1.0, still tappable.
+    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), 1.0);
+    expect(
+      find.byKey(const ValueKey('zoom-controls-ignore')),
+      findsNothing,
+    );
+
+    // +3s of inactivity → faded to 0.3, still NOT wrapped in IgnorePointer.
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), closeTo(0.3, 0.01));
+    expect(
+      find.byKey(const ValueKey('zoom-controls-ignore')),
+      findsNothing,
+    );
+
+    // While at 0.3 the control stays tappable: tapping zoom-in fires AND
+    // snaps the whole control back to 1.0 (fresh interaction restarts fade).
+    await tester.tap(find.byIcon(Icons.add_rounded));
+    await tester.pumpAndSettle();
+    expect(zoomInCalls, 1);
+    expect(fadeOpacity(), 1.0);
+
+    // Advance past the full 6s idle window → fully hidden (0.0) and wrapped in
+    // IgnorePointer (hit-testing disabled while invisible).
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), closeTo(0.3, 0.01));
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    expect(fadeOpacity(), 0.0);
+    // AnimatedBuilder re-runs build each fade tick, so IgnorePointer is attached
+    // exactly when the control is fully hidden.
+    expect(
+      find.byKey(const ValueKey('zoom-controls-ignore')),
+      findsOneWidget,
+    );
+  });
 }

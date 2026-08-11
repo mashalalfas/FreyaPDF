@@ -1,9 +1,9 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
@@ -69,9 +69,18 @@ class ContinuousScrollPageLayout {
   });
 }
 
-/// Lay out PDF pages for continuous (vertical) scroll, scaling each page so its
-/// width fits the viewport width with the aspect ratio preserved, never larger
-/// than the viewport, and horizontally centered.
+/// Lay out PDF pages for continuous (vertical) scroll.
+///
+/// Orientation-aware fit so every page fills the screen with no wasted margins:
+///
+///  * **Portrait** pages (width <= height) keep the original behaviour — scale
+///    so the width fits the viewport width (aspect preserved, never upscaled,
+///    horizontally centered). Portrait pages stack naturally and stretch down.
+///  * **Landscape** pages (width > height) additionally scale to fit the
+///    viewport **height** (`min(contentWidth/page.width, viewportHeight/
+///    page.height)`). At native width a landscape A4 page would otherwise render
+///    much shorter than the viewport with huge side margins stripped off the
+///    right edge — by fitting both dimensions the page fills the screen.
 ///
 /// Raw PDF page sizes are in points (72 dpi) and a Letter/A4 page is typically
 /// ~595-612pt wide — far wider than a phone viewport (~360-410dp). Without
@@ -86,17 +95,31 @@ ContinuousScrollPageLayout layoutContinuousScrollPages(
   List<Size> pageSizes,
   double viewportWidth,
   double margin,
+  double viewportHeight,
 ) {
   final pageLayouts = <Rect>[];
   var y = margin;
   // Content area available inside the horizontal margins.
   final contentWidth = math.max(0.0, viewportWidth - margin * 2);
   for (final page in pageSizes) {
-    // Scale to fit the viewport width preserving aspect ratio. Clamp to <=1 so
-    // a page is never upscaled beyond its natural size on a wide viewport.
-    final scale = page.width <= 0 || contentWidth <= 0
-        ? 1.0
-        : math.min(1.0, contentWidth / page.width);
+    // Orientation-aware scale. Portrait keeps the width-fit behaviour (below a
+    // portrait page is never height-constrained); landscape fits BOTH the width
+    // and the viewport height so the page fills the whole screen edge to edge.
+    // Both paths clamp to <=1 so a page is never upscaled beyond its natural
+    // size on a wide viewport.
+    final double scale;
+    if (page.width <= 0 || contentWidth <= 0) {
+      scale = 1.0;
+    } else if (page.width > page.height) {
+      // Landscape: fill the screen — no wasted side margins.
+      final hScale = viewportHeight > 0
+          ? viewportHeight / page.height
+          : double.infinity;
+      scale = math.min(1.0, math.min(contentWidth / page.width, hScale));
+    } else {
+      // Portrait: unchanged regression-safe fit-to-width.
+      scale = math.min(1.0, contentWidth / page.width);
+    }
     final w = page.width * scale;
     final h = page.height * scale;
     // Horizontally center within the full viewport width.
@@ -108,6 +131,35 @@ ContinuousScrollPageLayout layoutContinuousScrollPages(
     pageLayouts: pageLayouts,
     documentSize: Size(viewportWidth, y),
   );
+}
+
+/// AppBar wrapper that keeps the [AppBar] in the widget tree at all times but
+/// slides it up off-screen when `isFullscreen` is true.
+///
+/// Crucially it does NOT remove the AppBar from the tree (do not swap to
+/// `appBar: null`): removing/re-adding it shrinks the body and forces the
+/// PdfViewer to relayout and re-render, which ANRs on large image-heavy PDFs.
+/// AnimatedSlide only translates the already-reserved slot, so the viewer's
+/// size never changes. Reports the child's preferredSize so the Scaffold lays
+/// it out exactly as before.
+class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _AnimatedAppBar({required this.isFullscreen, required this.child});
+
+  final bool isFullscreen;
+  final AppBar child;
+
+  @override
+  Size get preferredSize => child.preferredSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSlide(
+      offset: isFullscreen ? const Offset(0, -1) : Offset.zero,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      child: child,
+    );
+  }
 }
 
 class ViewerScreen extends StatefulWidget {
@@ -126,6 +178,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
   int _currentPage = 1;
   int _totalPages = 0;
   PdfDocumentRef? _documentRef;
+
+  // Fullscreen mode (toggle in the zoom bar). When active the AppBar is kept in
+  // the tree (so the PdfViewer never relayouts / ANRs) but slid up off-screen,
+  // and the system bars enter immersiveSticky via SystemChrome.
+  bool _isFullscreen = false;
 
   // Cached link annotations per page (loaded async when document is ready)
   final Map<int, List<PdfLink>> _pageLinks = {};
@@ -495,6 +552,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
   void dispose() {
     _pageSeekController.dispose();
     _pageSeekFocus.dispose();
+    // Restore the system bars (edgeToEdge) when leaving the viewer so other
+    // screens are not left in immersive mode.
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     // Clear highlight page text cache for this document
     try {
       context.read<HighlightProvider>().closeFile();
@@ -502,6 +562,17 @@ class _ViewerScreenState extends State<ViewerScreen> {
     // PdfViewerController is a ValueListenable; it is cleaned up by the PdfViewer widget.
     // PdfDocumentRef auto-disposes the underlying document when autoDispose=true (default).
     super.dispose();
+  }
+
+  /// Toggles fullscreen mode: hides the system bars via SystemChrome and slides
+  /// the AppBar off-screen (kept in the tree to avoid a PdfViewer relayout).
+  void _toggleFullscreen() {
+    setState(() => _isFullscreen = !_isFullscreen);
+    SystemChrome.setEnabledSystemUIMode(
+      _isFullscreen
+          ? SystemUiMode.immersiveSticky
+          : SystemUiMode.edgeToEdge,
+    );
   }
 
   Future<void> _shareFile() async {
@@ -938,8 +1009,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
     final bool showToolbar = !_isSvgFile && _totalPages > 0;
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: showToolbar ? 80 : kToolbarHeight,
+      appBar: _AnimatedAppBar(
+        isFullscreen: _isFullscreen,
+        child: AppBar(
+          toolbarHeight: showToolbar ? 80 : kToolbarHeight,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           tooltip: 'Back',
@@ -1140,6 +1213,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                 ),
               )
             : null,
+        ),
       ),
       // The search bar is an OVERLAY over the viewer, not an item in the
       // layout Column. When it lived in the Column inside an AnimatedSize,
@@ -1260,6 +1334,8 @@ class _ViewerScreenState extends State<ViewerScreen> {
                   onZoomOut: () =>
                       unawaited(zoomByFactor(PdfZoomMath.kZoomOutFactor)),
                   onReset: () => unawaited(resetViewAndCenter()),
+                  onToggleFullscreen: _toggleFullscreen,
+                  isFullscreen: _isFullscreen,
                 ),
               ),
             ),
@@ -1420,6 +1496,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
         // pdfrx calls with only the page list + PdfViewerParams — no viewport
         // size) can scale each page to fit the screen width.
         final viewportWidth = constraints.maxWidth;
+        final viewportHeight = constraints.maxHeight;
         return PdfViewer(
           _documentRef!,
           controller: _pdfController,
@@ -1444,6 +1521,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                       [for (final p in pages) Size(p.width, p.height)],
                       viewportWidth,
                       params.margin,
+                      viewportHeight,
                     );
                     return PdfPageLayout(
                       pageLayouts: laidOut.pageLayouts,
