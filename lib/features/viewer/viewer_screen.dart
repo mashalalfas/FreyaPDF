@@ -1770,7 +1770,17 @@ class _ViewerScreenState extends State<ViewerScreen> {
                 );
               },
               onPanEnd: (_) {
-                context.read<HighlightProvider>().endDraw();
+                context.read<HighlightProvider>().endDraw().then((_) {
+                  // Force the PdfViewer to repaint so the committed
+                  // rectangle highlight appears immediately.  Without this,
+                  // _widgetUpdated returns early (doChangesRequireReload is
+                  // false when only pagePaintCallbacks changed) and the
+                  // RepaintBoundary may reuse a stale layer.
+                  if (mounted &&
+                      _pdfController?.isReady == true) {
+                    _pdfController?.invalidate();
+                  }
+                });
               },
               onPanCancel: () {
                 context.read<HighlightProvider>().cancelDraw();

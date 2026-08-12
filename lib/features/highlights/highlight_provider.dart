@@ -227,7 +227,11 @@ class HighlightProvider extends ChangeNotifier {
       rectBottom: rect.bottom,
     );
 
-    await addHighlight(highlight);
+    try {
+      await addHighlight(highlight);
+    } catch (e) {
+      debugPrint('HighlightProvider: endDraw save failed: $e');
+    }
 
     // Auto-disable draw mode after creating one box — tap again to draw another.
     _highlightMode = 'off';
