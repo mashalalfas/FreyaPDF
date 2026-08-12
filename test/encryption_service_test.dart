@@ -230,5 +230,48 @@ void main() {
         throwsA(isA<EncryptionException>()),
       );
     });
+
+    test('encryptFile overwrites an existing .enc target (re-encrypt flow)',
+        () async {
+      // Arrange: a plain PDF and a stale .enc already present at the target
+      // path (simulating a re-encrypt / retry after a previous run).
+      final plainFile = File('${tmp.path}/retry.pdf');
+      await plainFile.writeAsBytes(samplePdfBytes());
+      final encPath = '${plainFile.path}.enc';
+      await File(encPath).writeAsBytes(List.filled(64, 0xAB)); // stale content
+
+      // Act: encrypt again — must overwrite, not crash.
+      final result = await EncryptionService.encryptFile(
+        plainFile.path,
+        passphrase,
+      );
+
+      // Assert
+      expect(result, equals(encPath));
+      final decrypted = await EncryptionService.decryptFile(encPath, passphrase);
+      expect(decrypted, equals(await plainFile.readAsBytes()));
+      expect(File('$encPath.tmp').existsSync(), isFalse,
+          reason: 'no leftover temp file after a successful overwrite');
+    });
+
+    test('encryptFile cleans up temp file and preserves original on failure',
+        () async {
+      // Arrange: a leftover stale .tmp from a previous interrupted run, and a
+      // source file that does not exist (forces a failure during read).
+      final missingPath = '${tmp.path}/does_not_exist.pdf';
+      final outPath = '$missingPath.enc';
+      final tmpPath = '$outPath.tmp';
+      await File(tmpPath).writeAsBytes(List.filled(32, 0xCD)); // stale temp
+
+      // Act: encrypt a missing source — must throw, but not leave a temp file.
+      await expectLater(
+        EncryptionService.encryptFile(missingPath, passphrase),
+        throwsA(anything),
+      );
+
+      // Assert: the stale temp file is cleaned up (best-effort), the .enc is
+      // never produced, and no partial output exists.
+      expect(File(outPath).existsSync(), isFalse);
+    });
   });
 }

@@ -126,20 +126,44 @@ class EncryptionService {
     final tmpPath = '$outPath.tmp';
     final outputFile = File(tmpPath);
 
-    // Write header
-    final header = BytesBuilder();
-    header.add(_magic);
-    header.addByte(_version);
-    header.add(iv.bytes);
-    header.add(salt);
-    await outputFile.writeAsBytes(header.toBytes(), mode: FileMode.write);
+    try {
+      // Clear any stale temp file left by a previous interrupted run.
+      if (await outputFile.exists()) {
+        await outputFile.delete();
+      }
 
-    // Read file, encrypt, write — one pass (AES-GCM needs full plaintext for auth tag)
-    final plaintext = await inputFile.readAsBytes();
-    final encrypted = encrypter.encryptBytes(plaintext, iv: iv);
-    await outputFile.writeAsBytes(encrypted.bytes, mode: FileMode.append);
-    await outputFile.rename(outPath);
-    return outPath;
+      // Write the whole payload in memory, then flush to disk in a single
+      // atomic write (temp file → rename). This avoids corrupting an existing
+      // .enc target on a partial failure.
+      final plaintext = await inputFile.readAsBytes();
+      final encrypted = encrypter.encryptBytes(plaintext, iv: iv);
+
+      final builder = BytesBuilder();
+      builder.add(_magic);
+      builder.addByte(_version);
+      builder.add(iv.bytes);
+      builder.add(salt);
+      builder.add(encrypted.bytes);
+      await outputFile.writeAsBytes(builder.toBytes(), mode: FileMode.write);
+
+      // Overwrite-safe commit. On POSIX rename() replaces atomically; on
+      // Windows rename() to an existing path throws, so remove any stale target
+      // first so re-encrypting an already-encrypted file does not crash.
+      final target = File(outPath);
+      if (await target.exists()) {
+        await target.delete();
+      }
+      await outputFile.rename(outPath);
+      return outPath;
+    } catch (_) {
+      // Best-effort cleanup of the temp file; never mask the original error.
+      try {
+        if (await outputFile.exists()) {
+          await outputFile.delete();
+        }
+      } catch (_) {}
+      rethrow;
+    }
   }
 
   /// Decrypt an encrypted file and return the plaintext bytes.

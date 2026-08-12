@@ -16,6 +16,13 @@ class FileOperationsProvider extends ChangeNotifier {
   EncryptionProvider? _encryptionProvider;
   final List<File> _tempDecryptedFiles = [];
 
+  /// Human-readable message describing the last error (e.g. a failed encrypt),
+  /// so callers can surface a message rather than failing silently. Cleared on
+  /// the next successful operation.
+  String? _lastError;
+
+  String? get lastError => _lastError;
+
   void attachEncryption(EncryptionProvider provider) {
     _encryptionProvider = provider;
   }
@@ -36,13 +43,23 @@ class FileOperationsProvider extends ChangeNotifier {
 
   /// Encrypt a PDF file (creating a .pdf.enc alongside it).
   /// Returns the new .pdf.enc path, or null on failure.
+  /// On failure, [lastError] is set so the caller can show a message instead
+  /// of crashing — a FileSystemException (e.g. the .enc already exists and is
+  /// locked, or the write fails) is no longer an unhandled async error.
   Future<String?> encryptFile(PdfFile file) async {
     if (_encryptionProvider == null) return null;
     try {
       final encPath = await _encryptionProvider!.encryptFile(file.path);
+      _lastError = null;
       notifyListeners();
       return encPath;
-    } on EncryptionException catch (_) {
+    } on EncryptionException catch (e) {
+      _lastError = e.message;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _lastError = 'Failed to encrypt ${file.displayName}: $e';
+      notifyListeners();
       return null;
     }
   }

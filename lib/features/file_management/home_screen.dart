@@ -437,10 +437,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
     final fileOps = context.read<FileOperationsProvider>();
     final result = await fileOps.encryptFile(file);
-    if (mounted && result != null) {
+    if (!mounted) return;
+    if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${file.displayName} encrypted'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else if (fileOps.lastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(fileOps.lastError!),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),

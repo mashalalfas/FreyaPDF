@@ -267,6 +267,53 @@ void main() {
       expect(File(encPath!).existsSync(), isTrue);
       expect(encPath, endsWith('.pdf.enc'));
       expect(listenerCallCount, equals(1));
+      expect(fopsProvider.lastError, isNull);
+    });
+
+    // Regression: encrypting when the source file is missing must NOT throw an
+    // unhandled async exception (previously a FileSystemException escaped the
+    // `on EncryptionException` catch and crashed / ANR'd the app). Instead the
+    // provider returns null and surfaces the error via lastError.
+    test('encrypting a missing file surfaces lastError instead of crashing',
+        () async {
+      // Arrange
+      final dir = _makeTempDir('enc_missing');
+      final encProvider = EncryptionProvider();
+      encProvider.setPassphrase('test-passphrase-123');
+      final fopsProvider = FileOperationsProvider()..attachEncryption(encProvider);
+      final pdfFile = _pdfFileAt(dir, 'ghost.pdf'); // never written to disk
+
+      // Act
+      final result = await fopsProvider.encryptFile(pdfFile);
+
+      // Assert: no throw, null result, error surfaced.
+      expect(result, isNull);
+      expect(fopsProvider.lastError, isNotNull);
+    });
+
+    // Regression: re-encrypting when the .enc output already exists must
+    // succeed (overwrite-safe) rather than silently fail or crash.
+    test('re-encrypting an already-encrypted file overwrites successfully',
+        () async {
+      // Arrange
+      final dir = _makeTempDir('enc_reencrypt');
+      _writePdf(dir, 'doc.pdf', sizeBytes: 256);
+      final encProvider = EncryptionProvider();
+      encProvider.setPassphrase('test-passphrase-123');
+      final fopsProvider = FileOperationsProvider()..attachEncryption(encProvider);
+      final pdfFile = _pdfFileAt(dir, 'doc.pdf');
+
+      // First encrypt
+      final first = await fopsProvider.encryptFile(pdfFile);
+      expect(first, isNotNull);
+
+      // Second encrypt of the same source (output .enc already exists)
+      final second = await fopsProvider.encryptFile(pdfFile);
+
+      // Assert
+      expect(second, equals(first));
+      expect(File(first!).existsSync(), isTrue);
+      expect(fopsProvider.lastError, isNull);
     });
   });
 }
