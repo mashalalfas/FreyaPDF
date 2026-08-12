@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'dart:io';
+import 'dart:isolate';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
@@ -27,42 +28,74 @@ class SecureFolderService {
   /// Returns the path of the new encrypted file.
   ///
   /// Uses atomic write (temp file → rename) for crash safety.
+  ///
+  /// The heavy read + PBKDF2(600k) + AES-GCM + write work runs off the main
+  /// isolate (this was the ANR root cause: importing 4+ files froze the UI and
+  /// the OS killed the app). The secure dir + target paths are computed here on
+  /// the main isolate (path_provider needs platform channels), then the whole
+  /// read→encrypt→write→delete pipeline runs in a background isolate via
+  /// [importFileInIsolate]. The ciphertext format is unchanged (FREYA magic, v2).
   static Future<String> importFile(
       String sourcePath, String passphrase) async {
-    final sourceFile = File(sourcePath);
-    if (!await sourceFile.exists()) {
+    if (!await File(sourcePath).exists()) {
       throw ArgumentError('Source file not found: $sourcePath');
     }
 
-    final plaintext = await sourceFile.readAsBytes();
-    final encrypted =
-        EncryptionService.encryptBytes(plaintext, passphrase);
-
-    // Determine filename in secure dir
+    // Compute secure dir + target paths on the main isolate (path_provider
+    // requires platform channels and is not available inside Isolate.run).
+    final secureDir = await getSecureDir();
     final basename = sourcePath.split(Platform.pathSeparator).last;
     final encName = basename.endsWith('.enc') ? basename : '$basename.enc';
-    final secureDir = await getSecureDir();
     final encPath = '${secureDir.path}/$encName';
+
+    // Run read → encrypt → atomic write(temp→rename) → delete-original off the
+    // main isolate. Only plain sendable strings cross the boundary.
+    return Isolate.run(() => importFileInIsolate(sourcePath, encPath, passphrase));
+  }
+
+  /// Isolate entrypoint for [importFile]. Static + argument-only (no closures
+  /// capturing non-sendables) so it can run inside `Isolate.run`. Reuses
+  /// [EncryptionService.encryptBytes] verbatim — the exact FREYA/v2 format is
+  /// preserved, matching existing .enc files on disk.
+  ///
+  /// Returns the encrypted path on success. Throws on failure; any stale
+  /// `.tmp` is best-effort removed and the original source file is preserved.
+  static String importFileInIsolate(
+      String sourcePath, String encPath, String passphrase) {
     final tmpPath = '$encPath.tmp';
+    final sourceFile = File(sourcePath);
 
     try {
-      // Atomic write: temp file → rename
-      await File(tmpPath).writeAsBytes(encrypted);
-      await File(tmpPath).rename(encPath);
-
-      // Delete the original
-      await sourceFile.delete();
-    } catch (e) {
-      // Clean up temp file if something went wrong
-      final tmpFile = File(tmpPath);
-      if (await tmpFile.exists()) {
-        await tmpFile.delete();
+      if (!sourceFile.existsSync()) {
+        throw ArgumentError('Source file not found: $sourcePath');
       }
-      debugPrint('SecureFolderService.importFile: $e');
+
+      final plaintext = sourceFile.readAsBytesSync();
+      final encrypted = EncryptionService.encryptBytes(plaintext, passphrase);
+
+      // Clear any stale tmp from a previous interrupted run.
+      final tmpFile = File(tmpPath);
+      if (tmpFile.existsSync()) {
+        tmpFile.deleteSync();
+      }
+
+      // Atomic write: temp file → rename.
+      tmpFile.writeAsBytesSync(encrypted, mode: FileMode.write);
+      tmpFile.renameSync(encPath);
+
+      // Only delete the original after the encrypted copy is committed.
+      sourceFile.deleteSync();
+      return encPath;
+    } catch (e) {
+      // Best-effort cleanup of the temp file; never mask the original error.
+      try {
+        final tmpFile = File(tmpPath);
+        if (tmpFile.existsSync()) {
+          tmpFile.deleteSync();
+        }
+      } catch (_) {}
       rethrow;
     }
-
-    return encPath;
   }
 
   /// List all encrypted files in the secure folder.

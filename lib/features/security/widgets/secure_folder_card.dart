@@ -179,21 +179,47 @@ class _SecureFolderCardState extends State<SecureFolderCard> {
   }
 
   Future<void> _showImportDialog() async {
-    final imported = await showSecureFolderImportDialog(context);
-    if (imported && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    final provider = context.read<SecureFolderProvider>();
+
+    // Snapshot the generation before opening; after the dialog closes, if it
+    // advanced then an import batch was started (which may still be running in
+    // the background if the dialog was dismissed) and we await its summary.
+    final gen = provider.importGeneration;
+    await showSecureFolderImportDialog(context);
+    if (!mounted || provider.importGeneration == gen) return;
+
+    // Await the provider-owned batch so the summary is shown even when the
+    // dialog was dismissed to background. `activeImport` is kept by the
+    // provider, so if the batch already finished we resolve immediately.
+    final result = await provider.activeImport;
+    if (!mounted || result == null) return;
+
+    final mess = ScaffoldMessenger.of(context);
+    if (result.failed == 0) {
+      mess.showSnackBar(
         SnackBar(
-          content: const Text('Files imported to secure folder'),
+          content: Text(
+            'Imported ${result.imported} file'
+            '${result.imported == 1 ? '' : 's'} to secure folder',
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
       );
-      // Refresh the file list
-      if (mounted) {
-        context.read<SecureFolderProvider>().loadFiles();
-      }
+    } else {
+      mess.showSnackBar(
+        SnackBar(
+          content: Text(
+            '${result.imported} imported, ${result.failed} failed',
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
     }
   }
 
@@ -423,7 +449,41 @@ class _UnlockedCard extends StatelessWidget {
                 ],
               ),
             ),
-            if (provider.isLoading)
+            if (provider.isImporting)
+              // Live import progress chip — visible even after the dialog is
+              // dismissed to background, so the user keeps seeing progress.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: provider.importProgress > 0
+                            ? provider.importProgress
+                            : null,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Importing ${provider.importCompleted} of '
+                        '${provider.importTotal}…',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (provider.isLoading)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Center(child: CircularProgressIndicator()),
