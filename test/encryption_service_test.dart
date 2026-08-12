@@ -273,5 +273,35 @@ void main() {
       // never produced, and no partial output exists.
       expect(File(outPath).existsSync(), isFalse);
     });
+
+    // Regression: encryptFile/decryptFile now run the heavy work in a
+    // background isolate. Exercise a moderately large payload end-to-end
+    // through the isolate boundary to prove the bytes round-trip intact.
+    test(
+      'encryptFile → decryptFile round-trips a large payload through the isolate',
+      () async {
+        // Arrange: a ~4 MB binary payload written to disk.
+        final plainFile = File('${tmp.path}/large.pdf');
+        final large = Uint8List.fromList(
+          List.generate(4 * 1024 * 1024, (i) => (i * 31) % 251),
+        );
+        await plainFile.writeAsBytes(large);
+
+        // Act: encrypt then decrypt through the isolate-backed file APIs.
+        final encPath = await EncryptionService.encryptFile(
+          plainFile.path,
+          passphrase,
+        );
+        final decrypted = await EncryptionService.decryptFile(
+          encPath,
+          passphrase,
+        );
+
+        // Assert: full payload intact, temp file gone.
+        expect(decrypted, equals(large));
+        expect(File('$encPath.tmp').existsSync(), isFalse);
+      },
+      tags: {'slow'},
+    );
   });
 }

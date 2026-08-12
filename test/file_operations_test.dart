@@ -9,8 +9,10 @@
 //   Total:      12 tests
 
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/encryption/encryption_service.dart';
 import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 
@@ -314,6 +316,36 @@ void main() {
       expect(second, equals(first));
       expect(File(first!).existsSync(), isTrue);
       expect(fopsProvider.lastError, isNull);
+    });
+  });
+
+  group('EncryptionProvider.reEncryptFile', () {
+    // Regression: re-encrypting over an existing target must succeed,
+    // overwrite the old ciphertext, and leave no stale .tmp behind (mirrors
+    // the atomic-write pattern from EncryptionService.encryptFile).
+    test('overwrites an existing target with no leftover temp file', () async {
+      // Arrange
+      final dir = _makeTempDir('reenc_overwrite');
+      final encPath = '${dir.path}/doc.pdf.enc';
+      final provider = EncryptionProvider()..setPassphrase('test-passphrase-123');
+
+      // Pre-encrypt once, then re-encrypt with new plaintext.
+      final firstPlain = Uint8List.fromList(List.filled(256, 0x11));
+      await provider.reEncryptFile(encPath, firstPlain);
+      final firstEnc = await File(encPath).readAsBytes();
+
+      final newPlain = Uint8List.fromList(List.filled(512, 0x33));
+
+      // Act: re-encrypt over the existing target.
+      await provider.reEncryptFile(encPath, newPlain);
+
+      // Assert: target updated (different ciphertext), decrypts to newPlain,
+      // no leftover temp file.
+      final secondEnc = await File(encPath).readAsBytes();
+      expect(secondEnc, isNot(equals(firstEnc)));
+      expect(File('$encPath.tmp').existsSync(), isFalse);
+      final decrypted = await EncryptionService.decryptFile(encPath, 'test-passphrase-123');
+      expect(decrypted, equals(newPlain));
     });
   });
 }

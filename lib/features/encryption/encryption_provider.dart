@@ -57,7 +57,9 @@ class EncryptionProvider extends ChangeNotifier {
 
   /// Re-encrypt an already-decrypted file (save flow).
   /// Accepts plaintext bytes in-memory — doesn't re-read from disk.
-  /// Atomic write — temp file first, then rename.
+  /// Atomic write — temp file first, then rename. Mirrors the overwrite-safe
+  /// commit in [EncryptionService.encryptFile] so re-encrypting over an
+  /// existing .pdf.enc target never corrupts it or leaves a stale .tmp behind.
   Future<void> reEncryptFile(String encPath, Uint8List plaintext) async {
     if (_passphrase == null || _passphrase!.isEmpty) {
       throw const EncryptionException('No passphrase set');
@@ -66,7 +68,33 @@ class EncryptionProvider extends ChangeNotifier {
     final encrypted = EncryptionService.encryptBytes(plaintext, _passphrase!);
 
     final tmpPath = '$encPath.tmp';
-    await File(tmpPath).writeAsBytes(encrypted);
-    await File(tmpPath).rename(encPath);
+    final tmpFile = File(tmpPath);
+
+    try {
+      // Clear any stale temp file left by a previous interrupted run.
+      if (await tmpFile.exists()) {
+        await tmpFile.delete();
+      }
+
+      // Write the whole payload in a single atomic pass (temp file → rename).
+      await tmpFile.writeAsBytes(encrypted);
+
+      // Overwrite-safe commit. On POSIX rename() replaces atomically; on
+      // Windows rename() to an existing path throws, so remove any stale target
+      // first so re-encrypting an already-encrypted file does not crash.
+      final target = File(encPath);
+      if (await target.exists()) {
+        await target.delete();
+      }
+      await tmpFile.rename(encPath);
+    } catch (_) {
+      // Best-effort cleanup of the temp file; never mask the original error.
+      try {
+        if (await tmpFile.exists()) {
+          await tmpFile.delete();
+        }
+      } catch (_) {}
+      rethrow;
+    }
   }
 }
