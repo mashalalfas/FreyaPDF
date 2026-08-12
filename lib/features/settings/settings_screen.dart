@@ -146,17 +146,17 @@ class SettingsScreen extends StatelessWidget {
           // ── Reader Section ──
           _SectionHeader('Reader'),
           SwitchListTile(
-            secondary: const Icon(Icons.view_column_rounded),
-            title: const Text('Continuous scroll'),
+            secondary: const Icon(Icons.auto_stories_rounded),
+            title: const Text('Swipe mode (page turn)'),
             subtitle: Text(
-              'Scroll pages vertically instead of swiping one at a time',
+              'Swipe left/right to turn pages like a book',
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 13,
               ),
             ),
-            value: settings.continuousScroll,
-            onChanged: (v) => settings.setContinuousScroll(v),
+            value: settings.pageTurnMode,
+            onChanged: (v) => settings.setPageTurnMode(v),
           ),
           SwitchListTile(
             secondary: const Icon(Icons.grid_view_rounded),

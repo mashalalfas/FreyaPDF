@@ -13,7 +13,7 @@ class SettingsProvider extends ChangeNotifier {
 
   ThemeMode _themeMode = ThemeMode.system;
   bool _autoEncrypt = false;
-  bool _continuousScroll = false;
+  bool _pageTurnMode = false;
   bool _darkReadingMode = false;
   bool _showThumbnails = true;
   bool _appLockEnabled = false;
@@ -21,7 +21,7 @@ class SettingsProvider extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
   bool get autoEncrypt => _autoEncrypt;
-  bool get continuousScroll => _continuousScroll;
+  bool get pageTurnMode => _pageTurnMode;
   bool get darkReadingMode => _darkReadingMode;
   bool get showThumbnails => _showThumbnails;
   bool get appLockEnabled => _appLockEnabled;
@@ -38,7 +38,7 @@ class SettingsProvider extends ChangeNotifier {
   void _init() {
     _themeMode = _themeModeFromString(_service.themeMode);
     _autoEncrypt = _service.autoEncrypt;
-    _continuousScroll = _service.continuousScroll;
+    _pageTurnMode = _service.pageTurnMode;
     _darkReadingMode = _service.darkReadingMode;
     _showThumbnails = _service.showThumbnails;
     _appLockEnabled = _service.appLockEnabled;
@@ -57,9 +57,9 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setContinuousScroll(bool value) async {
-    _continuousScroll = value;
-    await _service.setContinuousScroll(value);
+  Future<void> setPageTurnMode(bool value) async {
+    _pageTurnMode = value;
+    await _service.setPageTurnMode(value);
     notifyListeners();
   }
 

@@ -16,7 +16,7 @@ class SettingsService {
   static const _kLastDir = '${_prefix}last_dir'; // string (migrated from old key)
   static const _kLastReadPositions = '${_prefix}last_read'; // JSON map of path -> {page, total}
   static const _kFavorites = '${_prefix}favorites'; // JSON string list
-  static const _kContinuousScroll = '${_prefix}continuous_scroll'; // bool
+  static const _kPageTurnMode = '${_prefix}page_turn_mode'; // bool
   static const _kDarkReadingMode = '${_prefix}dark_reading_mode'; // bool
   static const _kShowThumbnails = '${_prefix}show_thumbnails'; // bool
   static const _kAppLockEnabled = '${_prefix}app_lock_enabled'; // bool
@@ -117,10 +117,10 @@ class SettingsService {
     await _prefs.setString(_kLastReadPositions, jsonEncode(all));
   }
 
-  // --- Continuous scroll mode ---
-  bool get continuousScroll => _prefs.getBool(_kContinuousScroll) ?? false;
-  Future<void> setContinuousScroll(bool value) =>
-      _prefs.setBool(_kContinuousScroll, value);
+  // --- Page-turn (horizontal swipe) mode ---
+  bool get pageTurnMode => _prefs.getBool(_kPageTurnMode) ?? false;
+  Future<void> setPageTurnMode(bool value) =>
+      _prefs.setBool(_kPageTurnMode, value);
 
   // --- Dark reading mode ---
   bool get darkReadingMode => _prefs.getBool(_kDarkReadingMode) ?? false;

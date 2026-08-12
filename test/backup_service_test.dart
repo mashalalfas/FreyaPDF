@@ -129,7 +129,7 @@ void main() {
     test('exportAll includes settings', () async {
       await settingsService.setThemeMode('dark');
       await settingsService.setAutoEncrypt(true);
-      await settingsService.setContinuousScroll(true);
+      await settingsService.setPageTurnMode(true);
       await settingsService.setDarkReadingMode(true);
       await settingsService.setShowThumbnails(false);
 
@@ -139,7 +139,7 @@ void main() {
 
       expect(settings['themeMode'], equals('dark'));
       expect(settings['autoEncrypt'], isTrue);
-      expect(settings['continuousScroll'], isTrue);
+      expect(settings['pageTurnMode'], isTrue);
       expect(settings['darkReadingMode'], isTrue);
       expect(settings['showThumbnails'], isFalse);
     });

@@ -166,7 +166,7 @@ class BackupService {
     return {
       'themeMode': settingsService.themeMode,
       'autoEncrypt': settingsService.autoEncrypt,
-      'continuousScroll': settingsService.continuousScroll,
+      'pageTurnMode': settingsService.pageTurnMode,
       'darkReadingMode': settingsService.darkReadingMode,
       'showThumbnails': settingsService.showThumbnails,
       'appLockEnabled': settingsService.appLockEnabled,
@@ -252,9 +252,9 @@ class BackupService {
     if (raw.containsKey('autoEncrypt')) {
       await settingsService.setAutoEncrypt(raw['autoEncrypt'] as bool);
     }
-    if (raw.containsKey('continuousScroll')) {
-      await settingsService.setContinuousScroll(
-        raw['continuousScroll'] as bool,
+    if (raw.containsKey('pageTurnMode')) {
+      await settingsService.setPageTurnMode(
+        raw['pageTurnMode'] as bool,
       );
     }
     if (raw.containsKey('darkReadingMode')) {

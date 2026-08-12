@@ -52,91 +52,71 @@ const ColorFilter _invertColorFilter = ColorFilter.matrix([
   0,
 ]);
 
-/// Result of laying out pages in continuous-scroll mode: the screen-space
-/// rect for each page plus the total document size (logical px).
+/// Result of laying out pages in page-turn (horizontal swipe) mode: the
+/// screen-space rect for each page plus the total document size (logical px).
 @immutable
-class ContinuousScrollPageLayout {
+class PageTurnPageLayout {
   /// Screen-space rect per page, in the same order as the input pages.
   final List<Rect> pageLayouts;
 
-  /// Total document canvas size. Width always equals the viewport width;
-  /// height is the cumulative layout height.
+  /// Total document canvas size. Width is the cumulative page widths (plus
+  /// margins); height is the tallest page (plus margins).
   final Size documentSize;
 
-  const ContinuousScrollPageLayout({
+  const PageTurnPageLayout({
     required this.pageLayouts,
     required this.documentSize,
   });
 }
 
-/// Lay out PDF pages for continuous (vertical) scroll.
+/// Lay out PDF pages for horizontal page-turn (swipe) mode.
 ///
-/// Orientation-aware fit so every page fills the screen with no wasted margins:
+/// Pages are laid side-by-side left-to-right. Each page is scaled to fill the
+/// viewport width (contentWidth / page.width), capped at 1.5x so tiny pages
+/// never upscale past 150%. Pages are vertically centered within the viewport
+/// height. The document scrolls horizontally — documentSize.width is the sum
+/// of all page widths plus margins; documentSize.height is the tallest page
+/// plus margins.
 ///
-///  * **Landscape viewport** (device rotated; [viewportWidth] > [viewportHeight])
-///    — EVERY page auto-zooms to fill the screen width left-to-right
-///    (`contentWidth / page.width`), capped at 1.5x. Vertical content overflows
-///    the bottom and scrolls; horizontal content is always fully visible with
-///    no side margins. This is the Google-Drive-style rotate behaviour.
-///  * **Portrait viewport**: portrait pages (width <= height) keep the original
-///    behaviour — scale so the width fits the viewport width (aspect preserved,
-///    never upscaled, horizontally centered). Landscape pages (width > height)
-///    fill left-to-right capped at 1.5x.
-///
-/// Raw PDF page sizes are in points (72 dpi) and a Letter/A4 page is typically
+/// Raw PDF page sizes are in points (72 dpi). A Letter/A4 page is typically
 /// ~595-612pt wide — far wider than a phone viewport (~360-410dp). Without
-/// scaling such pages overflow the right edge ("full page left to right" with
-/// the right side cut off). This mirrors single-page mode, where
-/// `calcMatrixFitWidthForPage` scales the page to fill the viewport width.
-///
-/// The scale is deliberately NOT height-constrained: height-fitting would trade
-/// the guaranteed edge-to-edge fill for side margins.
+/// scaling such pages would overflow. This mirrors the fit-to-width philosophy
+/// of single-page mode.
 ///
 /// Pure and unit-testable: it takes the page width/height pairs and returns the
 /// rects plus document size, with no dependency on pdfrx native rendering.
 @visibleForTesting
-ContinuousScrollPageLayout layoutContinuousScrollPages(
+PageTurnPageLayout layoutPageTurnPages(
   List<Size> pageSizes,
   double viewportWidth,
   double margin,
   double viewportHeight,
 ) {
   final pageLayouts = <Rect>[];
-  var y = margin;
+  var x = margin;
   // Content area available inside the horizontal margins.
   final contentWidth = math.max(0.0, viewportWidth - margin * 2);
+  var maxHeight = 0.0;
   for (final page in pageSizes) {
-    // Orientation-aware scale. Portrait keeps the width-fit behaviour (below a
-    // portrait page is never height-constrained and never upscaled).
-    // Landscape fills left-to-right at the default 150% zoom: width-fit capped
-    // at 1.5x (Google-Drive-style). viewportHeight is intentionally NOT used to
-    // height-constrain the scale, because that would trade the guaranteed
-    // edge-to-edge fill for side margins.
+    // Scale to fill the viewport width, capped at 1.5x (never upscale past
+    // 150%). This guarantees edge-to-edge horizontal fill.
     final double scale;
     if (page.width <= 0 || contentWidth <= 0) {
       scale = 1.0;
-    } else if (viewportWidth > viewportHeight) {
-      // Landscape viewport (device rotated): EVERY page auto-zooms to fill the
-      // screen width left-to-right, capped at 150%. Vertical overflows and
-      // scrolls; horizontal is always fully visible (Google-Drive style).
-      scale = math.min(1.5, contentWidth / page.width);
-    } else if (page.width > page.height) {
-      // Portrait viewport + landscape page: fill left-to-right, capped at 150%.
-      scale = math.min(1.5, contentWidth / page.width);
     } else {
-      // Portrait viewport + portrait page: unchanged regression-safe fit-to-width.
-      scale = math.min(1.0, contentWidth / page.width);
+      scale = math.min(1.5, contentWidth / page.width);
     }
     final w = page.width * scale;
     final h = page.height * scale;
-    // Horizontally center within the full viewport width.
-    final x = margin + (contentWidth - w) / 2;
+    // Vertically center within the viewport height.
+    final y = margin + (math.max(0.0, viewportHeight - margin * 2) - h) / 2;
     pageLayouts.add(Rect.fromLTWH(x, y, w, h));
-    y += h + margin;
+    x += w + margin;
+    if (h > maxHeight) maxHeight = h;
   }
-  return ContinuousScrollPageLayout(
+  return PageTurnPageLayout(
     pageLayouts: pageLayouts,
-    documentSize: Size(viewportWidth, y),
+    documentSize: Size(x, maxHeight + margin * 2),
   );
 }
 
@@ -1056,6 +1036,48 @@ class _ViewerScreenState extends State<ViewerScreen> {
     }
   }
 
+  /// Snap-to-page handler for page-turn mode.
+  ///
+  /// Called by pdfrx's `onInteractionEnd` when the user lifts their fingers
+  /// after swiping. Reads `controller.layout.pageLayouts` to find the page
+  /// whose center x is nearest the current viewport center, then animates to
+  /// that page. All pdfrx getters are guarded with try/catch because they can
+  /// throw before the viewer is fully laid out.
+  void _onPageTurnInteractionEnd(ScaleEndDetails details) {
+    final controller = _pdfController;
+    if (controller == null || controller.isReady != true) return;
+    try {
+      final layout = controller.layout;
+      final pageLayouts = layout.pageLayouts;
+      if (pageLayouts.isEmpty) return;
+
+      final visible = safeVisibleRect();
+      if (visible == null) return;
+
+      final viewportCenterX = visible.center.dx;
+
+      // Find the page whose center x is nearest the viewport center.
+      int nearestPage = 0;
+      double nearestDistance = double.infinity;
+      for (var i = 0; i < pageLayouts.length; i++) {
+        final pageCenterX = pageLayouts[i].center.dx;
+        final dist = (pageCenterX - viewportCenterX).abs();
+        if (dist < nearestDistance) {
+          nearestDistance = dist;
+          nearestPage = i;
+        }
+      }
+
+      // pdfrx page numbers are 1-based.
+      controller.goToPage(
+        pageNumber: nearestPage + 1,
+        duration: const Duration(milliseconds: 250),
+      );
+    } catch (_) {
+      // Viewer not ready or layout not available — nothing safe to do.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (SearchProvider.kTraceSearchStorm) SearchProvider.stormBuildCount++;
@@ -1663,9 +1685,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
     final pdfViewerWidget = LayoutBuilder(
       builder: (context, constraints) {
-        // Capture the viewport width so the continuous-scroll layout (which
-        // pdfrx calls with only the page list + PdfViewerParams — no viewport
-        // size) can scale each page to fit the screen width.
+        // Capture the viewport width so the page-turn layout (which pdfrx
+        // calls with only the page list + PdfViewerParams — no viewport size)
+        // can scale each page to fit the screen width.
         final viewportWidth = constraints.maxWidth;
         final viewportHeight = constraints.maxHeight;
         return PdfViewer(
@@ -1673,22 +1695,18 @@ class _ViewerScreenState extends State<ViewerScreen> {
           controller: _pdfController,
           initialPageNumber: _currentPage,
           params: PdfViewerParams(
-            // FEATURE 1.5 — Continuous scroll mode vs single-page mode.
+            // FEATURE 1.5 — Page-turn (horizontal swipe) mode vs single-page mode.
             //
             // Single-page mode uses pdfrx's /Fit matrix (calcMatrixForFit) which
             // scales the page to fit the smallest viewport dimension and centres it.
             //
-            // Continuous-scroll mode builds a custom vertical page stack. Raw PDF
-            // page sizes are in points (Letter/A4 ≈ 595-612pt wide) and are far
-            // wider than a phone viewport (~360-410dp); laying them out at their
-            // native size overflows the right edge. We therefore scale each page to
-            // fit the viewport width (aspect preserved, never upscaled) and centre
-            // it, using the viewport width captured above from the LayoutBuilder.
-            // documentSize width = viewport so the document fits the screen
-            // exactly and never overflows horizontally.
-            layoutPages: settings.continuousScroll
+            // Page-turn mode builds a custom horizontal page stack: pages are laid
+            // side-by-side left-to-right, each scaled to fill the viewport width
+            // (capped at 1.5x). The document scrolls horizontally and snaps to the
+            // nearest page on release via onInteractionEnd.
+            layoutPages: settings.pageTurnMode
                 ? (pages, params) {
-                    final laidOut = layoutContinuousScrollPages(
+                    final laidOut = layoutPageTurnPages(
                       [for (final p in pages) Size(p.width, p.height)],
                       viewportWidth,
                       params.margin,
@@ -1735,10 +1753,13 @@ class _ViewerScreenState extends State<ViewerScreen> {
             onDocumentChanged: _onDocumentChanged,
             onDocumentLoadFinished: _onDocumentLoadFinished,
             onViewerReady: _onViewerReady,
-            onViewSizeChanged: settings.continuousScroll
+            onViewSizeChanged: settings.pageTurnMode
                 ? null
                 : _refitAfterRotation,
             onPageChanged: _onPageChanged,
+            onInteractionEnd: settings.pageTurnMode
+                ? _onPageTurnInteractionEnd
+                : null,
           ),
         );
       },
