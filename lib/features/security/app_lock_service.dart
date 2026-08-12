@@ -287,11 +287,14 @@ class AppLockService {
 
   Future<bool> authenticateWithBiometrics() async {
     try {
-      return await _auth.authenticate(
+      debugPrint('[biometric] authenticateWithBiometrics: calling local_auth.authenticate...');
+      final result = await _auth.authenticate(
         localizedReason: 'Unlock Freya PDF',
         biometricOnly: true,
         persistAcrossBackgrounding: true,
       );
+      debugPrint('[biometric] authenticateWithBiometrics: result=$result');
+      return result;
     } catch (e) {
       debugPrint('[biometric] authenticate failed: $e');
       return false;

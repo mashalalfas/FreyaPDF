@@ -183,12 +183,40 @@ void main() {
       });
 
       test(
-        'pages are not upscaled beyond their natural width on wide viewports',
+        'landscape viewport: narrow pages upscale to fill the width (≤150%)',
         () {
-          // A narrow page on a wide viewport must keep its native size.
+          // Device rotated (viewport wider than tall): a narrow/portrait page
+          // must AUTO-ZOOM to fill the screen width, capped at 150% — vertical
+          // overflows and scrolls, horizontal is always fully visible.
           const narrow = Size(200, 300);
-          final l = layoutContinuousScrollPages([narrow], 800, 8, 780);
-          expect(l.pageLayouts.single.width, equals(200));
+          final l = layoutContinuousScrollPages([narrow], 800, 8, 360);
+          final rect = l.pageLayouts.single;
+          final contentWidth = 800 - 8 * 2; // 784
+          final expectedScale = math.min(1.5, contentWidth / narrow.width);
+          expect(rect.width, closeTo(narrow.width * expectedScale, 0.0001));
+          // 200 * 1.5 = 300 — the 150% cap stops a tiny page from blowing up.
+          expect(rect.width, closeTo(300, 0.0001));
+          // Horizontally centred within the content area.
+          final centerOff = (rect.left - 8) + (rect.width / 2);
+          expect(centerOff, closeTo(contentWidth / 2, 0.0001));
+        },
+      );
+
+      test(
+        'landscape viewport: portrait A4 fills the width (no side margins)',
+        () {
+          // The exact user scenario: rotate to landscape, page must zoom in to
+          // fill the screen edge-to-edge (Google-Drive style), not sit at
+          // native width with wasted side margins.
+          const a4 = Size(595, 842);
+          const vw = 800.0;
+          const vh = 360.0;
+          final l = layoutContinuousScrollPages([a4], vw, 8, vh);
+          final rect = l.pageLayouts.single;
+          final contentWidth = vw - 16; // 784
+          expect(rect.width, closeTo(contentWidth, 0.0001));
+          expect(rect.left, closeTo(8, 0.0001));
+          expect(rect.right, closeTo(vw - 8, 0.0001));
         },
       );
 

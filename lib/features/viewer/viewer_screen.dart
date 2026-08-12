@@ -73,24 +73,24 @@ class ContinuousScrollPageLayout {
 ///
 /// Orientation-aware fit so every page fills the screen with no wasted margins:
 ///
-///  * **Portrait** pages (width <= height) keep the original behaviour — scale
-///    so the width fits the viewport width (aspect preserved, never upscaled,
-///    horizontally centered). Portrait pages stack naturally and stretch down.
-///  * **Landscape** pages (width > height) use the default 150% zoom behaviour:
-///    they fill left-to-right (`contentWidth / page.width`), capped at 1.5x so
-///    they never upscale past 150% on a wide viewport. This mirrors
-///    Google-Drive-style continuous reading: the page always fills the width
-///    edge to edge with no wasted side margins.
+///  * **Landscape viewport** (device rotated; [viewportWidth] > [viewportHeight])
+///    — EVERY page auto-zooms to fill the screen width left-to-right
+///    (`contentWidth / page.width`), capped at 1.5x. Vertical content overflows
+///    the bottom and scrolls; horizontal content is always fully visible with
+///    no side margins. This is the Google-Drive-style rotate behaviour.
+///  * **Portrait viewport**: portrait pages (width <= height) keep the original
+///    behaviour — scale so the width fits the viewport width (aspect preserved,
+///    never upscaled, horizontally centered). Landscape pages (width > height)
+///    fill left-to-right capped at 1.5x.
 ///
 /// Raw PDF page sizes are in points (72 dpi) and a Letter/A4 page is typically
 /// ~595-612pt wide — far wider than a phone viewport (~360-410dp). Without
 /// scaling such pages overflow the right edge ("full page left to right" with
 /// the right side cut off). This mirrors single-page mode, where
-/// `calcMatrixForFit` scales the page to fit the smallest viewport dimension.
+/// `calcMatrixFitWidthForPage` scales the page to fill the viewport width.
 ///
-/// [viewportHeight] is retained for API compatibility; the current spec gives
-/// priority to fill-left-to-right at <=1.5x and therefore does not height-constrain
-/// the scale (height-fitting would re-introduce side margins).
+/// The scale is deliberately NOT height-constrained: height-fitting would trade
+/// the guaranteed edge-to-edge fill for side margins.
 ///
 /// Pure and unit-testable: it takes the page width/height pairs and returns the
 /// rects plus document size, with no dependency on pdfrx native rendering.
@@ -115,11 +115,16 @@ ContinuousScrollPageLayout layoutContinuousScrollPages(
     final double scale;
     if (page.width <= 0 || contentWidth <= 0) {
       scale = 1.0;
+    } else if (viewportWidth > viewportHeight) {
+      // Landscape viewport (device rotated): EVERY page auto-zooms to fill the
+      // screen width left-to-right, capped at 150%. Vertical overflows and
+      // scrolls; horizontal is always fully visible (Google-Drive style).
+      scale = math.min(1.5, contentWidth / page.width);
     } else if (page.width > page.height) {
-      // Landscape: fill left-to-right, capped at 150%.
+      // Portrait viewport + landscape page: fill left-to-right, capped at 150%.
       scale = math.min(1.5, contentWidth / page.width);
     } else {
-      // Portrait: unchanged regression-safe fit-to-width.
+      // Portrait viewport + portrait page: unchanged regression-safe fit-to-width.
       scale = math.min(1.0, contentWidth / page.width);
     }
     final w = page.width * scale;
@@ -136,17 +141,20 @@ ContinuousScrollPageLayout layoutContinuousScrollPages(
 }
 
 /// AppBar wrapper that keeps the [AppBar] in the widget tree at all times but
-/// slides it up off-screen AND fades it to fully invisible when `isFullscreen`
-/// is true.
+/// hides it completely when `isFullscreen` is true.
 ///
 /// Crucially it does NOT remove the AppBar from the tree (do not swap to
-/// `appBar: null`): removing/re-adding it shrinks the body and forces the
-/// PdfViewer to relayout and re-render, which ANRs on large image-heavy PDFs.
-/// AnimatedSlide only translates the already-reserved slot, so the viewer's
-/// size never changes, and AnimatedOpacity drives the whole wrapper to
-/// `opacity: 0` so no residual chrome (background, border, or any bottom row
-/// the AppBar contributes) remains visible. Reports the child's preferredSize
-/// so the Scaffold lays it out exactly as before.
+/// `appBar: null`): removing/re-adding it changes the Scaffold's child list,
+/// which can REMOUNT the body subtree and force the PdfViewer to rebuild from
+/// scratch — an ANR on large image-heavy PDFs. Two things happen instead:
+///
+///  1. [preferredSize] collapses to zero height in fullscreen, so the Scaffold
+///     stops reserving the appBar slot and the body (the PDF viewer) expands
+///     to fill the whole screen. The AppBar widget itself stays mounted in the
+///     same slot, so the body only RELAYOUTS (pdfrx's `_updateLayout` handles
+///     view-size changes) — it is never remounted.
+///  2. The bar fades out and slides up so the collapse is visually smooth
+///     rather than an instant jump.
 class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
   const _AnimatedAppBar({required this.isFullscreen, required this.child});
 
@@ -154,7 +162,8 @@ class _AnimatedAppBar extends StatelessWidget implements PreferredSizeWidget {
   final AppBar child;
 
   @override
-  Size get preferredSize => child.preferredSize;
+  Size get preferredSize =>
+      Size.fromHeight(isFullscreen ? 0 : child.preferredSize.height);
 
   @override
   Widget build(BuildContext context) {
@@ -1014,6 +1023,39 @@ class _ViewerScreenState extends State<ViewerScreen> {
     }
   }
 
+  /// Re-fit the current page after a device rotation (single-page mode).
+  ///
+  /// pdfrx's `/Fit` (used on initial load) scales to the SMALLEST viewport
+  /// dimension, which in landscape is the HEIGHT — leaving side margins.
+  /// The user-facing spec is: rotating must auto-zoom the page so it FILLS
+  /// the screen width (vertical content overflows and scrolls; horizontal is
+  /// always fully visible). Landscape therefore uses `calcMatrixFitWidthForPage`;
+  /// portrait keeps the classic fit (which for portrait pages is width-fit
+  /// anyway). Only fires on an actual orientation flip, not every resize
+  /// (keyboard, split-screen, etc.).
+  Future<void> _refitAfterRotation(
+    Size viewSize,
+    Size? oldViewSize,
+    PdfViewerController controller,
+  ) async {
+    if (oldViewSize == null) return;
+    final wasLandscape = oldViewSize.width > oldViewSize.height;
+    final isLandscape = viewSize.width > viewSize.height;
+    if (wasLandscape == isLandscape) return; // resize, not a flip
+    if (controller.isReady != true) return;
+    try {
+      final page = controller.pageNumber ?? _currentPage;
+      final fit = isLandscape
+          ? controller.calcMatrixFitWidthForPage(pageNumber: page)
+          : controller.calcMatrixForFit(pageNumber: page);
+      if (fit != null) {
+        await controller.goTo(fit, duration: const Duration(milliseconds: 200));
+      }
+    } catch (_) {
+      // Viewer not ready / matrix lock — nothing safe to do; ignore.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (SearchProvider.kTraceSearchStorm) SearchProvider.stormBuildCount++;
@@ -1693,6 +1735,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
             onDocumentChanged: _onDocumentChanged,
             onDocumentLoadFinished: _onDocumentLoadFinished,
             onViewerReady: _onViewerReady,
+            onViewSizeChanged: settings.continuousScroll
+                ? null
+                : _refitAfterRotation,
             onPageChanged: _onPageChanged,
           ),
         );
