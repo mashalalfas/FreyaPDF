@@ -3,6 +3,22 @@
 All notable changes to Freya PDF are documented here. Version format follows
 `pubspec.yaml` (`1.2.0+6` = version 1.2.0, build 6).
 
+## [1.3.5+12] — 2026-08-12
+
+### Added
+
+- **Page-turn swipe mode** — horizontal page-turn reading mode with snap-to-page, toggled via settings. Uses pdfrx `layoutPages` for horizontal layout; single-finger swipes >25% page width trigger page navigation.
+- Rotate-to-fill width on orientation change.
+- Fullscreen topbar collapse.
+
+### Fixed
+
+- **Biometric prompt** — switched `MainActivity` to `FlutterFragmentActivity` so `local_auth` renders the biometric prompt correctly.
+- **Highlight draw repaint** — force viewer `invalidate()` after draw so committed highlight boxes appear immediately without manual interaction.
+- **Zoom controls** — removed auto-fade (was causing "zoom button disappeared" feedback); controls now stay visible.
+- Swipe-mode snap no longer fires on pinch-zoom `onInteractionEnd` — gated on `pointerCount == 1` and displacement threshold.
+- Rotation refit in page-turn mode (was missing `onViewSizeChanged` handler → page off-center after rotate).
+
 ## [1.2.0+6] — 2026-08-09
 
 ### Fixed
