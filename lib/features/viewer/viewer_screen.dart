@@ -108,8 +108,10 @@ PageTurnPageLayout layoutPageTurnPages(
     }
     final w = page.width * scale;
     final h = page.height * scale;
-    // Vertically center within the viewport height.
-    final y = margin + (math.max(0.0, viewportHeight - margin * 2) - h) / 2;
+    // Top-align pages (never negative y): a page taller than the viewport
+    // (e.g. portrait page in landscape) starts at the top and scrolls down,
+    // and the rotation refit re-centers it afterwards.
+    final y = margin;
     pageLayouts.add(Rect.fromLTWH(x, y, w, h));
     x += w + margin;
     if (h > maxHeight) maxHeight = h;
@@ -1036,6 +1038,35 @@ class _ViewerScreenState extends State<ViewerScreen> {
     }
   }
 
+  /// Re-center the current page after a device rotation (page-turn mode).
+  ///
+  /// The horizontal page-turn layout rebuilds automatically on size change,
+  /// but the viewport keeps its old scroll offset, so after rotating the
+  /// current page ends up off-center and at the wrong zoom. On an actual
+  /// orientation flip, go to the current page again — pdfrx then fits it to
+  /// the new viewport (fills width) and centers it horizontally. Only fires
+  /// on a flip, not on every resize.
+  Future<void> _refitPageTurnAfterRotation(
+    Size viewSize,
+    Size? oldViewSize,
+    PdfViewerController controller,
+  ) async {
+    if (oldViewSize == null) return;
+    final wasLandscape = oldViewSize.width > oldViewSize.height;
+    final isLandscape = viewSize.width > viewSize.height;
+    if (wasLandscape == isLandscape) return; // resize, not a flip
+    if (controller.isReady != true) return;
+    try {
+      final page = controller.pageNumber ?? _currentPage;
+      await controller.goToPage(
+        pageNumber: page,
+        duration: const Duration(milliseconds: 200),
+      );
+    } catch (_) {
+      // Viewer not ready — nothing safe to do; ignore.
+    }
+  }
+
   /// Snap-to-page handler for page-turn mode.
   ///
   /// Called by pdfrx's `onInteractionEnd` when the user lifts their fingers
@@ -1043,9 +1074,19 @@ class _ViewerScreenState extends State<ViewerScreen> {
   /// whose center x is nearest the current viewport center, then animates to
   /// that page. All pdfrx getters are guarded with try/catch because they can
   /// throw before the viewer is fully laid out.
+  ///
+  /// Two guards keep this from wrecking the reading experience:
+  ///  * **Pinch zoom (pointerCount != 1) never snaps** — a two-finger zoom
+  ///    must not trigger a page jump or a zoom reset (goToPage re-fits the
+  ///    page). This was the "zooming out and turning 100 pages" bug.
+  ///  * **Small drifts within a page never snap** — the view must have
+  ///    actually moved off the page center (a real swipe) before we re-snap,
+  ///    so panning around inside a zoomed-in page stays put.
   void _onPageTurnInteractionEnd(ScaleEndDetails details) {
     final controller = _pdfController;
     if (controller == null || controller.isReady != true) return;
+    // Pinch zoom (2+ fingers) must never trigger a page jump or zoom reset.
+    if (details.pointerCount != 1) return;
     try {
       final layout = controller.layout;
       final pageLayouts = layout.pageLayouts;
@@ -1067,6 +1108,11 @@ class _ViewerScreenState extends State<ViewerScreen> {
           nearestPage = i;
         }
       }
+
+      // Only snap when the view has actually drifted off the page center
+      // (a real page-turn swipe). Panning within a zoomed page stays put.
+      final pageWidth = pageLayouts[nearestPage].width;
+      if (nearestDistance < pageWidth * 0.25) return;
 
       // pdfrx page numbers are 1-based.
       controller.goToPage(
@@ -1754,7 +1800,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
             onDocumentLoadFinished: _onDocumentLoadFinished,
             onViewerReady: _onViewerReady,
             onViewSizeChanged: settings.pageTurnMode
-                ? null
+                ? _refitPageTurnAfterRotation
                 : _refitAfterRotation,
             onPageChanged: _onPageChanged,
             onInteractionEnd: settings.pageTurnMode

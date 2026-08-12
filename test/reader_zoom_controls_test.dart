@@ -223,8 +223,7 @@ void main() {
     expect(find.byIcon(Icons.fullscreen_rounded), findsOneWidget);
   });
 
-  testWidgets('expanded row never auto-fades; collapsed fades 5s→0.3, '
-      '+5s→0.0+IgnorePointer; re-tap restores', (tester) async {
+  testWidgets('controls never auto-fade — stay visible while idle', (tester) async {
     var zoomInCalls = 0;
     await tester.pumpWidget(
       _wrap(
@@ -236,63 +235,26 @@ void main() {
       ),
     );
 
-    double fadeOpacity() {
-      final ft = tester.widget<FadeTransition>(
-        find.byKey(const ValueKey('zoom-controls-fade')),
-      );
-      return ft.opacity.value;
-    }
-
-    // Fully visible initially (collapsed).
-    expect(fadeOpacity(), 1.0);
-
-    // Expand (an interaction): stays at 1.0 and — critically — NEVER fades
-    // while expanded, even long after the old 3s/6s windows would have fired.
-    await tester.tap(find.byIcon(Icons.zoom_in_rounded));
-    await tester.pumpAndSettle();
-    expect(fadeOpacity(), 1.0);
-    await tester.pump(const Duration(seconds: 8));
-    await tester.pumpAndSettle();
-    expect(fadeOpacity(), 1.0,
-        reason: 'Expanded controls must never auto-fade.');
+    // No fade wrapper exists at all — the auto-fade was removed after
+    // device feedback that the zoom button kept disappearing.
+    expect(find.byKey(const ValueKey('zoom-controls-fade')), findsNothing);
     expect(find.byKey(const ValueKey('zoom-controls-ignore')), findsNothing);
 
-    // Collapse: starts the 5s countdown fresh; +5s of inactivity fades the
-    // collapsed control to the 0.3 floor (still tappable, not ignored).
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    // Collapsed button is visible and stays visible after a long idle window.
+    expect(find.byIcon(Icons.zoom_in_rounded), findsOneWidget);
+    await tester.pump(const Duration(seconds: 12));
     await tester.pumpAndSettle();
-    expect(fadeOpacity(), 1.0);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    expect(fadeOpacity(), closeTo(0.3, 0.01),
-        reason: 'Collapsed control floors at 0.3 after 5s idle.');
-    expect(find.byKey(const ValueKey('zoom-controls-ignore')), findsNothing,
-        reason: 'At the 0.3 floor the control must stay tappable.');
+    expect(find.byIcon(Icons.zoom_in_rounded), findsOneWidget,
+        reason: 'Collapsed control must stay visible — no auto-fade.');
 
-    // Any interaction while visible resets timers back to full 1.0 (here: a
-    // re-expand before the full-hide fires).
+    // Expand: row stays visible too, even after another idle window.
     await tester.tap(find.byIcon(Icons.zoom_in_rounded));
     await tester.pumpAndSettle();
-    expect(fadeOpacity(), 1.0,
-        reason: 'Interaction must reset the collapsed control to full opacity.');
-
-    // Expand: never fades, even after another long idle window.
-    await tester.pump(const Duration(seconds: 8));
+    expect(find.byIcon(Icons.remove_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+    await tester.pump(const Duration(seconds: 12));
     await tester.pumpAndSettle();
-    expect(fadeOpacity(), 1.0,
-        reason: 'Expanded controls must never auto-fade.');
-
-    // Collapse again and run the full 10s idle window → 0.0 and IgnorePointer.
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    expect(fadeOpacity(), closeTo(0.3, 0.01));
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    expect(fadeOpacity(), 0.0,
-        reason: 'After ~10s total idle the collapsed control fully hides.');
-    expect(find.byKey(const ValueKey('zoom-controls-ignore')), findsOneWidget,
-        reason: 'Only once fully hidden should the control be ignored.');
+    expect(find.byIcon(Icons.remove_rounded), findsOneWidget,
+        reason: 'Expanded row must stay visible — no auto-fade.');
   });
 }

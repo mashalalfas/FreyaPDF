@@ -14,16 +14,9 @@
 // lets a page edge drift out of view. See
 // lib/features/viewer/pdf_zoom_math.dart for the pure math.
 //
-// The whole control auto-fades when COLLAPSED and idle: any interaction (tap
-// to expand or an action fire) snaps it back to fully visible, then after ~5s
-// of inactivity it fades to a 30% floor — never below that while collapsed —
-// and only after a further ~5s (≈10s total idle) fades to fully hidden (when
-// hidden, double-tapping the empty area behind it / re-tapping restores it).
-// While at 30% it stays tappable; only once fully hidden is it wrapped in
-// IgnorePointer. When EXPANDED it never auto-fades — it stays fully visible
-// until the user collapses it, so the control never vanishes mid-reading.
-
-import 'dart:async';
+// The control NEVER auto-fades: it stays fully visible so it can always be
+// found mid-reading (earlier auto-fade versions caused "the zoom button
+// disappeared" device feedback).
 
 import 'package:flutter/material.dart';
 
@@ -65,133 +58,49 @@ class ReaderZoomControls extends StatefulWidget {
   State<ReaderZoomControls> createState() => _ReaderZoomControlsState();
 }
 
-class _ReaderZoomControlsState extends State<ReaderZoomControls>
-    with SingleTickerProviderStateMixin {
+class _ReaderZoomControlsState extends State<ReaderZoomControls> {
   bool _expanded = false;
-
-  /// Drives the auto-fade of the whole control (1.0 visible → 0.0 hidden).
-  late final AnimationController _fadeController;
-
-  /// Scheduled fade timers; cancelled in dispose so no pending timers leak
-  /// into the test framework or a stale widget.
-  Timer? _fadeTimer;
-  Timer? _fadeTimer2;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 250),
-      value: 1.0, // start fully visible
-    );
-  }
-
-  @override
-  void dispose() {
-    _fadeTimer?.cancel();
-    _fadeTimer2?.cancel();
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  /// Restarts the auto-fade according to the current state:
-  ///   * **Expanded** — snap to fully visible and NEVER auto-fade (no timers
-  ///     are scheduled so the row stays at full opacity while reading).
-  ///   * **Collapsed** — snap to fully visible, then after 5s of no interaction
-  ///     fade to a 0.3 floor (never below while collapsed); only after a
-  ///     further 5s (≈10s total idle) fade to 0.0, which detaches the control
-  ///     via IgnorePointer in [build].
-  /// Any interaction resets the timers (and snaps opacity back to 1.0) so no
-  /// stale schedule ever wins over a fresh tap. Timers are cancelled/recreated
-  /// here and cancelled in [dispose] so none leak into the test framework.
-  void _startFade() {
-    _fadeTimer?.cancel();
-    _fadeTimer2?.cancel();
-    _fadeController
-      ..reset()
-      ..forward();
-    // Expanded: never auto-fade — stay fully visible until the user collapses.
-    if (_expanded) return;
-    _fadeTimer = Timer(const Duration(seconds: 5), () {
-      if (!mounted || _expanded) return;
-      _fadeController.animateTo(0.3);
-      _fadeTimer2 = Timer(const Duration(seconds: 5), () {
-        if (!mounted || _expanded) return;
-        _fadeController.animateTo(0.0);
-      });
-    });
-  }
 
   void _toggleExpanded() {
     setState(() => _expanded = !_expanded);
-    _startFade();
   }
 
   void _fire(VoidCallback action) {
     action();
     // Keep the row open so the user can re-tap repeatedly (multiple zoom
-    // steps) without re-expanding each time. Also refresh the auto-fade timer.
-    _startFade();
+    // steps) without re-expanding each time.
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    // AnimatedBuilder re-runs this on every fade tick so the IgnorePointer
-    // wrapper is attached exactly when the control becomes fully hidden (0.0)
-    // and detached as soon as any interaction brings it back — without relying
-    // on a status-listener rebuild that a test pump may or may not flush.
-    return AnimatedBuilder(
-      animation: _fadeController,
-      builder: (context, _) {
-        final fullyHidden = _fadeController.value <= 0.02;
-
-        Widget controls = AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          switchInCurve: Curves.easeOut,
-          switchOutCurve: Curves.easeIn,
-          transitionBuilder: (child, animation) => ScaleTransition(
-            scale: animation,
-            alignment: Alignment.centerRight,
-            child: FadeTransition(opacity: animation, child: child),
-          ),
-          child: _expanded
-              ? _CompactActionRow(
-                  key: const ValueKey('row'),
-                  colorScheme: cs,
-                  onZoomIn: () => _fire(widget.onZoomIn),
-                  onZoomOut: () => _fire(widget.onZoomOut),
-                  onReset: () => _fire(widget.onReset),
-                  onToggleFullscreen: () =>
-                      _fire(widget.onToggleFullscreen ?? () {}),
-                  onCollapse: _toggleExpanded,
-                  isFullscreen: widget.isFullscreen,
-                )
-              : _FloatingZoomButton(
-                  key: const ValueKey('button'),
-                  colorScheme: cs,
-                  onPressed: _toggleExpanded,
-                ),
-        );
-
-        // The fade wrapper sits OUTSIDE the AnimatedSwitcher so the
-        // expand/collapse scale animation is not disturbed. IgnorePointer only
-        // once fully hidden (0.0); at 0.3 the control must stay tappable.
-        controls = FadeTransition(
-          key: const ValueKey('zoom-controls-fade'),
-          opacity: _fadeController,
-          child: controls,
-        );
-        if (fullyHidden) {
-          controls = IgnorePointer(
-            key: const ValueKey('zoom-controls-ignore'),
-            child: controls,
-          );
-        }
-        return controls;
-      },
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 180),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) => ScaleTransition(
+        scale: animation,
+        alignment: Alignment.centerRight,
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: _expanded
+          ? _CompactActionRow(
+              key: const ValueKey('row'),
+              colorScheme: cs,
+              onZoomIn: () => _fire(widget.onZoomIn),
+              onZoomOut: () => _fire(widget.onZoomOut),
+              onReset: () => _fire(widget.onReset),
+              onToggleFullscreen: () =>
+                  _fire(widget.onToggleFullscreen ?? () {}),
+              onCollapse: _toggleExpanded,
+              isFullscreen: widget.isFullscreen,
+            )
+          : _FloatingZoomButton(
+              key: const ValueKey('button'),
+              colorScheme: cs,
+              onPressed: _toggleExpanded,
+            ),
     );
   }
 }

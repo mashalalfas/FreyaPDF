@@ -247,15 +247,13 @@ void main() {
         expect(l.documentSize.height, closeTo(pageH + margin * 2, 0.0001));
       });
 
-      test('pages are vertically centered within viewport', () {
+      test('pages are top-aligned within viewport', () {
         const vh = 780.0;
         final l = layoutPageTurnPages([a4], viewportWidth, margin, vh);
         final rect = l.pageLayouts.single;
-        final contentWidth = viewportWidth - margin * 2;
-        final scale = math.min(1.5, contentWidth / a4.width);
-        final pageH = a4.height * scale;
-        final expectedY = margin + (vh - margin * 2 - pageH) / 2;
-        expect(rect.top, closeTo(expectedY, 0.0001));
+        // Top-aligned: a page taller than the viewport starts at the top
+        // margin and scrolls down (never a negative offset).
+        expect(rect.top, closeTo(margin, 0.0001));
       });
 
       test('a page narrower than the content area fills width (150% cap)', () {
@@ -356,8 +354,8 @@ void main() {
 
       test('page fit-to-width is UNCHANGED by the height param', () {
         // Regression guard: the viewportHeight argument must not change the
-        // layout's scale — the page is still width-fit and height is only
-        // used for vertical centering.
+        // layout's scale — the page is still width-fit and top-aligned
+        // (height is not used for centering, so Y stays at the margin).
         const a4 = Size(595, 842);
         final tall = layoutPageTurnPages([a4], 360, 8, 1500);
         final short = layoutPageTurnPages([a4], 360, 8, 300);
@@ -369,11 +367,12 @@ void main() {
           tall.pageLayouts.single.height,
           closeTo(short.pageLayouts.single.height, 0.0001),
         );
-        // But the Y position changes (vertical centering).
+        // Top-aligned: Y position is identical regardless of viewport height.
         expect(
           tall.pageLayouts.single.top,
-          isNot(closeTo(short.pageLayouts.single.top, 0.0001)),
+          closeTo(short.pageLayouts.single.top, 0.0001),
         );
+        expect(tall.pageLayouts.single.top, closeTo(8, 0.0001));
       });
     },
   );
