@@ -24,6 +24,7 @@ import 'package:freya_pdf/features/encryption/widgets/encryption_badge.dart';
 import 'package:freya_pdf/features/encryption/widgets/encrypting_progress_dialog.dart';
 import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
 import 'package:freya_pdf/features/security/widgets/secure_folder_card.dart';
+import 'package:freya_pdf/features/file_management/widgets/delete_original_dialog.dart';
 import 'package:freya_pdf/features/file_management/permission_service.dart';
 import 'package:freya_pdf/features/file_management/intent_handler.dart';
 import 'package:freya_pdf/features/security/secure_folder_service.dart';
@@ -449,6 +450,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     closeEncryptingProgressDialog(context);
     if (!mounted) return;
     if (result != null) {
+      // The original plaintext is left in place by design (only the auto-encrypt
+      // path deletes it). Offer the user an explicit choice to delete it so
+      // they don't end up with a confusing duplicate next to the .enc. Show the
+      // dialog and delete the original ONLY if they tap Delete — default is Keep.
+      final deleteOriginal = await showDeleteOriginalDialog(
+        context,
+        message: 'Encrypted successfully. Delete the original ${file.displayName}?',
+      );
+      if (deleteOriginal && mounted) {
+        // The original PdfFile still points at the plaintext path, which still
+        // exists, so deleteFile on it removes the plaintext copy.
+        await fileOps.deleteFile(file);
+        // ignore: use_build_context_synchronously
+        context.read<AppState>().refresh();
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${file.displayName} encrypted'),
@@ -1106,6 +1123,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     closeEncryptingProgressDialog(context);
     if (mounted) {
       context.read<SelectionProvider>().exitSelectionMode();
+      if (encrypted.isNotEmpty) {
+        // Offer to delete the original plaintext files that were successfully
+        // encrypted. Default is Keep; only deletes on an explicit Delete tap.
+        final deleteOriginals = await showDeleteOriginalDialog(
+          context,
+          message: encrypted.length == 1
+              ? 'Encrypted successfully. Delete the original file?'
+              : 'Encrypted successfully. Delete the ${encrypted.length} original files?',
+        );
+        if (deleteOriginals && mounted) {
+          // Delete only the originals whose .enc was successfully created,
+          // skipping any that fail (best-effort) but counting the rest.
+          final encSet = encrypted.toSet();
+          var deleted = 0;
+          for (final originalPath in paths) {
+            final encPath = '$originalPath.enc';
+            if (!encSet.contains(encPath)) continue; // .enc never created
+            final pdfFile = PdfFile.fromFileSystem(File(originalPath));
+            final ok = await fileOps.deleteFile(pdfFile);
+            if (ok) deleted++;
+          }
+          // ignore: use_build_context_synchronously
+          context.read<AppState>().refresh();
+          if (deleted > 0 && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('$deleted original file${deleted == 1 ? '' : 's'} deleted'),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+            return; // skip the generic "encrypted" snackbar
+          }
+        }
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${encrypted.length} file${encrypted.length == 1 ? '' : 's'} encrypted'),
