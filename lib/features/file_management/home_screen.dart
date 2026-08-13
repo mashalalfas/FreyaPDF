@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Freya. All rights reserved.
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -438,9 +439,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
     final fileOps = context.read<FileOperationsProvider>();
     // Show an animated indeterminate dialog so the UI never looks frozen while
-    // encryption runs (a large file may take a while).
+    // encryption runs (a large file may take a while). Do NOT await the dialog:
+    // showDialog's future only completes when the dialog is popped, so awaiting
+    // it here would deadlock before encryption ever starts.
     // ignore: use_build_context_synchronously
-    await showEncryptingProgressDialog(context, fileName: file.displayName);
+    unawaited(showEncryptingProgressDialog(context, fileName: file.displayName));
     final result = await fileOps.encryptFile(file);
     // ignore: use_build_context_synchronously
     closeEncryptingProgressDialog(context);
@@ -471,11 +474,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!set || !mounted) return;
     }
     final fileOps = context.read<FileOperationsProvider>();
+    // Do NOT await the dialog: showDialog's future completes only when the
+    // dialog is popped, so awaiting here would deadlock before decrypting.
     // ignore: use_build_context_synchronously
-    await showEncryptingProgressDialog(
+    unawaited(showEncryptingProgressDialog(
       context,
       fileName: file.name, // keep the raw .enc name for clarity while decrypting
-    );
+    ));
     final result = await fileOps.decryptFileToPlain(file);
     // ignore: use_build_context_synchronously
     closeEncryptingProgressDialog(context);
@@ -1087,8 +1092,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // Show an animated progress dialog that reports a live "X of N" count,
     // updated as each file completes via the batch callback. Keeps the UI from
     // ever looking frozen during a large batch.
+    // Do NOT await the dialog: showDialog's future completes only when the
+    // dialog is popped, so awaiting here would deadlock before the batch runs.
     // ignore: use_build_context_synchronously
-    await showEncryptingProgressDialog(context, fileName: '', total: paths.length);
+    unawaited(showEncryptingProgressDialog(context, fileName: '', total: paths.length));
     final encrypted = await fileOps.batchEncrypt(
       paths,
       onProgress: (completed, total) =>
@@ -1121,8 +1128,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
     final fileOps = context.read<FileOperationsProvider>();
     final encOnly = paths.toList();
+    // Do NOT await the dialog: showDialog's future completes only when the
+    // dialog is popped, so awaiting here would deadlock before decrypting.
     // ignore: use_build_context_synchronously
-    await showEncryptingProgressDialog(context, fileName: '', total: encOnly.length);
+    unawaited(showEncryptingProgressDialog(context, fileName: '', total: encOnly.length));
     var successCount = 0;
     for (var i = 0; i < encOnly.length; i++) {
       final pdfFile = PdfFile.fromFileSystem(File(encOnly[i]));
