@@ -95,7 +95,13 @@ class _SecureFolderImportDialogState
         children: [
           Icon(Icons.lock_rounded, color: colorScheme.primary, size: 22),
           const SizedBox(width: 10),
-          const Text('Import to Secure Folder'),
+          const Expanded(
+            child: Text(
+              'Import to Secure Folder',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
       content: isImporting
@@ -376,6 +382,7 @@ class _ImportProgressState extends State<_ImportProgress>
             _done
                 ? 'Encrypted ${widget.total} of ${widget.total}'
                 : 'Encrypting ${widget.completed + 1} of ${widget.total}',
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,

@@ -11,6 +11,11 @@ import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
 class EncryptionProvider extends ChangeNotifier {
   String? _passphrase;
 
+  /// Optional passphrase restored from secure storage on startup, so the user
+  /// does not have to re-enter it after every app restart.
+  EncryptionProvider({String? initialPassphrase})
+      : _passphrase = initialPassphrase;
+
   String? get passphrase => _passphrase;
   bool get isLocked => _passphrase == null || _passphrase!.isEmpty;
   bool get hasPassphrase => _passphrase != null && _passphrase!.isNotEmpty;
