@@ -304,8 +304,13 @@ class _ImportProgress extends StatefulWidget {
 }
 
 class _ImportProgressState extends State<_ImportProgress>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _controller;
+  // An indeterminate shimmer that sweeps a thin, brighter arc around the lock
+  // ring while a file is being processed. Keeps a single slow file (progress stays
+  // ~0 for a while) from looking frozen/static. It pauses once the batch is done
+  // so it never fights the completion ring + checkmark.
+  late final AnimationController _shimmer;
   double _from = 0;
 
   bool get _done => widget.completed >= widget.total && widget.total > 0;
@@ -318,11 +323,22 @@ class _ImportProgressState extends State<_ImportProgress>
       duration: const Duration(milliseconds: 600),
     )..value = widget.progress.clamp(0.0, 1.0);
     _from = _controller.value;
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
   }
 
   @override
   void didUpdateWidget(_ImportProgress oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Freeze the shimmer once the batch completes so it never fights the
+    // completion ring + checkmark; keep sweeping while work is pending.
+    if (_done && _shimmer.isAnimating) {
+      _shimmer.stop();
+    } else if (!_done && !_shimmer.isAnimating) {
+      _shimmer.repeat();
+    }
     if (_done) {
       // Batch complete: spring the arc to full so the checkmark can reveal.
       _controller.animateTo(
@@ -345,6 +361,7 @@ class _ImportProgressState extends State<_ImportProgress>
 
   @override
   void dispose() {
+    _shimmer.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -364,12 +381,13 @@ class _ImportProgressState extends State<_ImportProgress>
             width: 96,
             height: 96,
             child: AnimatedBuilder(
-              animation: _controller,
+              animation: Listenable.merge([_controller, _shimmer]),
               builder: (context, _) {
                 return CustomPaint(
                   painter: _LockFillPainter(
                     progress: _controller.value,
                     done: _done,
+                    shimmer: _shimmer.value,
                     color: color,
                     trackColor: color.withValues(alpha: 0.15),
                   ),
@@ -418,12 +436,16 @@ class _ImportProgressState extends State<_ImportProgress>
 class _LockFillPainter extends CustomPainter {
   final double progress;
   final bool done;
+  // 0..1 sweep phase for the indeterminate shimmer arc (only meaningful when
+  // !done). Sweeps a faint ~40° arc clockwise around the ring.
+  final double shimmer;
   final Color color;
   final Color trackColor;
 
   _LockFillPainter({
     required this.progress,
     required this.done,
+    required this.shimmer,
     required this.color,
     required this.trackColor,
   });
@@ -448,6 +470,19 @@ class _LockFillPainter extends CustomPainter {
     paint.color = color;
     final sweep = twoPi * progress.clamp(0.0, 1.0);
     canvas.drawArc(rect, -pi / 2, sweep, false, paint);
+
+    // Indeterminate shimmer: a thin, brighter arc that sweeps clockwise around
+    // the ring while work is pending, so a single slow file (progress ~0) never
+    // looks frozen. Subtle: narrower stroke, lighter tint, capped sweep.
+    if (!done) {
+      final shimmerPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round
+        ..color = color.withValues(alpha: 0.5);
+      final start = -pi / 2 + twoPi * (shimmer.clamp(0.0, 1.0) - 0.12);
+      canvas.drawArc(rect, start, twoPi * 0.12, false, shimmerPaint);
+    }
 
     _paintLock(canvas, center, color);
 
@@ -510,6 +545,8 @@ class _LockFillPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _LockFillPainter old) =>
-      old.progress != progress || old.done != done || old.color != color;
+      old.progress != progress ||
+      old.done != done ||
+      old.shimmer != shimmer ||
+      old.color != color;
 }
-

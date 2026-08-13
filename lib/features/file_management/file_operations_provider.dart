@@ -87,6 +87,84 @@ class FileOperationsProvider extends ChangeNotifier {
     }
   }
 
+  /// Permanently decrypt a `.pdf.enc` file back to a plaintext `.pdf`.
+  ///
+  /// Reads the decrypted bytes via the encryption provider, writes them to a
+  /// new plaintext file in the same directory (the original name without the
+  /// `.enc` suffix), commits it atomically (temp file → rename), and ONLY then
+  /// deletes the original encrypted file. The original `.enc` is never removed
+  /// if the plaintext write fails.
+  ///
+  /// Collision handling: if the target plaintext path already exists, appends a
+  /// `-decrypted` suffix first, then ` (1)`, ` (2)`, … until a free name is
+  /// found (before the `.pdf` extension, e.g. `report.pdf` → `report-decrypted.pdf`).
+  ///
+  /// Returns the new plaintext path, or null on failure with [lastError] set.
+  Future<String?> decryptFileToPlain(PdfFile file) async {
+    if (_encryptionProvider == null) return null;
+    try {
+      final bytes = await _encryptionProvider!.decryptFile(file.path);
+
+      final dir = Directory(file.path).parent.path;
+      final baseName = file.name;
+      var plainName = baseName.endsWith('.enc')
+          ? baseName.substring(0, baseName.length - 4) // strip .enc
+          : '$baseName.decrypted';
+
+      // Resolve a non-colliding plaintext name before writing anything.
+      var plainPath = '$dir/$plainName';
+      if (await File(plainPath).exists()) {
+        // Try report-decrypted.pdf first.
+        final dotIndex = plainName.lastIndexOf('.');
+        final stem =
+            dotIndex > 0 ? plainName.substring(0, dotIndex) : plainName;
+        final ext = dotIndex > 0 ? plainName.substring(dotIndex) : '';
+        var candidate = '$stem-decrypted$ext';
+        var i = 1;
+        while (await File('$dir/$candidate').exists()) {
+          i++;
+          candidate = '$stem-decrypted ($i)$ext';
+        }
+        plainPath = '$dir/$candidate';
+        plainName = candidate;
+      }
+
+      // Atomic write: temp → rename.
+      final tmpPath = '$plainPath.tmp';
+      final tmpFile = File(tmpPath);
+      try {
+        if (await tmpFile.exists()) {
+          await tmpFile.delete();
+        }
+        await tmpFile.writeAsBytes(bytes);
+        await tmpFile.rename(plainPath);
+      } catch (_) {
+        // Best-effort cleanup of the temp file; never mask the error.
+        try {
+          if (await tmpFile.exists()) {
+            await tmpFile.delete();
+          }
+        } catch (_) {}
+        rethrow;
+      }
+
+      // Original .enc is deleted ONLY after the plaintext is committed.
+      await File(file.path).delete();
+
+      _lastError = null;
+      notifyListeners();
+      return plainPath;
+    } on EncryptionException catch (e) {
+      _lastError = e.message;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      _lastError = 'Failed to decrypt ${file.displayName}: $e';
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Read PDF bytes (non-encrypted) for the viewer.
   Future<Uint8List?> readPdfBytes(PdfFile file) async {
     try {
@@ -153,16 +231,25 @@ class FileOperationsProvider extends ChangeNotifier {
   }
 
   /// Encrypt multiple files. Returns list of paths that were successfully encrypted.
-  Future<List<String>> batchEncrypt(List<String> paths) async {
+  ///
+  /// [onProgress] is invoked after each file is attempted with the 1-based
+  /// number of files processed (`completed`) and the total (`total`), so callers
+  /// can render live progress. It is invoked even for failed files (they still
+  /// advance the counter) so the progress UI never stalls on a skipped file.
+  Future<List<String>> batchEncrypt(
+    List<String> paths, {
+    void Function(int completed, int total)? onProgress,
+  }) async {
     if (_encryptionProvider == null) return [];
     final encrypted = <String>[];
-    for (final path in paths) {
+    for (var i = 0; i < paths.length; i++) {
       try {
-        final encPath = await _encryptionProvider!.encryptFile(path);
+        final encPath = await _encryptionProvider!.encryptFile(paths[i]);
         encrypted.add(encPath);
       } catch (_) {
         // Skip files that can't be encrypted
       }
+      onProgress?.call(i + 1, paths.length);
     }
     if (encrypted.isNotEmpty) notifyListeners();
     return encrypted;

@@ -12,6 +12,7 @@ class FileListTile extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onShare;
   final VoidCallback? onEncrypt;
+  final VoidCallback? onDecrypt;
   final VoidCallback? onTag;
   final int? bookmarkCount;
   final double? progressValue;
@@ -30,6 +31,7 @@ class FileListTile extends StatelessWidget {
     this.onDelete,
     this.onShare,
     this.onEncrypt,
+    this.onDecrypt,
     this.onTag,
     this.bookmarkCount,
     this.progressValue,
@@ -254,6 +256,18 @@ class FileListTile extends StatelessWidget {
                 onTap: () {
                   Navigator.pop(ctx);
                   onEncrypt?.call();
+                },
+              ),
+            if (onDecrypt != null && file.isEncrypted)
+              ListTile(
+                leading: Icon(
+                  Icons.lock_open_rounded,
+                  color: Theme.of(ctx).colorScheme.primary,
+                ),
+                title: const Text('Decrypt to plain'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onDecrypt?.call();
                 },
               ),
             ListTile(

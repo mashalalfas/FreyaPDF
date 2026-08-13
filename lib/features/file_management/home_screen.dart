@@ -20,6 +20,7 @@ import 'package:freya_pdf/features/file_management/widgets/file_list_tile.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_picker_dialog.dart';
 import 'package:freya_pdf/features/encryption/widgets/encryption_badge.dart';
+import 'package:freya_pdf/features/encryption/widgets/encrypting_progress_dialog.dart';
 import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
 import 'package:freya_pdf/features/security/widgets/secure_folder_card.dart';
 import 'package:freya_pdf/features/file_management/permission_service.dart';
@@ -436,12 +437,56 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!set || !mounted) return;
     }
     final fileOps = context.read<FileOperationsProvider>();
+    // Show an animated indeterminate dialog so the UI never looks frozen while
+    // encryption runs (a large file may take a while).
+    // ignore: use_build_context_synchronously
+    await showEncryptingProgressDialog(context, fileName: file.displayName);
     final result = await fileOps.encryptFile(file);
+    // ignore: use_build_context_synchronously
+    closeEncryptingProgressDialog(context);
     if (!mounted) return;
     if (result != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${file.displayName} encrypted'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else if (fileOps.lastError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(fileOps.lastError!),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  Future<void> _decryptFile(PdfFile file) async {
+    final encryption = context.read<EncryptionProvider>();
+    if (!encryption.hasPassphrase) {
+      final set = await showPassphraseDialog(context);
+      if (!set || !mounted) return;
+    }
+    final fileOps = context.read<FileOperationsProvider>();
+    // ignore: use_build_context_synchronously
+    await showEncryptingProgressDialog(
+      context,
+      fileName: file.name, // keep the raw .enc name for clarity while decrypting
+    );
+    final result = await fileOps.decryptFileToPlain(file);
+    // ignore: use_build_context_synchronously
+    closeEncryptingProgressDialog(context);
+    if (!mounted) return;
+    if (result != null) {
+      // Refresh so the decrypted plaintext file and the removed .enc show up.
+      context.read<AppState>().refresh();
+      final plainName = result.split('/').last;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Decrypted to $plainName'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -862,6 +907,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onDelete: () => _deleteFile(decorated),
           onShare: () => _shareFile(decorated),
           onEncrypt: file.isEncrypted ? null : () => _encryptFile(decorated),
+          onDecrypt: file.isEncrypted ? () => _decryptFile(decorated) : null,
           onEnterSelectionMode: selectionProvider != null && !inSelectionMode
               ? () {
                   selectionProvider.enterSelectionMode();
@@ -906,6 +952,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           tooltip: 'Tag selected',
           onPressed: () => _batchTag(selectionProvider.selectedPaths.toList()),
         ),
+        if (encryptionProvider.hasPassphrase)
+          IconButton(
+            icon: const Icon(Icons.lock_open_rounded, size: 20),
+            tooltip: 'Decrypt selected',
+            onPressed: () => _batchDecrypt(selectionProvider.selectedPaths.toList()),
+          ),
         if (encryptionProvider.hasPassphrase)
           IconButton(
             icon: const Icon(Icons.lock_outline_rounded, size: 20),
@@ -1032,12 +1084,63 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       if (!set || !mounted) return;
     }
     final fileOps = context.read<FileOperationsProvider>();
-    final encrypted = await fileOps.batchEncrypt(paths);
+    // Show an animated progress dialog that reports a live "X of N" count,
+    // updated as each file completes via the batch callback. Keeps the UI from
+    // ever looking frozen during a large batch.
+    // ignore: use_build_context_synchronously
+    await showEncryptingProgressDialog(context, fileName: '', total: paths.length);
+    final encrypted = await fileOps.batchEncrypt(
+      paths,
+      onProgress: (completed, total) =>
+          // ignore: use_build_context_synchronously
+          updateEncryptingProgress(context, completed),
+    );
+    // ignore: use_build_context_synchronously
+    closeEncryptingProgressDialog(context);
     if (mounted) {
       context.read<SelectionProvider>().exitSelectionMode();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${encrypted.length} file${encrypted.length == 1 ? '' : 's'} encrypted'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  /// Decrypt multiple selected files back to plaintext. Only encrypted files
+  /// are candidates; unencrypted files are skipped. Uses [decryptFileToPlain]
+  /// per file with an animated progress dialog.
+  Future<void> _batchDecrypt(List<String> paths) async {
+    if (paths.isEmpty) return;
+    final encryption = context.read<EncryptionProvider>();
+    if (!encryption.hasPassphrase) {
+      final set = await showPassphraseDialog(context);
+      if (!set || !mounted) return;
+    }
+    final fileOps = context.read<FileOperationsProvider>();
+    final encOnly = paths.toList();
+    // ignore: use_build_context_synchronously
+    await showEncryptingProgressDialog(context, fileName: '', total: encOnly.length);
+    var successCount = 0;
+    for (var i = 0; i < encOnly.length; i++) {
+      final pdfFile = PdfFile.fromFileSystem(File(encOnly[i]));
+      if (pdfFile.isEncrypted) {
+        final result = await fileOps.decryptFileToPlain(pdfFile);
+        if (result != null) successCount++;
+      }
+      // ignore: use_build_context_synchronously
+      updateEncryptingProgress(context, i + 1);
+    }
+    // ignore: use_build_context_synchronously
+    closeEncryptingProgressDialog(context);
+    if (mounted) {
+      context.read<SelectionProvider>().exitSelectionMode();
+      context.read<AppState>().refresh();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$successCount file${successCount == 1 ? '' : 's'} decrypted'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),

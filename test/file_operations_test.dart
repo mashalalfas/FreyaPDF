@@ -19,6 +19,19 @@ import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 /// Temp root for all filesystem operations in this file.
 late Directory _tempRoot;
 
+/// Encrypt [plainPath], returning the resulting `.pdf.enc` path.
+/// Convenience helper for decrypt tests.
+Future<String> _encryptWith(
+  FileOperationsProvider provider,
+  String plainPath,
+) async {
+  final result = await provider.encryptFile(
+    PdfFile.fromFileSystem(File(plainPath)),
+  );
+  expect(result, isNotNull);
+  return result!;
+}
+
 Directory _makeTempDir(String name) {
   final dir = Directory('${_tempRoot.path}/$name');
   dir.createSync(recursive: true);
@@ -227,6 +240,116 @@ void main() {
         provider.shareFile('/no/such/file.pdf'),
         completes,
       );
+    });
+  });
+
+  group('FileOperationsProvider.decryptFileToPlain', () {
+    // Arrange: real encrypted .pdf.enc produced by encryptFile, plaintext source
+    // available. Act: decryptFileToPlain on the .enc. Assert: plaintext written,
+    // .enc deleted, path returned points at a valid file, no error.
+
+    test('writes plaintext, deletes .enc, and returns the plain path', () async {
+      // Arrange
+      final dir = _makeTempDir('decrypt_happy');
+      final originalBytes = List<int>.generate(512, (i) => i % 256);
+      final plain = File('${dir.path}/secret.pdf')..writeAsBytesSync(originalBytes);
+      final encProvider = EncryptionProvider()..setPassphrase('test-passphrase-123');
+      final provider = FileOperationsProvider()..attachEncryption(encProvider);
+
+      final encPath = await _encryptWith(provider, plain.path);
+      expect(File(encPath).existsSync(), isTrue);
+      // Drop the plaintext so decrypting produces a fresh copy.
+      File(plain.path).deleteSync();
+      final encPdf = _pdfFileAt(dir, 'secret.pdf.enc');
+
+      // Act
+      final result = await provider.decryptFileToPlain(encPdf);
+
+      // Assert: plaintext restored at the original name, .enc removed, and the
+      // decrypted bytes round-trip to the original plaintext.
+      expect(result, plain.path);
+      expect(File(result!).existsSync(), isTrue);
+      expect(File(encPath).existsSync(), isFalse);
+      expect(File(result).readAsBytesSync(), equals(originalBytes));
+      expect(provider.lastError, isNull);
+    });
+
+    test('collision: existing target gets a suffixed name, both files valid',
+        () async {
+      // Arrange
+      final dir = _makeTempDir('decrypt_collision');
+      final original = _writePdf(dir, 'doc.pdf', sizeBytes: 300);
+      final encProvider = EncryptionProvider()..setPassphrase('test-passphrase-123');
+      final provider = FileOperationsProvider()..attachEncryption(encProvider);
+
+      // Encrypt doc.pdf → doc.pdf.enc, then put a DIFFERENT file back at the
+      // target name doc.pdf so decrypt hits the collision path.
+      final encPath = await _encryptWith(provider, original.path);
+      File(original.path).deleteSync(); // drop the plaintext
+      final preExisting = File('${dir.path}/doc.pdf');
+      preExisting.writeAsBytesSync(List.filled(99, 0xAB)); // different content
+
+      final encPdf = _pdfFileAt(dir, 'doc.pdf.enc');
+
+      // Act
+      final result = await provider.decryptFileToPlain(encPdf);
+
+      // Assert: a suffixed sibling was created, the pre-existing file untouched,
+      // and the .enc removed. Both files are valid on disk.
+      expect(result, '${dir.path}/doc-decrypted.pdf');
+      expect(File(result!).existsSync(), isTrue);
+      expect(preExisting.existsSync(), isTrue);
+      expect(preExisting.lengthSync(), equals(99)); // original preserved
+      expect(File(result).lengthSync(), equals(300)); // decrypted original bytes
+      expect(File(encPath).existsSync(), isFalse);
+      expect(provider.lastError, isNull);
+    });
+
+    test('returns null when no EncryptionProvider is attached', () async {
+      // Arrange
+      final dir = _makeTempDir('decrypt_no_ep');
+      _writePdf(dir, 'locked.pdf');
+      final provider = FileOperationsProvider();
+      final pdfFile = _pdfFileAt(dir, 'locked.pdf.enc');
+
+      // Act
+      final result = await provider.decryptFileToPlain(pdfFile);
+
+      // Assert
+      expect(result, isNull);
+    });
+  });
+
+  group('FileOperationsProvider.batchEncrypt progress callback', () {
+    // The batch loop should invoke onProgress once per file (1-based completed),
+    // advancing even for files that fail, so the UI never stalls on a skipped file.
+
+    test('fires onProgress per file with 1-based completed counts', () async {
+      // Arrange
+      final dir = _makeTempDir('batch_progress');
+      _writePdf(dir, 'a.pdf');
+      _writePdf(dir, 'b.pdf');
+      _writePdf(dir, 'c.pdf');
+      final encProvider = EncryptionProvider()..setPassphrase('test-passphrase-123');
+      final provider = FileOperationsProvider()..attachEncryption(encProvider);
+      final reports = <(int, int)>[];
+
+      // Act
+      final encrypted = await provider.batchEncrypt(
+        [
+          '${dir.path}/a.pdf',
+          '${dir.path}/b.pdf',
+          '${dir.path}/c.pdf',
+        ],
+        onProgress: (completed, total) => reports.add((completed, total)),
+      );
+
+      // Assert: 3 files, callback invoked 3 times with counting totals.
+      expect(encrypted.length, equals(3));
+      expect(reports, hasLength(3));
+      expect(reports[0], equals((1, 3)));
+      expect(reports[1], equals((2, 3)));
+      expect(reports[2], equals((3, 3)));
     });
   });
 
