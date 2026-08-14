@@ -539,6 +539,49 @@ class _ViewerScreenState extends State<ViewerScreen> {
     setState(() => _totalPages = document.pages.length);
   }
 
+  /// Builds the themed error surface that replaces pdfrx's default blue error
+  /// banner ([pdfErrorWidget]) when opening a document fails (e.g. missing or
+  /// wrong password). This renders a non-blue, warm surface matching the app's
+  /// [build] error state so no flash of pdfrx's internal error widget appears;
+  /// the app's own [_error] UI (with Retry) takes over right after via
+  /// [onDocumentLoadFinished]. Defensive: always returns a valid widget and
+  /// never throws, so a builder failure here can never break the viewer.
+  Widget _buildPdfErrorBanner(
+    BuildContext context,
+    Object error,
+    StackTrace? stackTrace,
+    PdfDocumentRef documentRef,
+  ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final message = error is PdfPasswordException
+        ? 'This PDF could not be opened with the supplied password.'
+        : "Couldn't open this file.";
+    return ColoredBox(
+      color: colorScheme.surface,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _onDocumentLoadFinished(PdfDocumentRef documentRef, bool succeeded) {
     if (succeeded || !mounted) return;
     final error = documentRef.resolveListenable().error;
@@ -1802,6 +1845,12 @@ class _ViewerScreenState extends State<ViewerScreen> {
             buildContextMenu: _buildTextSelectionContextMenu,
             onDocumentChanged: _onDocumentChanged,
             onDocumentLoadFinished: _onDocumentLoadFinished,
+            // Replace pdfrx's default blue error banner with a themed surface so
+            // no flash of pdfrx's internal error widget appears when a document
+            // fails to open (e.g. missing/wrong password). The app's own [build]
+            // error state ([_error]) takes over right after this via
+            // [onDocumentLoadFinished]; this builder just prevents the blue flash.
+            errorBannerBuilder: _buildPdfErrorBanner,
             onViewerReady: _onViewerReady,
             onViewSizeChanged: settings.pageTurnMode
                 ? _refitPageTurnAfterRotation
