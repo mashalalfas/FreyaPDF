@@ -1,4 +1,5 @@
 // Copyright (c) 2026 Freya. All rights reserved.
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -174,6 +175,20 @@ class FileOperationsProvider extends ChangeNotifier {
     }
   }
 
+  /// Defer temp-file cleanup so the share sheet / receiving app has time to
+  /// read the decrypted PDF before it's deleted. Deleting synchronously right
+  /// after `Share.shareXFiles` returns can truncate the file being read.
+  Future<void> _scheduleTempCleanup(File file) async {
+    await Future<void>.delayed(const Duration(seconds: 10));
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {
+      // Best-effort; temp dirs are eventually cleaned by the OS.
+    }
+  }
+
   /// Get decrypted PDF bytes (handles both encrypted and unencrypted).
   Future<Uint8List?> getPdfBytes(PdfFile file) async {
     if (file.isEncrypted) {
@@ -197,7 +212,7 @@ class FileOperationsProvider extends ChangeNotifier {
         await tempFile.writeAsBytes(bytes);
         final xFile = XFile(tempFile.path, mimeType: 'application/pdf');
         await Share.shareXFiles([xFile], text: pdfName);
-        await tempFile.delete();
+        unawaited(_scheduleTempCleanup(tempFile));
       } else {
         // Share the file directly
         final xFile = XFile(path, mimeType: 'application/pdf');
@@ -285,11 +300,9 @@ class FileOperationsProvider extends ChangeNotifier {
             ? paths.first.split('/').last
             : '${paths.length} PDFs';
         await Share.shareXFiles(xFiles, text: text);
-        // Clean up any temporary decrypted files created for sharing.
+        // Defer cleanup so the share receiver can finish reading each file.
         for (final f in _tempDecryptedFiles) {
-          try {
-            await f.delete();
-          } catch (_) {}
+          unawaited(_scheduleTempCleanup(f));
         }
         _tempDecryptedFiles.clear();
       }

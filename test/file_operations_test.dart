@@ -9,7 +9,7 @@
 //   Total:      12 tests
 
 import 'dart:io';
-import 'dart:typed_data';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
 import 'package:freya_pdf/features/encryption/encryption_service.dart';
@@ -53,6 +53,7 @@ PdfFile _pdfFileAt(Directory dir, String name) => PdfFile(
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     _tempRoot = Directory.systemTemp.createTempSync('freya_pdf_fops_');
   });
 
@@ -239,6 +240,44 @@ void main() {
       await expectLater(
         provider.shareFile('/no/such/file.pdf'),
         completes,
+      );
+    });
+
+    test('encrypted share keeps the temp decrypted file alive after share '
+        'returns (F-006 deferred cleanup)', () async {
+      // Arrange: an encrypted file whose share must decrypt to a temp PDF.
+      final dir = _makeTempDir('share_enc');
+      final plain = _writePdf(dir, 'secret.pdf', sizeBytes: 200);
+      final encProvider = EncryptionProvider()
+        ..setPassphrase('test-passphrase-123');
+      final provider = FileOperationsProvider()..attachEncryption(encProvider);
+      final encPath = await _encryptWith(provider, plain.path);
+
+      // Point getTemporaryDirectory at our temp root.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/path_provider'),
+        (call) async {
+          if (call.method == 'getTemporaryDirectory') {
+            return _tempRoot.path;
+          }
+          return null;
+        },
+      );
+
+      // Act
+      await provider.shareFile(encPath);
+
+      // Assert: temp decrypted file was NOT deleted synchronously — the fixed
+      // flow defers cleanup so the share receiver can read it.
+      expect(File('${_tempRoot.path}/secret.pdf').existsSync(), isTrue,
+          reason: 'temp decrypted file must survive past Share.shareXFiles');
+
+      // Cleanup.
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/path_provider'),
+        null,
       );
     });
   });

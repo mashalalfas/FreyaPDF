@@ -45,12 +45,30 @@ class SecureFolderService {
     // requires platform channels and is not available inside Isolate.run).
     final secureDir = await getSecureDir();
     final basename = sourcePath.split(Platform.pathSeparator).last;
-    final encName = basename.endsWith('.enc') ? basename : '$basename.enc';
+    final safeName = _guardImportName(basename);
+    final encName =
+        safeName.endsWith('.enc') ? safeName : '$safeName.enc';
     final encPath = '${secureDir.path}/$encName';
 
     // Run read → encrypt → atomic write(temp→rename) → delete-original off the
     // main isolate. Only plain sendable strings cross the boundary.
     return Isolate.run(() => importFileInIsolate(sourcePath, encPath, passphrase));
+  }
+
+  /// Reject import filenames that could escape the secure directory.
+  ///
+  /// Defense-in-depth against path traversal: even though [basename]
+  /// extraction strips the path, a crafted name such as `..\x.pdf` or
+  /// `a/b.pdf` would otherwise be written outside the secure folder.
+  /// Throws [ArgumentError] on an unsafe name.
+  static String _guardImportName(String basename) {
+    if (basename.isEmpty ||
+        basename.contains('..') ||
+        basename.contains('/') ||
+        basename.contains(r'\')) {
+      throw ArgumentError('Unsafe file name for import: $basename');
+    }
+    return basename;
   }
 
   /// Isolate entrypoint for [importFile]. Static + argument-only (no closures

@@ -149,6 +149,57 @@ void main() {
     });
   });
 
+  group('SecureFolderService path-traversal guard', () {
+    test('importFile rejects filenames containing traversal sequences',
+        () async {
+      // Arrange: files whose name embeds '..' or a backslash. These must not
+      // be imported even though they exist on disk.
+      final src = _makeDir('traversal_src1');
+      final dotDot = _writePdf(src, 'dot..dot.pdf', sizeBytes: 128);
+      final backslash = _writePdf(src, 'evil\\name.pdf', sizeBytes: 128);
+
+      // Act & Assert: both rejected via ArgumentError.
+      expect(
+        () => SecureFolderService.importFile(dotDot.path, _passphrase),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => SecureFolderService.importFile(backslash.path, _passphrase),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      // Nothing escaped to the secure dir; originals untouched.
+      final secureDir = Directory('${_tempRoot.path}/FreyaPDF_Secure');
+      expect(secureDir.existsSync(), isFalse,
+          reason: 'unsafe imports must not create the secure dir');
+      expect(dotDot.existsSync(), isTrue);
+      expect(backslash.existsSync(), isTrue);
+    });
+
+    test('importFile accepts a plain safe filename', () async {
+      // Arrange
+      final src = _makeDir('traversal_safe');
+      final srcFile = _writePdf(src, 'safe_doc.pdf', sizeBytes: 200);
+      final plain = srcFile.readAsBytesSync();
+
+      // Act
+      final encPath =
+          await SecureFolderService.importFile(srcFile.path, _passphrase);
+
+      // Assert: encrypted in the secure dir, original removed, still decryptable.
+      expect(encPath, endsWith('safe_doc.pdf.enc'));
+      expect(File('${_tempRoot.path}/FreyaPDF_Secure/safe_doc.pdf.enc')
+          .existsSync(), isTrue);
+      expect(srcFile.existsSync(), isFalse);
+      final decrypted =
+          await EncryptionService.decryptFile(encPath, _passphrase);
+      expect(decrypted, equals(plain));
+
+      // Clean up for later batches in the same test run.
+      await File(encPath).delete();
+    });
+  });
+
   group('SecureFolderProvider import job', () {
     test('importFiles tracks job state and returns an ImportResult summary',
         () async {

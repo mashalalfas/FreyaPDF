@@ -354,9 +354,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
         });
       }
     } catch (e) {
+      debugPrint('Viewer: failed to open PDF: $e');
       if (mounted) {
         setState(() {
-          _error = 'Failed to open PDF: $e';
+          _error = "Couldn't open this file.";
           _isLoading = false;
         });
       }
@@ -496,9 +497,9 @@ class _ViewerScreenState extends State<ViewerScreen> {
       if (mounted) {
         setState(() => _outline = nodes);
       }
-    } catch (e, st) {
+    } catch (e) {
       // Outline is optional — log for observability but don't surface to user.
-      debugPrint('Outline load failed: $e\n$st');
+      debugPrint('Outline load failed: $e');
     } finally {
       if (mounted) {
         setState(() => _outlineLoading = false);
@@ -543,7 +544,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
     final error = documentRef.resolveListenable().error;
     final message = error is PdfPasswordException
         ? 'This PDF could not be opened with the supplied password.'
-        : 'Failed to open PDF: ${error ?? 'unknown error'}';
+        : "Couldn't open this file.";
+    if (error != null) {
+      debugPrint('Viewer: document load failed: $error');
+    }
     Future<void>.microtask(() {
       if (!mounted) return;
       setState(() {

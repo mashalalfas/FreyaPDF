@@ -1,7 +1,7 @@
 name: freya_pdf
 description: "Freya PDF — a clean, fast, ad-free PDF reader with E2E encryption."
 publish_to: 'none'
-version: 1.5.1+17
+version: 1.5.2+18
 
 environment:
   sdk: ^3.11.5
@@ -23,7 +23,7 @@ dependencies:
   flutter_svg: ^2.0.0
   path_provider: ^2.1.0
   pdfrx: ^2.3.0
-  flutter_secure_storage: ^9.2.0
+  flutter_secure_storage: ^10.3.1
   local_auth: ^3.0.1
   package_info_plus: ^8.0.0
   http: ^1.2.0
@@ -37,7 +37,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.1
   local_auth_platform_interface: ^1.1.0
-  flutter_secure_storage_platform_interface: ^1.1.0
+  flutter_secure_storage_platform_interface: ^2.0.1
   plugin_platform_interface: ^2.1.8
 
 flutter:
