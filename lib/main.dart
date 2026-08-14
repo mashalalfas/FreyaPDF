@@ -8,7 +8,7 @@ import 'package:freya_pdf/build_config.dart';
 import 'package:freya_pdf/features/file_management/app_state.dart';
 import 'package:freya_pdf/features/file_management/favorites_provider.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
-import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
+
 import 'package:freya_pdf/features/security/secure_folder_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/features/tags/tag_provider.dart';
@@ -52,22 +52,10 @@ void main() async {
   );
   IntentHandler.init();
 
-  // Restore the previously persisted passphrase (if any) so encrypted files
-  // stay unlockable across app restarts without forcing the user to re-enter
-  // it. Reads the Keystore-backed secure store used by the biometric flow.
-  final storedPassphrase = await BiometricPassphraseStorage().read();
-
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => EncryptionProvider(
-            initialPassphrase:
-                (storedPassphrase != null && storedPassphrase.isNotEmpty)
-                    ? storedPassphrase
-                    : null,
-          ),
-        ),
+        ChangeNotifierProvider(create: (_) => EncryptionProvider()),
         ChangeNotifierProvider(create: (_) => SecureFolderProvider()),
         ChangeNotifierProvider(
           create: (_) => SettingsProvider(settingsService),

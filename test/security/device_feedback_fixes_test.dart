@@ -22,6 +22,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 import 'package:freya_pdf/features/security/app_lock_service.dart';
 import 'package:freya_pdf/features/security/widgets/app_lock_screen.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
@@ -359,6 +360,170 @@ void main() {
         );
       },
     );
+
+    test(
+      'resumed -> inactive -> hidden -> inactive -> resumed re-locks on Android',
+      () {
+        // Android fires hidden during backgrounding and may pass through
+        // inactive on the way back. The decision helper alone only sees the
+        // immediate previous state, but the gate tracks a
+        // saw-background-state flag across the whole sequence.
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.resumed,
+            AppLifecycleState.inactive,
+          ),
+          isFalse,
+        );
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.inactive,
+            AppLifecycleState.hidden,
+          ),
+          isFalse,
+        );
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.hidden,
+            AppLifecycleState.inactive,
+          ),
+          isFalse,
+        );
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.inactive,
+            AppLifecycleState.resumed,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test(
+      'resumed -> inactive -> resumed does NOT re-lock (notification shade)',
+      () {
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.resumed,
+            AppLifecycleState.inactive,
+          ),
+          isFalse,
+        );
+        expect(
+          shouldRelockOnResume(
+            AppLifecycleState.inactive,
+            AppLifecycleState.resumed,
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'AppLockGate re-locks on resumed→inactive→hidden→inactive→resumed '
+      '(Android background sequence with hidden state)',
+      (tester) async {
+        // This sequence is what Android fires when the app goes to background
+        // and returns. The gate's _sawBackgroundState flag must track the
+        // hidden state across the intermediate inactive transitions.
+        final platform = ControllableLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
+            ],
+            child: MaterialApp(
+              home: AppLockGate(child: const SizedBox.shrink()),
+            ),
+          ),
+        );
+
+        // Cold-start auto-prompt fires and unlocks.
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+        expect(platform.authenticateCallCount, equals(1));
+
+        // Simulate Android background → return sequence:
+        // resumed → inactive → hidden → inactive → resumed
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(
+          platform.authenticateCallCount,
+          equals(2),
+          reason: 'return from hidden (true background) must re-trigger '
+              'biometric prompt',
+        );
+      },
+    );
+
+    testWidgets(
+      'AppLockGate does NOT re-lock on resumed→inactive→resumed '
+      '(notification shade / permission dialog)',
+      (tester) async {
+        // Inactive-only cycles must not re-lock.
+        final platform = ControllableLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
+            ],
+            child: MaterialApp(
+              home: AppLockGate(child: const SizedBox.shrink()),
+            ),
+          ),
+        );
+
+        // Cold-start auto-prompt fires and unlocks.
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+        expect(platform.authenticateCallCount, equals(1));
+
+        // Simulate notification shade cycle: resumed → inactive → resumed
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        await tester.pumpAndSettle();
+        // Give time for any errant prompt to fire.
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        expect(
+          platform.authenticateCallCount,
+          equals(1),
+          reason: 'inactive-only cycle (notification shade) must NOT '
+              're-trigger biometric prompt',
+        );
+      },
+    );
   });
 
   group('BUG 4 — biometric permission + graceful failure', () {
@@ -578,6 +743,9 @@ void main() {
           MultiProvider(
             providers: [
               ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
             ],
             child: MaterialApp(
               home: AppLockGate(
@@ -633,6 +801,9 @@ void main() {
           MultiProvider(
             providers: [
               ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
             ],
             child: MaterialApp(
               home: AppLockGate(child: const SizedBox.shrink()),
@@ -684,6 +855,9 @@ void main() {
           MultiProvider(
             providers: [
               ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
             ],
             child: MaterialApp(
               home: AppLockGate(

@@ -1,26 +1,32 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 //
-// Regression tests for the passphrase-persistence bugfix: the secure-folder
-// passphrase was previously held only in memory and forgotten on every app
-// restart. These tests verify:
+// Regression tests for passphrase persistence and gated restore:
 //   (a) setting a passphrase via showPassphraseDialog persists it to the
 //       Keystore-backed secure storage,
-//   (b) the restored-passphrase path (EncryptionProvider initialPassphrase)
-//       rehydrates state on startup,
-//   (c) clearing the passphrase also clears the persisted copy.
+//   (b) EncryptionProvider starts locked (no auto-restore at startup),
+//   (c) the stored passphrase is released into EncryptionProvider only AFTER
+//       successful app-lock authentication (biometric or PIN),
+//   (d) when app lock is disabled, the passphrase is NOT auto-restored —
+//       the user must enter it when opening encrypted content,
+//   (e) clearing the passphrase also clears the persisted copy.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
+import 'package:local_auth_platform_interface/local_auth_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
 import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
+import 'package:freya_pdf/features/security/widgets/app_lock_screen.dart';
+import 'package:freya_pdf/features/settings/settings_provider.dart';
+import 'package:freya_pdf/features/settings/settings_service.dart';
 
 /// In-memory [FlutterSecureStoragePlatform] so the real [FlutterSecureStorage]
-/// used internally by `showPassphraseDialog` can resolve on the test host.
+/// used internally by `BiometricPassphraseStorage` can resolve on the test host.
 class MockSecureStoragePlatform extends FlutterSecureStoragePlatform {
   final _store = <String, String>{};
 
@@ -72,6 +78,32 @@ class MockSecureStoragePlatform extends FlutterSecureStoragePlatform {
   String? peek(String key) => _store[key];
 }
 
+/// Mock local-auth platform that always succeeds authentication.
+class SuccessLocalAuthPlatform extends LocalAuthPlatform
+    with MockPlatformInterfaceMixin {
+  int authenticateCallCount = 0;
+
+  @override
+  Future<bool> deviceSupportsBiometrics() async => true;
+
+  @override
+  Future<bool> isDeviceSupported() async => true;
+
+  @override
+  Future<List<BiometricType>> getEnrolledBiometrics() async =>
+      [BiometricType.fingerprint];
+
+  @override
+  Future<bool> authenticate({
+    required String localizedReason,
+    required Iterable<AuthMessages> authMessages,
+    AuthenticationOptions options = const AuthenticationOptions(),
+  }) async {
+    authenticateCallCount++;
+    return true;
+  }
+}
+
 Widget _wrapWithEncryption(Widget child) {
   return MultiProvider(
     providers: [
@@ -87,9 +119,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    // BiometricPassphraseStorage.read() runs a one-time migration that calls
-    // SharedPreferences.getInstance(); mock it so the fake-async test
-    // environment doesn't hang on a real platform channel.
     SharedPreferences.setMockInitialValues({});
     FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
   });
@@ -99,7 +128,7 @@ void main() {
     await platform.deleteAll(options: const <String, String>{});
   });
 
-  group('BUG 1a — setPassphrase persists via dialog', () {
+  group('Passphrase persistence via dialog', () {
     testWidgets(
       'entering a passphrase in showPassphraseDialog writes it to secure '
       'storage',
@@ -126,16 +155,12 @@ void main() {
         await tester.tap(find.text('open'));
         await tester.pumpAndSettle();
 
-        // Type a valid (>=8 chars, non-common) passphrase and confirm.
         await tester.enterText(find.byType(TextField), 'correct horse battery');
         await tester.pump();
         await tester.tap(find.text('Set'));
-        // Let the dialog pop (bounded pumps; the passphrase dialog disposes its
-        // controller synchronously on pop, so avoid pumpAndSettle here).
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
-        // The passphrase must now be persisted to the secure store.
         expect(
           await storage.read(),
           equals('correct horse battery'),
@@ -194,60 +219,171 @@ void main() {
     );
   });
 
-  group('BUG 1b — restore-on-startup', () {
-    test('EncryptionProvider rehydrates from initialPassphrase', () {
-      final provider = EncryptionProvider(initialPassphrase: 'restored-key');
-      expect(provider.hasPassphrase, isTrue);
-      expect(provider.isLocked, isFalse);
-      expect(provider.passphrase, equals('restored-key'));
-    });
-
-    test('EncryptionProvider with a null initialPassphrase starts locked', () {
-      final provider = EncryptionProvider(initialPassphrase: null);
+  group('EncryptionProvider starts locked (no auto-restore)', () {
+    test('EncryptionProvider with default constructor starts locked', () {
+      final provider = EncryptionProvider();
       expect(provider.hasPassphrase, isFalse);
       expect(provider.isLocked, isTrue);
+      expect(provider.passphrase, isNull);
     });
 
-    test('EncryptionProvider with an empty initialPassphrase starts locked',
-        () {
-      final provider = EncryptionProvider(initialPassphrase: '');
+    test('stored passphrase is NOT loaded into provider at construction',
+        () async {
+      final storage = BiometricPassphraseStorage();
+      await storage.write('secret-passphrase');
+
+      // Even though a passphrase is stored, the provider starts locked.
+      // The passphrase will only be released after app-lock authentication.
+      final provider = EncryptionProvider();
       expect(provider.hasPassphrase, isFalse);
       expect(provider.isLocked, isTrue);
-    });
-
-    test('stored passphrase round-trips through the storage → provider path',
-        () async {
-      final storage = BiometricPassphraseStorage();
-      await storage.write('round-trip-passphrase');
-
-      // This mirrors the restore wiring in main.dart: read once, then hand the
-      // value (if non-empty) into the provider before runApp.
-      final stored = await storage.read();
-      final provider = EncryptionProvider(
-        initialPassphrase:
-            (stored != null && stored.isNotEmpty) ? stored : null,
-      );
-
-      expect(provider.passphrase, equals('round-trip-passphrase'));
-      expect(provider.hasPassphrase, isTrue);
-    });
-
-    test('no stored value → provider starts unlocked false (no re-prompt data)',
-        () async {
-      final storage = BiometricPassphraseStorage();
-      final stored = await storage.read();
-      final provider = EncryptionProvider(
-        initialPassphrase:
-            (stored != null && stored.isNotEmpty) ? stored : null,
-      );
-      expect(provider.hasPassphrase, isFalse);
     });
   });
 
-  group('BUG 1c — clearPassphrase clears the persisted copy', () {
+  group('Passphrase restore gated behind app-lock authentication', () {
+    testWidgets(
+      'AppLockGate restores passphrase after successful biometric unlock',
+      (tester) async {
+        final platform = SuccessLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        // Pre-store a passphrase that should be restored after unlock.
+        final storage = BiometricPassphraseStorage();
+        await storage.write('gated-passphrase');
+
+        EncryptionProvider? encryptionProvider;
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
+            ],
+            child: MaterialApp(
+              home: Builder(
+                builder: (context) {
+                  encryptionProvider = context.read<EncryptionProvider>();
+                  return AppLockGate(child: const SizedBox.shrink());
+                },
+              ),
+            ),
+          ),
+        );
+
+        // Provider starts locked (no auto-restore).
+        expect(encryptionProvider!.hasPassphrase, isFalse);
+
+        // Let _checkLock run and fire biometric prompt.
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        // After successful biometric auth, passphrase should be restored.
+        expect(platform.authenticateCallCount, greaterThanOrEqualTo(1));
+        expect(encryptionProvider!.hasPassphrase, isTrue);
+        expect(encryptionProvider!.passphrase, equals('gated-passphrase'));
+      },
+    );
+
+    testWidgets(
+      'AppLockGate does NOT restore passphrase when app lock is disabled',
+      (tester) async {
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(false);
+
+        // Pre-store a passphrase.
+        final storage = BiometricPassphraseStorage();
+        await storage.write('should-not-restore');
+
+        EncryptionProvider? encryptionProvider;
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>(
+                create: (_) => EncryptionProvider(),
+              ),
+            ],
+            child: MaterialApp(
+              home: Builder(
+                builder: (context) {
+                  encryptionProvider = context.read<EncryptionProvider>();
+                  return AppLockGate(child: const SizedBox.shrink());
+                },
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // When app lock is disabled, the gate opens immediately but does NOT
+        // restore the passphrase. The user must enter it when accessing
+        // encrypted content.
+        expect(encryptionProvider!.hasPassphrase, isFalse);
+      },
+    );
+
+    testWidgets(
+      'AppLockGate does not overwrite existing passphrase on unlock',
+      (tester) async {
+        final platform = SuccessLocalAuthPlatform();
+        LocalAuthPlatform.instance = platform;
+        FlutterSecureStoragePlatform.instance = MockSecureStoragePlatform();
+
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final settings = SettingsProvider(SettingsService(prefs));
+        await settings.setAppLockEnabled(true);
+
+        // Pre-store a passphrase.
+        final storage = BiometricPassphraseStorage();
+        await storage.write('stored-passphrase');
+
+        // Provider already has a passphrase set (e.g., from a previous session
+        // or manual entry).
+        final existingProvider = EncryptionProvider();
+        existingProvider.setPassphrase('existing-passphrase');
+
+        await tester.pumpWidget(
+          MultiProvider(
+            providers: [
+              ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+              ChangeNotifierProvider<EncryptionProvider>.value(
+                  value: existingProvider),
+            ],
+            child: MaterialApp(
+              home: AppLockGate(child: const SizedBox.shrink()),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+
+        // Existing passphrase should not be overwritten.
+        expect(existingProvider.passphrase, equals('existing-passphrase'));
+      },
+    );
+  });
+
+  group('clearPassphrase clears the persisted copy', () {
     test('clearPassphrase empties the secure store', () async {
       final storage = BiometricPassphraseStorage();
-      final provider = EncryptionProvider(initialPassphrase: 'to-be-cleared');
+      final provider = EncryptionProvider();
+      provider.setPassphrase('to-be-cleared');
       await storage.write('to-be-cleared');
 
       expect(await storage.read(), equals('to-be-cleared'));

@@ -4,7 +4,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 import 'package:freya_pdf/features/security/app_lock_service.dart';
+import 'package:freya_pdf/features/security/biometric_passphrase_storage.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 
 /// Full-screen lock overlay shown on cold start when app lock is enabled.
@@ -42,7 +44,7 @@ class _AppLockGateState extends State<AppLockGate>
   final AppLockService _lockService = AppLockService();
   bool _locked = true;
   bool _biometricAvailable = false;
-  AppLifecycleState _previousLifecycle = AppLifecycleState.resumed;
+  bool _sawBackgroundState = false;
 
   @override
   void initState() {
@@ -59,12 +61,17 @@ class _AppLockGateState extends State<AppLockGate>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Only re-lock when transitioning from a true background state back to
-    // resumed. Dragging the notification shade fires inactive/resumed cycles,
-    // which we deliberately ignore: those must NOT re-trigger the lock screen
-    // or spam the biometric prompt.
-    final shouldRelock = shouldRelockOnResume(_previousLifecycle, state);
-    _previousLifecycle = state;
+    // Track whether we have seen a true background state since the last
+    // resume. Notification-shade or permission-dialog cycles only go through
+    // [inactive], so we must not re-lock on those.
+    if (isBackgroundLifecycleState(state)) {
+      _sawBackgroundState = true;
+    }
+    final shouldRelock =
+        state == AppLifecycleState.resumed && _sawBackgroundState;
+    if (state == AppLifecycleState.resumed) {
+      _sawBackgroundState = false;
+    }
     if (shouldRelock) {
       _checkLock();
     }
@@ -103,19 +110,38 @@ class _AppLockGateState extends State<AppLockGate>
         var ok = await _lockService.authenticateWithBiometrics();
         if (ok && mounted) {
           setState(() => _locked = false);
+          await _restoreEncryptionPassphrase();
           return;
         }
         // If the first attempt failed, retry ONCE after a short delay.
         await Future.delayed(const Duration(seconds: 1));
         if (!mounted) return;
         ok = await _lockService.authenticateWithBiometrics();
-        if (ok && mounted) setState(() => _locked = false);
+        if (ok && mounted) {
+          setState(() => _locked = false);
+          await _restoreEncryptionPassphrase();
+        }
       });
     }
   }
 
   void _unlock() {
     setState(() => _locked = false);
+    _restoreEncryptionPassphrase();
+  }
+
+  /// After a successful app-lock authentication, release the persisted
+  /// encryption passphrase into [EncryptionProvider] only if the provider
+  /// does not already have one. If app lock is disabled this path is never
+  /// reached, so the passphrase is not silently restored.
+  Future<void> _restoreEncryptionPassphrase() async {
+    if (!mounted) return;
+    final encryption = context.read<EncryptionProvider>();
+    if (encryption.hasPassphrase) return;
+    final stored = await BiometricPassphraseStorage().read();
+    if (stored != null && stored.isNotEmpty) {
+      encryption.setPassphrase(stored);
+    }
   }
 
   @override
