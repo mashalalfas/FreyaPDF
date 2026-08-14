@@ -80,18 +80,23 @@ class AppTheme {
         filled: true,
         fillColor: const Color(0xFF1A1A1A).withValues(alpha: 0.03),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: const Color(0xFF1A1A1A).withValues(alpha: 0.1)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: const Color(0xFF1A1A1A).withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: _teal, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }
@@ -109,24 +114,24 @@ class AppTheme {
       colorScheme: colorScheme.copyWith(
         surfaceContainerLowest: _darkBg,
         surfaceContainerLow: _darkSurface,
-        surfaceContainer: const Color(0xFF353739),
-        surfaceContainerHigh: const Color(0xFF353739),
+        surfaceContainer: const Color(0xFF2D2F31),
+        surfaceContainerHigh: const Color(0xFF333537),
         surfaceContainerHighest: const Color(0xFF3B3D3F),
       ),
       scaffoldBackgroundColor: _darkBg,
-      textTheme: const TextTheme(
-        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6, color: Color(0xFFE4E4E4)),
-        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5, color: Color(0xFFC4C4C4)),
+      textTheme: TextTheme(
+        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6, color: colorScheme.onSurface),
+        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5, color: colorScheme.onSurfaceVariant),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: _darkSurface,
-        foregroundColor: const Color(0xFFE4E4E4),
+        foregroundColor: colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: const TextStyle(
+        titleTextStyle: TextStyle(
           fontFamily: _fontFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: Color(0xFFE4E4E4),
+          color: colorScheme.onSurface,
         ),
       ),
       cardTheme: CardThemeData(
@@ -162,18 +167,23 @@ class AppTheme {
         filled: true,
         fillColor: const Color(0xFFFFFFFF).withValues(alpha: 0.04),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: const Color(0xFFFFFFFF).withValues(alpha: 0.08)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: const Color(0xFFFFFFFF).withValues(alpha: 0.08)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: _teal, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      dialogTheme: DialogThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
     );
   }

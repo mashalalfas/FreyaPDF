@@ -95,7 +95,7 @@ class BackupProvider extends ChangeNotifier {
                 'Encrypted backup saved: FreyaPDF_backup_$timestamp.freya'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -107,7 +107,7 @@ class BackupProvider extends ChangeNotifier {
             content: Text('Export failed: $e'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -148,7 +148,7 @@ class BackupProvider extends ChangeNotifier {
             content: Text('Failed to read backup file: $e'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -189,7 +189,7 @@ class BackupProvider extends ChangeNotifier {
               content: const Text('Could not decrypt backup — wrong passphrase?'),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           );
@@ -303,7 +303,7 @@ class BackupProvider extends ChangeNotifier {
               content: const Text('Backup restored successfully'),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           );
@@ -317,7 +317,7 @@ class BackupProvider extends ChangeNotifier {
               ),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           );
@@ -330,7 +330,7 @@ class BackupProvider extends ChangeNotifier {
             content: Text('Import failed: $e'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );

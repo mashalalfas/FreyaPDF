@@ -689,7 +689,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
             content: const Text('Failed to save file'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -700,7 +700,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
             content: Text('Already exists in:\n$destDir'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -713,7 +713,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
       SnackBar(
         content: Text('Saved to:\n$destDir'),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

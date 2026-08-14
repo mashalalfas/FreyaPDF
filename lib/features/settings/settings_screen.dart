@@ -115,7 +115,7 @@ class SettingsScreen extends StatelessWidget {
                       content: const Text('Passphrase cleared'),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   );
@@ -333,7 +333,7 @@ class SettingsScreen extends StatelessWidget {
                               content: const Text('Commit hash copied'),
                               behavior: SnackBarBehavior.floating,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                           );
@@ -825,7 +825,7 @@ class _AppLockTileState extends State<_AppLockTile> {
           builder: (ctx, setDialogState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               title: Text(step2 ? 'Confirm PIN' : 'Set PIN'),
               content: Column(
@@ -952,7 +952,7 @@ class _AppLockTileState extends State<_AppLockTile> {
                                     content: const Text('PIN set successfully'),
                                     behavior: SnackBarBehavior.floating,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
                                 );
@@ -1014,7 +1014,7 @@ class _AppLockTileState extends State<_AppLockTile> {
                     content: const Text('PIN removed'),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 );
@@ -1179,7 +1179,7 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
                       ),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   );
@@ -1190,7 +1190,7 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
                       content: const Text('No internet connection'),
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   );
@@ -1202,7 +1202,7 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
                         content: Text(update.errorMessage!),
                         behavior: SnackBarBehavior.floating,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     );

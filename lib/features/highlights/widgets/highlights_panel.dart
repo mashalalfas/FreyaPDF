@@ -70,7 +70,7 @@ class HighlightsPanel extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: cs.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${highlights.length}',

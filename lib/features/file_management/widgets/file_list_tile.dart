@@ -45,16 +45,26 @@ class FileListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final selectionAlpha = isDark ? 0.20 : 0.15;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-      child: Material(
-        color: isSelected
-            ? colorScheme.primary.withValues(alpha: 0.08)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? colorScheme.primary.withValues(alpha: selectionAlpha)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: isSelected
+              ? Border(left: BorderSide(color: colorScheme.primary, width: 4))
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
           onTap: isSelectionMode ? onSelectToggle : onTap,
           onLongPress: onEnterSelectionMode ?? (isSelectionMode ? null : () => _showContextMenu(context)),
           child: Padding(
@@ -108,29 +118,29 @@ class FileListTile extends StatelessWidget {
                         children: [
                           Icon(
                             Icons.access_time_rounded,
-                            size: 11,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            size: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             file.modifiedFormatted,
                             style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                             ),
                           ),
                           const SizedBox(width: 10),
                           Icon(
                             Icons.data_usage_rounded,
-                            size: 11,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            size: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: 3),
                           Text(
                             file.sizeFormatted,
                             style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -157,14 +167,14 @@ class FileListTile extends StatelessWidget {
                           children: [
                             Icon(
                               Icons.bookmark_rounded,
-                              size: 11,
+                              size: 13,
                               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                             ),
                             const SizedBox(width: 3),
                             Text(
                               '${bookmarkCount ?? 0}',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                               ),
                             ),
@@ -187,7 +197,7 @@ class FileListTile extends StatelessWidget {
                             isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
                             size: 18,
                             color: isFavorite
-                                ? Colors.amber
+                                ? colorScheme.secondary
                                 : colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
                           ),
                         ),
@@ -205,6 +215,7 @@ class FileListTile extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -289,8 +300,8 @@ class FileListTile extends StatelessWidget {
             ),
             if (onDelete != null)
               ListTile(
-                leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
-                title: Text('Delete', style: TextStyle(color: Colors.red.shade400)),
+                leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
+                title: Text('Delete', style: TextStyle(color: Theme.of(context).colorScheme.error)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _confirmDelete(context);
@@ -306,8 +317,8 @@ class FileListTile extends StatelessWidget {
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete file?'),
         content: Text('Permanently delete "${file.name}"?\nThis cannot be undone.'),
         actions: [
@@ -320,7 +331,7 @@ class FileListTile extends StatelessWidget {
               Navigator.pop(ctx);
               onDelete?.call();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],

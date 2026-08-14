@@ -422,7 +422,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('${file.displayName} deleted'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -470,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('${file.displayName} encrypted'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     } else if (fileOps.lastError != null) {
@@ -478,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text(fileOps.lastError!),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -510,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('Decrypted to $plainName'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     } else if (fileOps.lastError != null) {
@@ -518,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text(fileOps.lastError!),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -650,7 +650,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         Icons.star_rounded,
                         size: 18,
                         color: sortSearch.showFavoritesFirst
-                            ? Colors.amber
+                            ? Theme.of(context).colorScheme.secondary
                             : null,
                       ),
                       const SizedBox(width: 10),
@@ -1028,8 +1028,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (paths.isEmpty) return;
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Delete ${paths.length} files?'),
         content: Text('$paths files will be permanently deleted.\nThis cannot be undone.'),
         actions: [
@@ -1039,7 +1039,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -1065,7 +1065,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('$count file${count == 1 ? '' : 's'} deleted'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -1151,7 +1151,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               SnackBar(
                 content: Text('$deleted original file${deleted == 1 ? '' : 's'} deleted'),
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             );
             return; // skip the generic "encrypted" snackbar
@@ -1163,7 +1163,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('${encrypted.length} file${encrypted.length == 1 ? '' : 's'} encrypted'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -1204,7 +1204,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('$successCount file${successCount == 1 ? '' : 's'} decrypted'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -1234,7 +1234,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         SnackBar(
           content: Text('$successCount file${successCount == 1 ? '' : 's'} moved to secure folder'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }

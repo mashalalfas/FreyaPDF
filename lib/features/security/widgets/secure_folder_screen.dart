@@ -62,7 +62,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
           content: Text(provider.error!),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       );
@@ -93,10 +93,8 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
   Future<void> _deleteSecureFile(PdfFile file) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
         title: const Text('Delete from secure folder?'),
         content: Text(
           'Permanently delete "${file.displayName}" from the secure folder?',
@@ -108,7 +106,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -125,7 +123,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
           content: Text('${file.displayName} deleted'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       );
@@ -153,7 +151,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
             content: Text('Exported to FreyaPDF_Exports'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -163,7 +161,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
             content: Text(provider.error!),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -175,7 +173,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
             content: Text('Export failed: $e'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -209,7 +207,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       );
@@ -221,7 +219,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       );
@@ -411,7 +409,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
                   color: colorScheme.primary.withValues(alpha: 0.3),
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),

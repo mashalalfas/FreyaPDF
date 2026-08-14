@@ -43,7 +43,7 @@ Future<bool> showDeleteOriginalDialog(
         ),
         TextButton(
           onPressed: () => Navigator.pop(ctx, true),
-          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
           child: const Text('Delete'),
         ),
       ],

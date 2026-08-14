@@ -422,7 +422,7 @@ class _ThumbnailTile extends StatelessWidget {
                   color: isCurrentPage
                       ? colorScheme.primary.withValues(alpha: 0.1)
                       : null,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${pageIndex + 1}',

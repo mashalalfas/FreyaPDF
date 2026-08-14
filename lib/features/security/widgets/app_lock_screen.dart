@@ -319,10 +319,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final brightness = Theme.of(context).brightness;
-    final bg = brightness == Brightness.dark
-        ? colorScheme.surface
-        : const Color(0xFFF8F9FA);
+    final bg = colorScheme.surface;
 
     return Scaffold(
       backgroundColor: bg,

@@ -41,7 +41,7 @@ class TagsScreen extends StatelessWidget {
                 content: Text('Tag "${created.name}" created'),
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             );
@@ -96,8 +96,8 @@ class _TagListTile extends StatelessWidget {
   Future<void> _confirmDelete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Delete tag?'),
         content: Text(
           'Delete "${tag.name}"? It will be removed from $fileCount ${fileCount == 1 ? "file" : "files"}.',
@@ -109,7 +109,7 @@ class _TagListTile extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Theme.of(ctx).colorScheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -123,7 +123,7 @@ class _TagListTile extends StatelessWidget {
             content: Text('Tag "${tag.name}" deleted'),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
         );
@@ -141,7 +141,7 @@ class _TagListTile extends StatelessWidget {
         height: 36,
         decoration: BoxDecoration(
           color: tag.displayColor.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Center(
           child: TagDot(tag: tag, size: 14),
