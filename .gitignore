@@ -79,3 +79,6 @@ USER.md
 
 # HERO sandbox state mirror
 .hero/
+
+# Old APK backups — too large for git, kept locally
+backups/
