@@ -36,8 +36,7 @@ class SettingsScreen extends StatelessWidget {
                 settings.userProfile.name.isNotEmpty
                     ? settings.userProfile.name[0].toUpperCase()
                     : '?',
-                style: TextStyle(
-                  fontSize: 20,
+                style: Theme.of(context).textTheme.titleLarge!.copyWith(
                   color: colorScheme.onPrimaryContainer,
                 ),
               ),
@@ -52,10 +51,7 @@ class SettingsScreen extends StatelessWidget {
               settings.userProfile.email.isEmpty
                   ? 'Tap to edit profile'
                   : settings.userProfile.email,
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _showEditProfileDialog(context, settings),
@@ -72,10 +68,7 @@ class SettingsScreen extends StatelessWidget {
               encryption.hasPassphrase
                   ? '●●●●●●●●'
                   : 'Not set — files will not be encrypted',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => showPassphraseDialog(context),
@@ -85,10 +78,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Auto-encrypt new files'),
             subtitle: Text(
               'New PDF files are encrypted on import',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             value: settings.autoEncrypt,
             onChanged: (v) => settings.setAutoEncrypt(v),
@@ -98,14 +88,12 @@ class SettingsScreen extends StatelessWidget {
               leading: Icon(Icons.lock_open_rounded, color: colorScheme.error),
               title: Text(
                 'Clear passphrase',
-                style: TextStyle(color: colorScheme.error),
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.error),
               ),
               subtitle: Text(
                 'Lock all encrypted files until re-entered',
                 style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+                  color: colorScheme.onSurfaceVariant),
               ),
               onTap: () async {
                 await encryption.clearPassphrase();
@@ -127,10 +115,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Remembered PDF passwords'),
             subtitle: Text(
               'Clear passwords saved for external PDFs on this device',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             onTap: () => _clearRememberedPdfPasswords(context),
           ),
@@ -150,10 +135,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Swipe mode (page turn)'),
             subtitle: Text(
               'Swipe left/right to turn pages like a book',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             value: settings.pageTurnMode,
             onChanged: (v) => settings.setPageTurnMode(v),
@@ -163,10 +145,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Show thumbnails'),
             subtitle: Text(
               'Show a thumbnail grid button while reading',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             value: settings.showThumbnails,
             onChanged: (v) => settings.setShowThumbnails(v),
@@ -179,10 +158,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Dark reading mode'),
             subtitle: Text(
               'Invert PDF colors for comfortable reading in low light',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             value: settings.darkReadingMode,
             onChanged: (v) => settings.setDarkReadingMode(v),
@@ -197,10 +173,7 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Theme'),
             subtitle: Text(
               _themeModeLabel(settings.themeMode),
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => _showThemePicker(context, settings),
@@ -218,10 +191,7 @@ class SettingsScreen extends StatelessWidget {
                 backup.isExporting
                     ? 'Exporting…'
                     : 'Save all data as a JSON file',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
               ),
               trailing: backup.isExporting
                   ? SizedBox(
@@ -244,10 +214,7 @@ class SettingsScreen extends StatelessWidget {
                 backup.isImporting
                     ? 'Restoring…'
                     : 'Restore data from a JSON file',
-                style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
               ),
               trailing: backup.isImporting
                   ? SizedBox(
@@ -301,10 +268,7 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text('Version'),
                     trailing: Text(
                       'v${update.currentVersion}',
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                   ),
                 ),
@@ -316,9 +280,8 @@ class SettingsScreen extends StatelessWidget {
                     children: [
                       Text(
                         BuildInfo.gitHash,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           color: colorScheme.onSurfaceVariant,
-                          fontSize: 13,
                           fontFamily: 'monospace',
                         ),
                       ),
@@ -349,9 +312,7 @@ class SettingsScreen extends StatelessWidget {
                   subtitle: Text(
                     'Includes MIT/Apache/BSD licensed works',
                     style: TextStyle(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 13,
-                    ),
+                      color: colorScheme.onSurfaceVariant),
                   ),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => showLicensePage(
@@ -436,11 +397,11 @@ class SettingsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Text(
                 'Theme',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                style: Theme.of(ctx).textTheme.titleMedium,
               ),
             ),
             _themeOption(
@@ -649,7 +610,7 @@ class _AppLockTileState extends State<_AppLockTile> {
             _hasPin
                 ? 'Lock the app behind a PIN or biometric'
                 : 'Set up a PIN first',
-            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
           ),
           value: widget.settings.appLockEnabled && _hasPin,
           onChanged: _hasPin
@@ -665,7 +626,7 @@ class _AppLockTileState extends State<_AppLockTile> {
             _hasPin
                 ? 'Change your app unlock PIN'
                 : 'Create a PIN to lock the app',
-            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
           ),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () async {
@@ -688,10 +649,7 @@ class _AppLockTileState extends State<_AppLockTile> {
               _biometricEnabled
                   ? 'Fingerprint or face unlock enabled'
                   : 'Use fingerprint or face to unlock',
-              style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
             ),
             value: _biometricEnabled,
             onChanged: (v) async {
@@ -709,14 +667,12 @@ class _AppLockTileState extends State<_AppLockTile> {
             ),
             title: Text(
               'Remove PIN',
-              style: TextStyle(color: colorScheme.error),
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.error),
             ),
             subtitle: Text(
               'Disable app lock and clear stored PIN',
               style: TextStyle(
-                color: colorScheme.onSurfaceVariant,
-                fontSize: 13,
-              ),
+                color: colorScheme.onSurfaceVariant),
             ),
             onTap: () => _confirmRemovePin(context),
           ),
@@ -743,9 +699,9 @@ class _AppLockTileState extends State<_AppLockTile> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Confirm your current PIN to continue.',
-                style: TextStyle(fontSize: 13),
+                style: Theme.of(context).textTheme.labelMedium,
               ),
               const SizedBox(height: 16),
               TextField(
@@ -835,10 +791,7 @@ class _AppLockTileState extends State<_AppLockTile> {
                     step2
                         ? 'Enter your PIN again to confirm'
                         : 'Enter a 4-6 digit PIN',
-                    style: TextStyle(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 13,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(color: colorScheme.onSurfaceVariant),
                   ),
                   const SizedBox(height: 16),
                   // Pin dots display
@@ -863,7 +816,9 @@ class _AppLockTileState extends State<_AppLockTile> {
                     const SizedBox(height: 8),
                     Text(
                       step2Error!,
-                      style: TextStyle(color: colorScheme.error, fontSize: 12),
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        color: colorScheme.error,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 20),
@@ -1108,8 +1063,7 @@ class _SetupKey extends StatelessWidget {
             child: label != null
                 ? Text(
                     label!,
-                    style: TextStyle(
-                      fontSize: 22,
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
                       fontWeight: FontWeight.w500,
                       color: fg,
                     ),
@@ -1145,7 +1099,7 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
       title: const Text('Check for updates'),
       subtitle: Text(
         _checking ? 'Checking…' : 'See if a newer version is available',
-        style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+        style: TextStyle(color: colorScheme.onSurfaceVariant),
       ),
       trailing: _checking
           ? SizedBox(
@@ -1223,8 +1177,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(
-          fontSize: 11,
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
           color: Theme.of(context).colorScheme.primary,

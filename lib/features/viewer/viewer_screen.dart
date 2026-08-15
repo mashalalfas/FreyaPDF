@@ -798,9 +798,8 @@ class _ViewerScreenState extends State<ViewerScreen> {
                       _outlineLoading
                           ? 'Loading contents…'
                           : 'No table of contents',
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         color: cs.onSurfaceVariant,
-                        fontSize: 15,
                       ),
                     ),
                     if (_outlineLoading) ...[
@@ -839,9 +838,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                       const SizedBox(width: 8),
                       Text(
                         'Contents',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
                           color: cs.onSurface,
                         ),
                       ),
@@ -901,8 +898,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
         node.title,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 14,
+        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
           fontWeight: depth == 0 ? FontWeight.w600 : FontWeight.w400,
           color: cs.onSurface,
         ),
@@ -1208,7 +1204,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                 widget.file.displayName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 15),
+                style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
           ],
@@ -1964,9 +1960,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                     const SizedBox(width: 4),
                     Text(
                       'Draw mode — tap to exit',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
                         color: colorScheme.onPrimaryContainer,
                       ),
                     ),
@@ -2028,8 +2022,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
             Text(
               _svgError!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
             ),
@@ -2139,9 +2132,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                       autofocus: true,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                      style: Theme.of(context).textTheme.titleSmall!.copyWith(
                         color: colorScheme.primary,
                       ),
                       decoration: InputDecoration(
@@ -2162,8 +2153,7 @@ class _ViewerScreenState extends State<ViewerScreen> {
                           ),
                         ),
                         hintText: '$_totalPages',
-                        hintStyle: TextStyle(
-                          fontSize: 13,
+                        hintStyle: Theme.of(context).textTheme.bodyMedium!.copyWith(
                           color: colorScheme.onSurfaceVariant.withValues(
                             alpha: 0.4,
                           ),
@@ -2245,18 +2235,14 @@ class _ViewerScreenState extends State<ViewerScreen> {
                         children: [
                           Text(
                             '$_currentPage / $_totalPages',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
+                            style: Theme.of(context).textTheme.titleSmall!.copyWith(
                               color: colorScheme.primary,
                             ),
                           ),
                           // Percentage (#24)
                           Text(
                             ' · ${(_currentPage / _totalPages * 100).round()}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w400,
+                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
                               color: colorScheme.primary.withValues(alpha: 0.6),
                             ),
                           ),

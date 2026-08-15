@@ -146,8 +146,7 @@ Future<bool> _showPassphraseDialog(
                   showRetryBio
                       ? 'Biometric check failed. Enter your passphrase to open this encrypted file.'
                       : 'Enter your passphrase to open this encrypted file.',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: Theme.of(ctx).textTheme.labelMedium!.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -216,8 +215,7 @@ Future<bool> _showPassphraseDialog(
                       const SizedBox(width: 6),
                       Text(
                         strengthLabel(strength),
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: Theme.of(ctx).textTheme.labelMedium!.copyWith(
                           fontWeight: FontWeight.w600,
                           color: strengthColor(strength, colorScheme),
                         ),
@@ -232,8 +230,7 @@ Future<bool> _showPassphraseDialog(
                         const SizedBox(width: 4),
                         Text(
                           'Common password',
-                          style: TextStyle(
-                            fontSize: 12,
+                          style: Theme.of(ctx).textTheme.bodySmall!.copyWith(
                             color: colorScheme.error,
                           ),
                         ),
@@ -245,8 +242,7 @@ Future<bool> _showPassphraseDialog(
                   const SizedBox(height: 6),
                   Text(
                     'Minimum 8 characters required',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(ctx).textTheme.bodySmall!.copyWith(
                       color: colorScheme.error,
                     ),
                   ),
@@ -255,8 +251,7 @@ Future<bool> _showPassphraseDialog(
                   const SizedBox(height: 6),
                   Text(
                     'This is a commonly used password. Please choose a stronger one.',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(ctx).textTheme.bodySmall!.copyWith(
                       color: colorScheme.error,
                     ),
                   ),
@@ -273,8 +268,7 @@ Future<bool> _showPassphraseDialog(
                       const SizedBox(width: 6),
                       Text(
                         'Biometrics available',
-                        style: TextStyle(
-                          fontSize: 12,
+                        style: Theme.of(ctx).textTheme.bodySmall!.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -284,8 +278,7 @@ Future<bool> _showPassphraseDialog(
                 else
                   Text(
                     '⚠️ If you forget this passphrase, encrypted PDFs cannot be recovered.',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(ctx).textTheme.bodySmall!.copyWith(
                       color: colorScheme.error,
                     ),
                   ),

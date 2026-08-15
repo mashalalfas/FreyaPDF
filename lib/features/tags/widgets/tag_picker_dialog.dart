@@ -92,17 +92,16 @@ class _TagPickerSheetState extends State<_TagPickerSheet> {
                 Icon(Icons.label_outline_rounded,
                     size: 20, color: colorScheme.primary),
                 const SizedBox(width: 8),
-                const Text(
+                Text(
                   'Tag file',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               'Select tags to apply. Tap a tag to toggle.',
-              style: TextStyle(
-                fontSize: 12.5,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -173,8 +172,7 @@ class _TagPickerSheetState extends State<_TagPickerSheet> {
           const SizedBox(height: 6),
           Text(
             'No tags yet',
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.labelMedium!.copyWith(
               fontWeight: FontWeight.w500,
               color: colorScheme.onSurfaceVariant,
             ),
@@ -182,8 +180,7 @@ class _TagPickerSheetState extends State<_TagPickerSheet> {
           const SizedBox(height: 2),
           Text(
             'Create your first tag below',
-            style: TextStyle(
-              fontSize: 11.5,
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
@@ -268,8 +265,7 @@ class _TagEditDialogState extends State<_TagEditDialog> {
           const SizedBox(height: 16),
           Text(
             'COLOR',
-            style: TextStyle(
-              fontSize: 11,
+            style: Theme.of(context).textTheme.labelSmall!.copyWith(
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
               color: colorScheme.primary,

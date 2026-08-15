@@ -54,7 +54,7 @@ class _UpdateDialog extends StatelessWidget {
           children: [
             Text(
               'Downloading v$newVersion…',
-              style: const TextStyle(fontSize: 14),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             ClipRRect(
@@ -71,8 +71,7 @@ class _UpdateDialog extends StatelessWidget {
               provider.downloadProgress != null
                   ? '${(provider.downloadProgress! * 100).toStringAsFixed(0)}%'
                   : 'Preparing…',
-              style: TextStyle(
-                fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -99,7 +98,7 @@ class _UpdateDialog extends StatelessWidget {
           children: [
             Text(
               'A new version of Freya PDF is available: v$newVersion',
-              style: const TextStyle(fontSize: 14),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             if (release != null && release.body.isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -114,8 +113,7 @@ class _UpdateDialog extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: Text(
                     release.body,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),

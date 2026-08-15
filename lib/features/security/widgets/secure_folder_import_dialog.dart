@@ -130,19 +130,23 @@ class _SecureFolderImportDialogState
                             const SizedBox(height: 12),
                             Text(
                               'No files available to import',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium!
+                                  .copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Add PDFs to your library first',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.6),
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall!
+                                  .copyWith(
+                                    color: colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.6),
+                                  ),
                             ),
                           ],
                         ),
@@ -154,8 +158,7 @@ class _SecureFolderImportDialogState
                       children: [
                         Text(
                           'Select files to encrypt and move to the secure folder',
-                          style: TextStyle(
-                            fontSize: 13,
+                          style: Theme.of(context).textTheme.labelMedium!.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
@@ -175,7 +178,7 @@ class _SecureFolderImportDialogState
                               label: const Text('Select all'),
                               style: TextButton.styleFrom(
                                 foregroundColor: colorScheme.primary,
-                                textStyle: const TextStyle(fontSize: 12),
+                                textStyle: Theme.of(context).textTheme.bodySmall,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 0,
@@ -191,7 +194,7 @@ class _SecureFolderImportDialogState
                               label: const Text('Clear'),
                               style: TextButton.styleFrom(
                                 foregroundColor: colorScheme.onSurfaceVariant,
-                                textStyle: const TextStyle(fontSize: 12),
+                                textStyle: Theme.of(context).textTheme.bodySmall,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 0,
@@ -224,14 +227,16 @@ class _SecureFolderImportDialogState
                                   file.displayName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 14),
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 subtitle: Text(
                                   file.sizeFormatted,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall!
+                                      .copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
                                 ),
                                 dense: true,
                                 shape: RoundedRectangleBorder(
@@ -401,9 +406,7 @@ class _ImportProgressState extends State<_ImportProgress>
                 ? 'Encrypted ${widget.total} of ${widget.total}'
                 : 'Encrypting ${widget.completed + 1} of ${widget.total}',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+            style: Theme.of(context).textTheme.titleSmall!.copyWith(
               color: colorScheme.onSurface,
             ),
           ),
@@ -413,7 +416,9 @@ class _ImportProgressState extends State<_ImportProgress>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: detailColor),
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
+              color: detailColor,
+            ),
           ),
           const SizedBox(height: 12),
           ClipRRect(

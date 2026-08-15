@@ -303,17 +303,14 @@ class _ThumbnailGridState extends State<ThumbnailGrid> {
                   const SizedBox(width: 8),
                   Text(
                     'Thumbnails',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
                       color: colorScheme.onSurface,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     '$pageCount pages',
-                    style: TextStyle(
-                      fontSize: 13,
+                    style: Theme.of(context).textTheme.labelMedium!.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -426,9 +423,10 @@ class _ThumbnailTile extends StatelessWidget {
                 ),
                 child: Text(
                   '${pageIndex + 1}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isCurrentPage ? FontWeight.w600 : FontWeight.w400,
+                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                    fontWeight: isCurrentPage
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                     color: isCurrentPage
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant,

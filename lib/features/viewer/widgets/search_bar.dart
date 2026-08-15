@@ -103,8 +103,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   focusNode: _focusNode,
                   onChanged: widget.onSearchChanged,
                   textInputAction: TextInputAction.search,
-                  style: TextStyle(
-                    fontSize: 14,
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     color: cs.onSurface,
                   ),
                   decoration: InputDecoration(
@@ -114,10 +113,12 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                       vertical: 8,
                     ),
                     hintText: 'Search in document…',
-                    hintStyle: TextStyle(
-                      fontSize: 14,
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                    ),
+                    hintStyle: Theme.of(context)
+                        .textTheme
+                        .bodyMedium!
+                        .copyWith(
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                        ),
                     border: InputBorder.none,
                     focusedBorder: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -137,8 +138,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                       widget.searchUnavailableReason!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         fontWeight: FontWeight.w500,
                         color: cs.error,
                       ),
@@ -153,8 +153,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   padding: const EdgeInsets.only(right: 4),
                   child: Text(
                     '${widget.currentMatchIndex} / ${widget.matchCount}',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w500,
                       color: cs.onSurfaceVariant,
                     ),
@@ -169,8 +168,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
                     'No results',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: cs.error,
                     ),
                   ),
@@ -184,8 +182,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                   padding: const EdgeInsets.only(right: 8),
                   child: Text(
                     'Matches limited — refine query',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: cs.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
                   ),

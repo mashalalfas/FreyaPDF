@@ -76,9 +76,8 @@ class TagsScreen extends StatelessWidget {
             Text(
               'Create tags to organize your PDFs by category',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: Theme.of(context).textTheme.labelMedium!.copyWith(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: 13,
               ),
             ),
           ],
@@ -155,9 +154,8 @@ class _TagListTile extends StatelessWidget {
         fileCount == 0
             ? 'No files'
             : '$fileCount file${fileCount == 1 ? '' : 's'}',
-        style: TextStyle(
+        style: Theme.of(context).textTheme.bodySmall!.copyWith(
           color: colorScheme.onSurfaceVariant,
-          fontSize: 12.5,
         ),
       ),
       trailing: Wrap(

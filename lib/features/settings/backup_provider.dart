@@ -243,9 +243,8 @@ class BackupProvider extends ChangeNotifier {
           children: [
             Text(
               'This will replace your current data with the backup.',
-              style: TextStyle(
+              style: Theme.of(ctx).textTheme.labelMedium!.copyWith(
                 color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                fontSize: 13,
               ),
             ),
             const SizedBox(height: 16),
@@ -257,9 +256,8 @@ class BackupProvider extends ChangeNotifier {
             const SizedBox(height: 8),
             Text(
               'Settings and last-read positions will also be restored.',
-              style: TextStyle(
+              style: Theme.of(ctx).textTheme.bodySmall!.copyWith(
                 color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                fontSize: 12,
               ),
             ),
           ],
@@ -395,8 +393,7 @@ class BackupProvider extends ChangeNotifier {
                   children: [
                     Text(
                       message,
-                      style: TextStyle(
-                        fontSize: 13,
+                      style: Theme.of(ctx).textTheme.labelMedium!.copyWith(
                         color: cs.onSurfaceVariant,
                       ),
                     ),

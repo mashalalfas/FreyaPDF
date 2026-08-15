@@ -36,7 +36,6 @@ class TagChip extends StatelessWidget {
     final tagColor = tag.displayColor;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final height = compact ? 28.0 : 32.0;
-    final fontSize = compact ? 11.5 : 13.0;
     final hPad = compact ? 10.0 : 12.0;
     final dotSize = compact ? 6.0 : 7.0;
 
@@ -91,9 +90,13 @@ class TagChip extends StatelessWidget {
               Flexible(
                 child: Text(
                   tag.name,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  style: (compact
+                          ? Theme.of(context).textTheme.labelSmall
+                          : Theme.of(context).textTheme.labelMedium)!
+                      .copyWith(
+                    fontWeight: selected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                     color: foreground,
                     letterSpacing: 0.1,
                   ),

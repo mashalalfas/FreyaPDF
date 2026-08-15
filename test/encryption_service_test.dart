@@ -301,6 +301,7 @@ void main() {
         expect(decrypted, equals(large));
         expect(File('$encPath.tmp').existsSync(), isFalse);
       },
+      timeout: const Timeout(Duration(seconds: 60)),
       tags: {'slow'},
     );
   });

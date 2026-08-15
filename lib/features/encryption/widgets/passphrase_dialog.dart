@@ -78,8 +78,7 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
           Text(
             'Used to encrypt/decrypt PDFs. '
             'Stored securely (Keystore-encrypted) on this device.',
-            style: TextStyle(
-              fontSize: 13,
+            style: Theme.of(context).textTheme.labelMedium!.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
@@ -147,8 +146,7 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
                 const SizedBox(width: 6),
                 Text(
                   strengthLabel(strength),
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: Theme.of(context).textTheme.labelMedium!.copyWith(
                     fontWeight: FontWeight.w600,
                     color: strengthColor(strength, colorScheme),
                   ),
@@ -163,8 +161,7 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
                   const SizedBox(width: 4),
                   Text(
                     'Common password',
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: colorScheme.error,
                     ),
                   ),
@@ -176,8 +173,7 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
             const SizedBox(height: 6),
             Text(
               'Minimum 8 characters required',
-              style: TextStyle(
-                fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                 color: colorScheme.error,
               ),
             ),
@@ -186,8 +182,7 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
             const SizedBox(height: 6),
             Text(
               'This is a commonly used password. Please choose a stronger one.',
-              style: TextStyle(
-                fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                 color: colorScheme.error,
               ),
             ),
@@ -195,8 +190,7 @@ class _PassphraseDialogState extends State<_PassphraseDialog> {
           const SizedBox(height: 8),
           Text(
             '⚠️ If you forget this, encrypted PDFs cannot be recovered.',
-            style: TextStyle(
-              fontSize: 12,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
               color: colorScheme.error,
             ),
           ),

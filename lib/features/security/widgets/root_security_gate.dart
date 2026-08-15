@@ -124,10 +124,8 @@ class _BlockedDeviceScreen extends StatelessWidget {
                   'FreyaPDF detected that this device is rooted or jailbroken. '
                   'Unsigned operating systems can bypass the encryption that '
                   'protects your PDFs, so the app is locked for your safety.',
-                  style: TextStyle(
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 14,
-                    height: 1.4,
                   ),
                   textAlign: TextAlign.center,
                 ),

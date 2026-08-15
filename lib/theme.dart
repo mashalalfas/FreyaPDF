@@ -11,8 +11,92 @@ class AppTheme {
   static const _darkBg = Color(0xFF1A1C1E);
   static const _darkSurface = Color(0xFF252729);
 
-  /// Use 'Inter' everywhere — bundled in assets/fonts/.
+  /// Inter (body) + Fraunces (serif display) — bundled in assets/fonts/.
   static const _fontFamily = 'Inter';
+  static const _displayFamily = 'Fraunces';
+
+  /// Full Material 3 type scale. Serif display for editorial titles,
+  /// Inter for body/labels. Shared by both light and dark themes.
+  static const _textTheme = TextTheme(
+    displayLarge: TextStyle(
+      fontFamily: _displayFamily,
+      fontSize: 57,
+      height: 1.12,
+      fontWeight: FontWeight.w400,
+    ),
+    displayMedium: TextStyle(
+      fontFamily: _displayFamily,
+      fontSize: 45,
+      height: 1.15,
+      fontWeight: FontWeight.w400,
+    ),
+    displaySmall: TextStyle(
+      fontFamily: _displayFamily,
+      fontSize: 36,
+      height: 1.22,
+      fontWeight: FontWeight.w500,
+    ),
+    headlineLarge: TextStyle(
+      fontFamily: _displayFamily,
+      fontSize: 32,
+      height: 1.25,
+      fontWeight: FontWeight.w600,
+    ),
+    headlineMedium: TextStyle(
+      fontFamily: _displayFamily,
+      fontSize: 28,
+      height: 1.29,
+      fontWeight: FontWeight.w600,
+    ),
+    headlineSmall: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 24,
+      height: 1.33,
+      fontWeight: FontWeight.w600,
+    ),
+    titleLarge: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 22,
+      height: 1.27,
+      fontWeight: FontWeight.w700,
+    ),
+    titleMedium: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 18,
+      height: 1.3,
+      fontWeight: FontWeight.w600,
+    ),
+    titleSmall: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 14,
+      height: 1.43,
+      fontWeight: FontWeight.w600,
+    ),
+    bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6),
+    bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5),
+    bodySmall: TextStyle(fontFamily: _fontFamily, fontSize: 12, height: 1.43),
+    labelLarge: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 14,
+      height: 1.43,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.1,
+    ),
+    labelMedium: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 13,
+      height: 1.33,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+    ),
+    labelSmall: TextStyle(
+      fontFamily: _fontFamily,
+      fontSize: 11,
+      height: 1.45,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+    ),
+  );
 
   static ThemeData light() {
     final colorScheme = ColorScheme.fromSeed(
@@ -32,10 +116,7 @@ class AppTheme {
         surfaceContainerHighest: const Color(0xFFD8D1C2),
       ),
       scaffoldBackgroundColor: _warmBg,
-      textTheme: const TextTheme(
-        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6),
-        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5),
-      ),
+      textTheme: _textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: _warmSurface,
         foregroundColor: const Color(0xFF1A1A1A),
@@ -54,7 +135,9 @@ class AppTheme {
         shadowColor: Colors.black.withValues(alpha: 0.04),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: const Color(0xFF1A1A1A).withValues(alpha: 0.08)),
+          side: BorderSide(
+            color: const Color(0xFF1A1A1A).withValues(alpha: 0.08),
+          ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -67,9 +150,7 @@ class AppTheme {
         backgroundColor: _teal,
         foregroundColor: Colors.white,
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       dividerTheme: DividerThemeData(
         color: const Color(0xFF1A1A1A).withValues(alpha: 0.08),
@@ -81,22 +162,27 @@ class AppTheme {
         fillColor: const Color(0xFF1A1A1A).withValues(alpha: 0.03),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: const Color(0xFF1A1A1A).withValues(alpha: 0.1)),
+          borderSide: BorderSide(
+            color: const Color(0xFF1A1A1A).withValues(alpha: 0.1),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: const Color(0xFF1A1A1A).withValues(alpha: 0.1)),
+          borderSide: BorderSide(
+            color: const Color(0xFF1A1A1A).withValues(alpha: 0.1),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: _teal, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -119,9 +205,13 @@ class AppTheme {
         surfaceContainerHighest: const Color(0xFF3B3D3F),
       ),
       scaffoldBackgroundColor: _darkBg,
-      textTheme: TextTheme(
-        bodyLarge: TextStyle(fontFamily: _fontFamily, fontSize: 16, height: 1.6, color: colorScheme.onSurface),
-        bodyMedium: TextStyle(fontFamily: _fontFamily, fontSize: 14, height: 1.5, color: colorScheme.onSurfaceVariant),
+      // Dark inherits base scale; override color-only foregrounds that must
+      // track the dark scheme (body roles use colorScheme-derived colors).
+      textTheme: _textTheme.copyWith(
+        bodyLarge: _textTheme.bodyLarge?.copyWith(color: colorScheme.onSurface),
+        bodyMedium: _textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: _darkSurface,
@@ -141,7 +231,9 @@ class AppTheme {
         shadowColor: Colors.black.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: const Color(0xFFFFFFFF).withValues(alpha: 0.06)),
+          side: BorderSide(
+            color: const Color(0xFFFFFFFF).withValues(alpha: 0.06),
+          ),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -154,9 +246,7 @@ class AppTheme {
         backgroundColor: _teal,
         foregroundColor: Colors.white,
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       dividerTheme: DividerThemeData(
         color: const Color(0xFFFFFFFF).withValues(alpha: 0.06),
@@ -168,22 +258,27 @@ class AppTheme {
         fillColor: const Color(0xFFFFFFFF).withValues(alpha: 0.04),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: const Color(0xFFFFFFFF).withValues(alpha: 0.08)),
+          borderSide: BorderSide(
+            color: const Color(0xFFFFFFFF).withValues(alpha: 0.08),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: const Color(0xFFFFFFFF).withValues(alpha: 0.08)),
+          borderSide: BorderSide(
+            color: const Color(0xFFFFFFFF).withValues(alpha: 0.08),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: _teal, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
       ),
       dialogTheme: DialogThemeData(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

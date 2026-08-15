@@ -55,9 +55,7 @@ class HighlightsPanel extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Highlights',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
                       color: cs.onSurface,
                     ),
                   ),
@@ -74,9 +72,7 @@ class HighlightsPanel extends StatelessWidget {
                       ),
                       child: Text(
                         '${highlights.length}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
                           color: cs.primary,
                         ),
                       ),
@@ -96,7 +92,7 @@ class HighlightsPanel extends StatelessWidget {
                         horizontal: 10,
                         vertical: 4,
                       ),
-                      textStyle: const TextStyle(fontSize: 13),
+                      textStyle: Theme.of(context).textTheme.labelMedium,
                     ),
                   ),
                 ],
@@ -117,16 +113,14 @@ class HighlightsPanel extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       'No highlights yet',
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Select text or draw a rectangle',
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                       ),
                     ),
@@ -179,8 +173,7 @@ class _PageHighlightsGroup extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
           child: Text(
             'Page $pageNumber',
-            style: TextStyle(
-              fontSize: 12,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
               fontWeight: FontWeight.w600,
               color: cs.onSurfaceVariant.withValues(alpha: 0.7),
             ),
@@ -233,8 +226,7 @@ class _HighlightTile extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   'Rectangle highlight',
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: Theme.of(context).textTheme.labelMedium!.copyWith(
                     color: cs.onSurface,
                   ),
                 ),
@@ -244,15 +236,13 @@ class _HighlightTile extends StatelessWidget {
               highlight.text,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
+              style: Theme.of(context).textTheme.labelMedium!.copyWith(
                 color: cs.onSurface,
               ),
             ),
       subtitle: Text(
         _timeAgo(highlight.createdAt),
-        style: TextStyle(
-          fontSize: 11,
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
           color: cs.onSurfaceVariant.withValues(alpha: 0.6),
         ),
       ),

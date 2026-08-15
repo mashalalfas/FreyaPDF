@@ -355,11 +355,10 @@ class _AppLockScreenState extends State<AppLockScreen> {
           _lockedOut
               ? 'Too many attempts. Try again later.'
               : 'Enter your PIN to unlock',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
             color: _lockedOut
                 ? colorScheme.error
                 : colorScheme.onSurfaceVariant,
-            fontSize: 14,
           ),
         ),
         const SizedBox(height: 36),
@@ -375,9 +374,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
           const SizedBox(height: 12),
           Text(
             _errorText!,
-            style: TextStyle(
+            style: Theme.of(context).textTheme.labelMedium!.copyWith(
               color: colorScheme.error,
-              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -386,10 +384,8 @@ class _AppLockScreenState extends State<AppLockScreen> {
           const SizedBox(height: 12),
           Text(
             'Locked. Try again in ${_formatLockout(_lockoutRemaining)}.',
-            style: TextStyle(
+            style: Theme.of(context).textTheme.titleSmall!.copyWith(
               color: colorScheme.error,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -592,8 +588,7 @@ class _KeyButton extends StatelessWidget {
             child: label != null
                 ? Text(
                     label!,
-                    style: TextStyle(
-                      fontSize: 26,
+                    style: Theme.of(context).textTheme.headlineSmall!.copyWith(
                       fontWeight: FontWeight.w500,
                       color: fg,
                     ),

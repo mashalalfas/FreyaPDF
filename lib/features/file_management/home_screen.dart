@@ -255,17 +255,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       const SizedBox(width: 8),
                       Text(
                         'All Bookmarks',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
                           color: colorScheme.onSurface,
                         ),
                       ),
                       const Spacer(),
                       Text(
                         '${allBookmarks.length} total',
-                        style: TextStyle(
-                          fontSize: 13,
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -295,9 +292,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 Expanded(
                                   child: Text(
                                     fileName,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
+                                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
                                       color: colorScheme.onSurface,
                                     ),
                                     maxLines: 1,
@@ -306,8 +301,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 ),
                                 Text(
                                   '${bookmarks.length} bookmark${bookmarks.length > 1 ? 's' : ''}',
-                                  style: TextStyle(
-                                    fontSize: 12,
+                                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
@@ -323,12 +317,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             title: Text(
                               b.label ?? 'Page ${b.pageNumber + 1}',
-                              style: const TextStyle(fontSize: 14),
+                              style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             subtitle: Text(
                               'Page ${b.pageNumber + 1}  •  ${_formatBookmarkTime(b.createdAt)}',
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -1379,8 +1372,7 @@ class _AllChip extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 'All',
-                style: TextStyle(
-                  fontSize: 11.5,
+                style: Theme.of(context).textTheme.labelMedium!.copyWith(
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: fg,
                 ),

@@ -55,9 +55,7 @@ class BookmarksPanel extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Bookmarks',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
+                    style: Theme.of(context).textTheme.titleSmall!.copyWith(
                       color: cs.onSurface,
                     ),
                   ),
@@ -74,9 +72,7 @@ class BookmarksPanel extends StatelessWidget {
                       ),
                       child: Text(
                         '${bookmarks.length}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                        style: Theme.of(context).textTheme.labelSmall!.copyWith(
                           color: cs.primary,
                         ),
                       ),
@@ -96,7 +92,7 @@ class BookmarksPanel extends StatelessWidget {
                         horizontal: 10,
                         vertical: 4,
                       ),
-                      textStyle: const TextStyle(fontSize: 13),
+                      textStyle: Theme.of(context).textTheme.labelMedium,
                     ),
                   ),
                 ],
@@ -117,16 +113,14 @@ class BookmarksPanel extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       'No bookmarks yet',
-                      style: TextStyle(
-                        fontSize: 14,
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                         color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Tap the bookmark icon to add one',
-                      style: TextStyle(
-                        fontSize: 12,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
                         color: cs.onSurfaceVariant.withValues(alpha: 0.4),
                       ),
                     ),
@@ -179,8 +173,7 @@ class _PageBookmarksGroup extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
           child: Text(
             'Page $pageNumber',
-            style: TextStyle(
-              fontSize: 12,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
               fontWeight: FontWeight.w600,
               color: cs.onSurfaceVariant.withValues(alpha: 0.7),
             ),
@@ -225,15 +218,13 @@ class _BookmarkTile extends StatelessWidget {
         bookmark.label ?? 'Page ${bookmark.pageNumber}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 13,
+        style: Theme.of(context).textTheme.labelMedium!.copyWith(
           color: cs.onSurface,
         ),
       ),
       subtitle: Text(
         _timeAgo(bookmark.createdAt),
-        style: TextStyle(
-          fontSize: 11,
+        style: Theme.of(context).textTheme.labelSmall!.copyWith(
           color: cs.onSurfaceVariant.withValues(alpha: 0.6),
         ),
       ),

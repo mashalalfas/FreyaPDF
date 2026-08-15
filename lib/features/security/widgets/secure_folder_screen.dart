@@ -259,8 +259,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
             children: [
               Text(
                 '${provider.fileCount} file${provider.fileCount == 1 ? '' : 's'}',
-                style: TextStyle(
-                  fontSize: 12,
+                style: Theme.of(context).textTheme.bodySmall!.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),
@@ -271,7 +270,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
                 label: const Text('Import'),
                 style: TextButton.styleFrom(
                   foregroundColor: colorScheme.primary,
-                  textStyle: const TextStyle(fontSize: 13),
+                  textStyle: Theme.of(context).textTheme.labelMedium,
                 ),
               ),
               IconButton(
@@ -312,8 +311,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
                     '${provider.importTotal}…',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall!.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
@@ -343,7 +341,9 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
           child: Text(
             provider.error!,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: colorScheme.error),
+            style: Theme.of(context).textTheme.labelMedium!.copyWith(
+              color: colorScheme.error,
+            ),
           ),
         ),
       );
@@ -384,8 +384,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
             const SizedBox(height: 12),
             Text(
               'No files in secure folder',
-              style: TextStyle(
-                fontSize: 14,
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
@@ -393,8 +392,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
             Text(
               'Encrypted files you add will appear here',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
+              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
               ),
             ),
@@ -466,8 +464,7 @@ class _LockedView extends StatelessWidget {
                   ? '$fileCount encrypted file${fileCount == 1 ? '' : 's'} protected'
                   : 'Your encrypted files are password protected',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
+              style: Theme.of(context).textTheme.labelMedium!.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),
             ),

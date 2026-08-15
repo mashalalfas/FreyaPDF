@@ -127,9 +127,7 @@ class _EncryptingProgressDialogState extends State<_EncryptingProgressDialog>
                     ? 'Encrypting $_completed of ${widget.total}…'
                     : 'Encrypting ${widget.fileName}…',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                style: Theme.of(context).textTheme.titleSmall!.copyWith(
                   color: colorScheme.onSurface,
                 ),
               ),
@@ -140,8 +138,7 @@ class _EncryptingProgressDialogState extends State<_EncryptingProgressDialog>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodySmall!.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),

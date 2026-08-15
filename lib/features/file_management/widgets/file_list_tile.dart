@@ -105,8 +105,7 @@ class FileListTile extends StatelessWidget {
                     children: [
                       Text(
                         file.displayName,
-                        style: TextStyle(
-                          fontSize: 14,
+                        style: Theme.of(context).textTheme.titleSmall!.copyWith(
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -124,8 +123,7 @@ class FileListTile extends StatelessWidget {
                           const SizedBox(width: 3),
                           Text(
                             file.modifiedFormatted,
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                             ),
                           ),
@@ -138,8 +136,7 @@ class FileListTile extends StatelessWidget {
                           const SizedBox(width: 3),
                           Text(
                             file.sizeFormatted,
-                            style: TextStyle(
-                              fontSize: 12,
+                            style: Theme.of(context).textTheme.bodySmall!.copyWith(
                               color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                             ),
                           ),
@@ -173,8 +170,7 @@ class FileListTile extends StatelessWidget {
                             const SizedBox(width: 3),
                             Text(
                               '${bookmarkCount ?? 0}',
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: Theme.of(context).textTheme.bodySmall!.copyWith(
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                               ),
                             ),
@@ -365,8 +361,7 @@ class _TagRow extends StatelessWidget {
         if (hiddenCount > 0) ...[
           Text(
             '+$hiddenCount',
-            style: TextStyle(
-              fontSize: 10.5,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
               fontWeight: FontWeight.w500,
               color: onSurfaceVariant,
             ),
@@ -397,8 +392,7 @@ class _TagDotsRow extends StatelessWidget {
         if (hidden > 0)
           Text(
             '+$hidden',
-            style: TextStyle(
-              fontSize: 11,
+            style: Theme.of(context).textTheme.bodySmall!.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
