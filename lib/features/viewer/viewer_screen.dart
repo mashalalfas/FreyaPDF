@@ -629,26 +629,6 @@ class _ViewerScreenState extends State<ViewerScreen> {
     await fileOps.shareFile(widget.file.path);
   }
 
-  IconData _highlightModeIcon(BuildContext context) {
-    final mode = context.watch<HighlightProvider>().highlightModeValue;
-    switch (mode) {
-      case 'rectangle':
-        return Icons.crop_free_rounded;
-      default:
-        return Icons.brush_outlined;
-    }
-  }
-
-  String _highlightModeTooltip(BuildContext context) {
-    final mode = context.watch<HighlightProvider>().highlightModeValue;
-    switch (mode) {
-      case 'rectangle':
-        return 'Draw mode ON (tap to turn off)';
-      default:
-        return 'Highlight (tap to enable draw mode)';
-    }
-  }
-
   /// Build the search button that shows indexing/ready status.
   Widget _buildSearchButton(ColorScheme colorScheme) {
     return Consumer<SearchProvider>(
@@ -705,6 +685,167 @@ class _ViewerScreenState extends State<ViewerScreen> {
         );
       },
     );
+  }
+
+  /// Single source of truth for the viewer's AppBar actions.
+  ///
+  /// Both portrait and landscape share ONE action list (premium restraint: 4
+  /// primary actions + a single "More" overflow), instead of maintaining two
+  /// divergent copies that drift apart. All buttons use
+  /// [VisualDensity.compact] so the bar is a slim 48px row, and every inactive
+  /// icon uses `onSurfaceVariant` at 0.7 alpha (active = `primary`), matching
+  /// the rest of the app's icon-button styling.
+  ///
+  /// Primary (always visible): Table of Contents, Search, Bookmark, More.
+  /// Overflow ("More"): Thumbnails, Dark reading, Highlight, Highlights
+  /// panel, Save, Share, Fullscreen.
+  ///
+  /// Because this list is rebuilt from state (bookmarks, highlight mode,
+  /// dark-reading) in exactly the same shape every frame, entering/exiting
+  /// text selection never changes the AppBar's structure or height — the
+  /// [_AnimatedAppBar] wrapper stays mounted with stable dimensions, so no
+  /// flicker or jarring rebuild occurs on selection change.
+  List<Widget> _buildViewerActions(ColorScheme colorScheme, bool enabled) {
+    if (!enabled) return const [];
+    final settings = context.watch<SettingsProvider>();
+    final bookmarkProvider = context.watch<BookmarkProvider>();
+    final highlightProvider = context.watch<HighlightProvider>();
+    final bool isBookmarked = bookmarkProvider.fileBookmarks.any(
+      (b) => b.pageNumber == _currentPage,
+    );
+
+    // Inactive tone: onSurfaceVariant @ 0.7 (same treatment as the bottom
+    // toolbar used to apply, now unified for every action in every layout).
+    final Color inactive = colorScheme.onSurfaceVariant.withValues(alpha: 0.7);
+
+    // Bookmark toggle shared by the visible button and (long-press) list.
+    Future<void> toggleBookmark() async {
+      final provider = context.read<BookmarkProvider>();
+      final existing = provider.fileBookmarks.where(
+        (b) => b.pageNumber == _currentPage,
+      );
+      if (existing.isNotEmpty) {
+        for (final b in existing) {
+          await provider.removeBookmark(b.id);
+        }
+      } else {
+        await provider.addBookmark(
+          Bookmark(
+            filePath: widget.file.path,
+            pageNumber: _currentPage,
+            label: null,
+          ),
+        );
+      }
+    }
+
+    return [
+      // Table of Contents
+      IconButton(
+        icon: Icon(
+          Icons.article_outlined,
+          size: 20,
+          color: _outline != null && _outline!.isNotEmpty
+              ? colorScheme.primary
+              : inactive,
+        ),
+        tooltip: 'Table of Contents',
+        onPressed: _showOutline,
+        visualDensity: VisualDensity.compact,
+      ),
+      // Search in document
+      _buildSearchButton(colorScheme),
+      // Bookmark this page (long-press for the bookmarks list)
+      GestureDetector(
+        onLongPress: () {
+          context.read<BookmarkProvider>().setShowPanel(
+            !context.read<BookmarkProvider>().showPanel,
+          );
+        },
+        child: IconButton(
+          icon: Icon(
+            isBookmarked
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_border_rounded,
+            size: 20,
+            color: isBookmarked ? colorScheme.primary : inactive,
+          ),
+          tooltip: isBookmarked
+              ? 'Remove bookmark'
+              : 'Bookmark this page (long-press for list)',
+          onPressed: toggleBookmark,
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+      // More — everything else lives in the overflow menu.
+      PopupMenuButton<String>(
+        icon: const Icon(Icons.more_vert_rounded, size: 20),
+        tooltip: 'More options',
+        onSelected: (value) {
+          switch (value) {
+            case 'dark':
+              settings.setDarkReadingMode(!settings.darkReadingMode);
+              break;
+            case 'thumbnails':
+              _showThumbnailGrid();
+              break;
+            case 'highlight':
+              context.read<HighlightProvider>().toggleHighlightMode();
+              break;
+            case 'highlights':
+              context.read<HighlightProvider>().togglePanel();
+              break;
+            case 'save':
+              _saveToLocal();
+              break;
+            case 'share':
+              _shareFile();
+              break;
+            case 'fullscreen':
+              _toggleFullscreen();
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'thumbnails',
+            child: Text('Thumbnails'),
+          ),
+          PopupMenuItem(
+            value: 'dark',
+            child: Text(
+              settings.darkReadingMode
+                  ? 'Disable dark reading'
+                  : 'Dark reading',
+            ),
+          ),
+          PopupMenuItem(
+            value: 'highlight',
+            child: Text(
+              highlightProvider.highlightMode
+                  ? 'Highlight: draw mode ON'
+                  : 'Highlight',
+            ),
+          ),
+          PopupMenuItem(
+            value: 'highlights',
+            child: Text('Highlights panel'),
+          ),
+          const PopupMenuItem(
+            value: 'save',
+            child: Text('Save to folder'),
+          ),
+          const PopupMenuItem(
+            value: 'share',
+            child: Text('Share'),
+          ),
+          PopupMenuItem(
+            value: 'fullscreen',
+            child: Text(_isFullscreen ? 'Exit fullscreen' : 'Fullscreen'),
+          ),
+        ],
+      ),
+    ];
   }
 
   Future<void> _saveToLocal() async {
@@ -1149,327 +1290,55 @@ class _ViewerScreenState extends State<ViewerScreen> {
     final settings = context.watch<SettingsProvider>();
 
     final bool showToolbar = !_isSvgFile && _totalPages > 0;
-    // Landscape uses a slim, Google-Drive-density top bar: all action buttons
-    // live in the AppBar actions row (compact 48 high) and the portrait-only
-    // bottom toolbar row is removed. Portrait keeps the taller 80-px bar +
-    // bottom row unchanged.
-    final bool landscape =
-        MediaQuery.orientationOf(context) == Orientation.landscape;
 
+    // Single AppBar for both portrait and landscape — no divergent action
+    // lists. The unified [_buildViewerActions] source of truth keeps the bar
+    // at a slim 48px row (every button is VisualDensity.compact) with exactly
+    // 4 primary actions (TOC, Search, Bookmark, More) + one overflow menu.
+    // Because the AppBar structure (height, background, actions) is identical
+    // in every frame, entering or exiting text selection never changes the
+    // bar — [_AnimatedAppBar] stays mounted with stable dimensions, so there
+    // is no flicker or jarring rebuild on selection change.
     return Scaffold(
       appBar: _AnimatedAppBar(
         isFullscreen: _isFullscreen,
         child: AppBar(
-          toolbarHeight: showToolbar
-              ? (landscape ? 48 : 80)
-              : kToolbarHeight,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Back',
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          children: [
-            if (widget.file.isEncrypted) ...[
-              Icon(Icons.lock_rounded, size: 14, color: colorScheme.tertiary),
-              const SizedBox(width: 4),
-            ],
-            Expanded(
-              child: Text(
-                widget.file.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          if (widget.file.isEncrypted)
-            IconButton(
-              icon: Icon(
-                Icons.lock_rounded,
-                size: 20,
-                color: colorScheme.tertiary,
-              ),
-              tooltip: 'Encrypted',
-              onPressed: null,
-            ),
-          // Landscape: compact single-row actions (Google Drive density).
-          if (landscape && showToolbar) ...[
-            _buildSearchButton(colorScheme),
-            IconButton(
-              icon: Icon(
-                Icons.article_outlined,
-                size: 20,
-                color: _outline != null && _outline!.isNotEmpty
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-              tooltip: 'Table of Contents',
-              onPressed: _showOutline,
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              icon: Icon(
-                _highlightModeIcon(context),
-                size: 20,
-                color: context.watch<HighlightProvider>().highlightMode
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-              tooltip: _highlightModeTooltip(context),
-              onPressed: () =>
-                  context.read<HighlightProvider>().toggleHighlightMode(),
-              visualDensity: VisualDensity.compact,
-            ),
-            IconButton(
-              icon: Icon(
-                context.watch<BookmarkProvider>().fileBookmarks.any(
-                      (b) => b.pageNumber == _currentPage,
-                    )
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_border_rounded,
-                size: 20,
-                color: context.watch<BookmarkProvider>().fileBookmarks.any(
-                      (b) => b.pageNumber == _currentPage,
-                    )
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant,
-              ),
-              tooltip: 'Bookmark this page (long-press for list)',
-              onPressed: () async {
-                final provider = context.read<BookmarkProvider>();
-                final existing = provider.fileBookmarks.where(
-                  (b) => b.pageNumber == _currentPage,
-                );
-                if (existing.isNotEmpty) {
-                  for (final b in existing) {
-                    await provider.removeBookmark(b.id);
-                  }
-                } else {
-                  await provider.addBookmark(
-                    Bookmark(
-                      filePath: widget.file.path,
-                      pageNumber: _currentPage,
-                      label: null,
-                    ),
-                  );
-                }
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.share_rounded, size: 20),
-              tooltip: 'Share',
-              onPressed: _shareFile,
-              visualDensity: VisualDensity.compact,
-            ),
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded, size: 20),
-              tooltip: 'More options',
-              onSelected: (value) {
-                switch (value) {
-                  case 'dark':
-                    settings.setDarkReadingMode(!settings.darkReadingMode);
-                    break;
-                  case 'thumbnails':
-                    _showThumbnailGrid();
-                    break;
-                  case 'fullscreen':
-                    _toggleFullscreen();
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'dark',
-                  child: Text(
-                    settings.darkReadingMode
-                        ? 'Disable dark reading'
-                        : 'Enable dark reading',
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'thumbnails',
-                  child: Text('Thumbnails'),
-                ),
-                PopupMenuItem(
-                  value: 'fullscreen',
-                  child: Text(
-                    _isFullscreen ? 'Exit fullscreen' : 'Fullscreen',
-                  ),
-                ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded),
+            tooltip: 'Back',
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Row(
+            children: [
+              if (widget.file.isEncrypted) ...[
+                Icon(Icons.lock_rounded, size: 14, color: colorScheme.tertiary),
+                const SizedBox(width: 4),
               ],
-            ),
-          ],
-        ],
-        bottom: showToolbar && !landscape
-            ? PreferredSize(
-                preferredSize: const Size.fromHeight(40),
-                child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // TOC
-                      IconButton(
-                        icon: Icon(
-                          Icons.article_outlined,
-                          size: 20,
-                          color: _outline != null && _outline!.isNotEmpty
-                              ? colorScheme.primary
-                              : null,
-                        ),
-                        tooltip: 'Table of Contents',
-                        onPressed: _showOutline,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      // Thumbnails
-                      if (settings.showThumbnails)
-                        IconButton(
-                          icon: Icon(
-                            Icons.view_carousel_outlined,
-                            size: 20,
-                            color: colorScheme.onSurfaceVariant.withValues(
-                              alpha: 0.7,
-                            ),
-                          ),
-                          tooltip: 'Thumbnails',
-                          onPressed: _showThumbnailGrid,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      // Dark reading mode
-                      IconButton(
-                        icon: Icon(
-                          settings.darkReadingMode
-                              ? Icons.nightlight_round
-                              : Icons.nightlight_outlined,
-                          size: 20,
-                          color: settings.darkReadingMode
-                              ? colorScheme.primary
-                              : null,
-                        ),
-                        tooltip: settings.darkReadingMode
-                            ? 'Disable dark reading'
-                            : 'Enable dark reading',
-                        onPressed: () => settings.setDarkReadingMode(
-                          !settings.darkReadingMode,
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-
-                      // Highlight mode
-                      IconButton(
-                        icon: Icon(
-                          _highlightModeIcon(context),
-                          size: 20,
-                          color:
-                              context.watch<HighlightProvider>().highlightMode
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.7,
-                                ),
-                        ),
-                        tooltip: _highlightModeTooltip(context),
-                        onPressed: () {
-                          context
-                              .read<HighlightProvider>()
-                              .toggleHighlightMode();
-                        },
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      // Search in document
-                      _buildSearchButton(colorScheme),
-                      // Highlights panel
-                      IconButton(
-                        icon: Icon(
-                          Icons.style_rounded,
-                          size: 20,
-                          color: context.watch<HighlightProvider>().showPanel
-                              ? colorScheme.primary
-                              : colorScheme.onSurfaceVariant.withValues(
-                                  alpha: 0.7,
-                                ),
-                        ),
-                        tooltip: 'View highlights',
-                        onPressed: () {
-                          context.read<HighlightProvider>().togglePanel();
-                        },
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      // Bookmark
-                      GestureDetector(
-                        onLongPress: () {
-                          context.read<BookmarkProvider>().setShowPanel(
-                            !context.read<BookmarkProvider>().showPanel,
-                          );
-                        },
-                        child: IconButton(
-                          icon: Icon(
-                            context.watch<BookmarkProvider>().fileBookmarks.any(
-                                  (b) => b.pageNumber == _currentPage,
-                                )
-                                ? Icons.bookmark_rounded
-                                : Icons.bookmark_border_rounded,
-                            size: 20,
-                            color:
-                                context
-                                    .watch<BookmarkProvider>()
-                                    .fileBookmarks
-                                    .any((b) => b.pageNumber == _currentPage)
-                                ? colorScheme.primary
-                                : colorScheme.onSurfaceVariant.withValues(
-                                    alpha: 0.7,
-                                  ),
-                          ),
-                          tooltip:
-                              context
-                                  .watch<BookmarkProvider>()
-                                  .fileBookmarks
-                                  .any((b) => b.pageNumber == _currentPage)
-                              ? 'Remove bookmark'
-                              : 'Bookmark this page (long-press for list)',
-                          onPressed: () async {
-                            final provider = context.read<BookmarkProvider>();
-                            final existing = provider.fileBookmarks.where(
-                              (b) => b.pageNumber == _currentPage,
-                            );
-                            if (existing.isNotEmpty) {
-                              for (final b in existing) {
-                                await provider.removeBookmark(b.id);
-                              }
-                            } else {
-                              await provider.addBookmark(
-                                Bookmark(
-                                  filePath: widget.file.path,
-                                  pageNumber: _currentPage,
-                                  label: null,
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ),
-                      // Save
-                      IconButton(
-                        icon: const Icon(Icons.download_rounded, size: 20),
-                        tooltip: 'Save to folder',
-                        onPressed: _saveToLocal,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      // Share
-                      IconButton(
-                        icon: const Icon(Icons.share_rounded, size: 20),
-                        tooltip: 'Share',
-                        onPressed: _shareFile,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ],
-                  ),
+              Expanded(
+                child: Text(
+                  widget.file.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-              )
-            : null,
+              ),
+            ],
+          ),
+          actions: [
+            if (widget.file.isEncrypted)
+              IconButton(
+                icon: Icon(
+                  Icons.lock_rounded,
+                  size: 20,
+                  color: colorScheme.tertiary,
+                ),
+                tooltip: 'Encrypted',
+                onPressed: null,
+              ),
+            // Unified 4-primary + overflow action list (see
+            // [_buildViewerActions]). Keeps every handler intact.
+            ..._buildViewerActions(colorScheme, showToolbar),
+          ],
         ),
       ),
       // The search bar is an OVERLAY over the viewer, not an item in the
