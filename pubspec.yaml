@@ -1,7 +1,7 @@
 name: freya_pdf
 description: "Freya PDF — a clean, fast, ad-free PDF reader with E2E encryption."
 publish_to: 'none'
-version: 1.7.0+21
+version: 1.8.0+22
 
 environment:
   sdk: ^3.11.5
