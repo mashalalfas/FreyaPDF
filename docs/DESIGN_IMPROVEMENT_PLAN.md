@@ -104,6 +104,19 @@ Deduped across GLM + Qwen. Each item lists both reviewers' agreement.
 - Future hook: third "Browse" option if an in-app browser is ever wanted
 - Effort: ~½ soldier day
 
+**Council refinements (Qwen 3.8 Max + GLM 5.2 review, 2026-08-15 — both unanimous):**
+- **Copy-on-import is non-negotiable** — SAF content URIs are ephemeral; persistable permissions unreliable across reboots/app updates. One-shot read permission suffices since bytes are copied immediately.
+- **Hash dedupe:** SHA-256 (first 1MB + size) before copy; skip + "Already in library" toast. NEVER create `file(1).pdf`. No custom duplicate-resolution UI (silent dedupe for v1).
+- **Atomic per-file writes:** write to `.tmp`, rename on complete. Mid-batch cancellation must not leave partial/corrupt files.
+- **Storage guard:** show cumulative import size before confirming multi-select; quota check before batch starts (fail fast, not mid-import OOM).
+- **Batch UX:** inline progress ("Importing 3 of 8…") for 5+ files, no full-screen dialog; batch summary ("7 imported, 1 failed: report_2024.pdf") — don't abort batch on one failure; **Undo snackbar** (~5s); do NOT auto-open; scroll to / highlight newly added files.
+- **Encryption stays separate:** imports land in default library; encryption is a library-state action, never an import-picker option (decision fatigue + failure coupling).
+- **No MANAGE_EXTERNAL_STORAGE** — Play review flags, breaks on Android 14+. SAF ACTION_OPEN_DOCUMENT only.
+- **SAF source caveats:** Google Drive URIs may stream (no seeking) — read entire stream into buffer before writing; WhatsApp docs accessible via SAF through existing IntentHandler.isContentUri path.
+- **Accessibility:** visible text labels (File/Folder), tap targets ≥48dp; collapsed FAB icon stays generic **+** (not folder/file icon).
+- **Local failure logging** (no analytics) for forensic debugging of "it didn't work" reports.
+- **Scope guard (both):** don't let this become a file manager — ship speed-dial + copy-in + dedupe + undo, stop.
+
 **Phase D (verification):** `flutter analyze` + full suite after each phase; release bump + build + install + Drive after B and C.
 
 ---

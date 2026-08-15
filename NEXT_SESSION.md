@@ -36,6 +36,19 @@
 - **No custom in-app file browser** — native SAF picker is the file finder (search/recents/sorted for free, small permission surface). If a real in-app browser is ever wanted, add a third "Browse" option to the dial.
 - Scope: ~½ soldier day extra on Phase C.
 
+**Council refinements (Qwen 3.8 Max + GLM 5.2, 2026-08-15 — unanimous, in DESIGN_IMPROVEMENT_PLAN.md Phase C+):**
+- Copy-on-import non-negotiable (SAF URIs ephemeral); one-shot read permission only
+- Hash dedupe SHA-256 (first 1MB + size) → skip + "Already in library" toast; never file(1).pdf; no custom dup-resolution UI
+- Atomic per-file writes (.tmp → rename); cancellation must not leave partial files
+- Show cumulative import size pre-confirm; quota check before batch (no mid-import OOM)
+- Batch UX: inline "Importing 3 of 8…" for 5+, summary "7 imported, 1 failed: x.pdf", Undo snackbar, no auto-open, scroll to new files
+- Encryption stays separate (library-state action, never an import option)
+- NO MANAGE_EXTERNAL_STORAGE (Play flag, Android 14+ breaks); SAF ACTION_OPEN_DOCUMENT only
+- Drive-via-SAF may stream → read full stream into buffer before writing
+- Accessibility: visible labels File/Folder, ≥48dp targets, collapsed FAB icon stays generic +
+- Local failure logging (no analytics)
+- Scope guard: ship speed-dial + copy-in + dedupe + undo, then STOP — don't become a file manager
+
 ## Open items
 
 1. **Install APK on Skyline** — `FreyaPDF-v1.7.0.apk` from Drive; Phase B feel-test done on another phone already (✅ Fraunces verified).
@@ -69,7 +82,7 @@ Pick up DESIGN PHASE C (per docs/DESIGN_IMPROVEMENT_PLAN.md):
 5. Page indicator (current/total in viewer)
 6. Encryption badge (visible encrypted-state indicator)
 7. Snackbar helper (consistent themed snackbars app-wide)
-8. FAB speed-dial file manager (Mashal-approved): FAB expands vertically → "File" (native SAF multi-select PDFs, import each individually into library, copy into app storage) | "Folder" (existing bulk scan). Staggered animation + light haptics. NO custom file-browser screen.
+8. FAB speed-dial file manager (Mashal-approved): FAB expands vertically → "File" (native SAF multi-select PDFs, import each individually into library, copy into app storage) | "Folder" (existing bulk scan). Staggered animation + light haptics. NO custom file-browser screen. **Council guards (both Qwen 3.8 Max + GLM 5.2):** copy-on-import non-negotiable; SHA-256 hash dedupe (1MB+size, "Already in library" toast, never file(1).pdf); atomic .tmp→rename writes with safe cancellation; cumulative size preview + quota check pre-batch; inline progress (5+ files) + "7 imported, 1 failed" summary + Undo snackbar + no auto-open; encryption stays separate; NO MANAGE_EXTERNAL_STORAGE; Drive URIs may stream → buffer whole stream; visible labels + ≥48dp targets, collapsed FAB stays +; local failure logging; ship speed-dial + copy-in + dedupe + undo, stop there.
 Keep 532 tests passing + flutter analyze clean. Bump version 1.7.0+21 → 1.8.0+22. Ship via hero release after Mashal's eyeball.
 
 Open items to keep visible: coordinated dep trio (pointycastle 4.x + FSS 11.x + share_plus — blocked by encrypt ^3.6.2 + win32 ^5.5.3), tablet no-fingerprint grey-out test (confirm serial — Skyline is HH0001ZRM0481600928, NOT the tablet), optional SBOM NOASSERTION, 8GB swap/OOM note.
