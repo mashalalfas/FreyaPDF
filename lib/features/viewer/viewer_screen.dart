@@ -697,9 +697,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
   /// icon uses `onSurfaceVariant` at 0.7 alpha (active = `primary`), matching
   /// the rest of the app's icon-button styling.
   ///
-  /// Primary (always visible): Table of Contents, Search, Bookmark, More.
+  /// Primary (always visible): Table of Contents, Search, Bookmark, Save to
+  /// folder, More.
   /// Overflow ("More"): Thumbnails, Dark reading, Highlight, Highlights
-  /// panel, Save, Share, Fullscreen.
+  /// panel, Share, Fullscreen.
   ///
   /// Because this list is rebuilt from state (bookmarks, highlight mode,
   /// dark-reading) in exactly the same shape every frame, entering/exiting
@@ -778,6 +779,17 @@ class _ViewerScreenState extends State<ViewerScreen> {
           visualDensity: VisualDensity.compact,
         ),
       ),
+      // Save to folder
+      IconButton(
+        icon: Icon(
+          Icons.save_rounded,
+          size: 20,
+          color: inactive,
+        ),
+        tooltip: 'Save to folder',
+        onPressed: _saveToLocal,
+        visualDensity: VisualDensity.compact,
+      ),
       // More — everything else lives in the overflow menu.
       PopupMenuButton<String>(
         icon: const Icon(Icons.more_vert_rounded, size: 20),
@@ -795,9 +807,6 @@ class _ViewerScreenState extends State<ViewerScreen> {
               break;
             case 'highlights':
               context.read<HighlightProvider>().togglePanel();
-              break;
-            case 'save':
-              _saveToLocal();
               break;
             case 'share':
               _shareFile();
@@ -831,10 +840,6 @@ class _ViewerScreenState extends State<ViewerScreen> {
           PopupMenuItem(
             value: 'highlights',
             child: Text('Highlights panel'),
-          ),
-          const PopupMenuItem(
-            value: 'save',
-            child: Text('Save to folder'),
           ),
           const PopupMenuItem(
             value: 'share',
