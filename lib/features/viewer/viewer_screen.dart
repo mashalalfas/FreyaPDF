@@ -10,6 +10,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
 import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
+import 'package:freya_pdf/core/widgets/empty_state.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
@@ -899,38 +900,25 @@ class _ViewerScreenState extends State<ViewerScreen> {
           expand: false,
           builder: (ctx, scrollController) {
             if (outline == null || outline.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.article_outlined,
-                      size: 48,
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _outlineLoading
-                          ? 'Loading contents…'
-                          : 'No table of contents',
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: cs.onSurfaceVariant,
+              if (_outlineLoading) {
+                return Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: cs.primary,
                       ),
                     ),
-                    if (_outlineLoading) ...[
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: cs.primary,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  ),
+                );
+              }
+              return const EmptyState(
+                compact: true,
+                title: 'No table of contents',
+                subtitle: 'This document has no bookmarks or outline',
               );
             }
 

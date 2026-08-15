@@ -18,6 +18,7 @@ import 'package:freya_pdf/features/file_management/scanned_paths_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
 import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
+import 'package:freya_pdf/core/widgets/empty_state.dart';
 import 'package:freya_pdf/features/file_management/widgets/file_list_tile.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_picker_dialog.dart';
@@ -713,36 +714,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
 
     if (!appState.hasFiles) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/logo/FREYA PDF.png',
-                width: 64,
-                height: 64,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No PDFs found',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Open a folder to scan for PDF files',
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _pickDirectory,
-                icon: const Icon(Icons.folder_open_rounded),
-                label: const Text('Open folder'),
-              ),
-            ],
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: EmptyState(
+          title: 'No PDFs found',
+          subtitle: 'Open a folder to scan for PDF files',
+          action: FilledButton.icon(
+            onPressed: _pickDirectory,
+            icon: const Icon(Icons.folder_open_rounded),
+            label: const Text('Open folder'),
           ),
         ),
       );
@@ -767,7 +747,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           const SecureFolderCard(),
           Expanded(
             child: files.isEmpty
-                ? _emptyFilterState(tagProvider, colorScheme)
+                ? _emptyFilterState(tagProvider)
                 : ListView.builder(
                     padding: const EdgeInsets.only(top: 4, bottom: 88),
                     itemCount: files.length,
@@ -808,32 +788,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _emptyFilterState(TagProvider tagProvider, ColorScheme colorScheme) {
+  Widget _emptyFilterState(TagProvider tagProvider) {
     final activeTag = tagProvider.activeFilterTag;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.filter_alt_off_outlined,
-              size: 48,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No files tagged "${activeTag?.name ?? ""}"',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => tagProvider.clearFilter(),
-              icon: const Icon(Icons.clear_rounded, size: 18),
-              label: const Text('Clear filter'),
-            ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: EmptyState(
+        title: 'No files tagged "${activeTag?.name ?? ""}"',
+        subtitle: 'Try a different tag or clear the filter',
+        action: TextButton.icon(
+          onPressed: () => tagProvider.clearFilter(),
+          icon: const Icon(Icons.clear_rounded, size: 18),
+          label: const Text('Clear filter'),
         ),
       ),
     );

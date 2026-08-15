@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:freya_pdf/features/bookmarks/bookmark.dart';
 import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
+import 'package:freya_pdf/core/widgets/empty_state.dart';
 
 /// A bottom-drawer panel that lists all bookmarks for the current file.
 ///
@@ -101,31 +102,10 @@ class BookmarksPanel extends StatelessWidget {
             Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.2)),
             // List of bookmarks
             if (bookmarks.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.bookmark_border_rounded,
-                      size: 36,
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.25),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No bookmarks yet',
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tap the bookmark icon to add one',
-                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
-                ),
+              EmptyState(
+                compact: true,
+                title: 'No bookmarks yet',
+                subtitle: 'Tap the bookmark icon to add one',
               )
             else
               Flexible(

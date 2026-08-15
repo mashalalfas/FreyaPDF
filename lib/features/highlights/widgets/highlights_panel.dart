@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:freya_pdf/features/highlights/highlight.dart';
 import 'package:freya_pdf/features/highlights/highlight_provider.dart';
+import 'package:freya_pdf/core/widgets/empty_state.dart';
 
 /// A bottom-drawer panel that lists all highlights for the current file.
 ///
@@ -101,31 +102,10 @@ class HighlightsPanel extends StatelessWidget {
             Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.2)),
             // List of highlights
             if (highlights.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.highlight_off_rounded,
-                      size: 36,
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.25),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'No highlights yet',
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Select text or draw a rectangle',
-                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ],
-                ),
+              EmptyState(
+                compact: true,
+                title: 'No highlights yet',
+                subtitle: 'Select text or draw a rectangle',
               )
             else
               Flexible(

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
+import 'package:freya_pdf/core/widgets/empty_state.dart';
 import 'package:freya_pdf/features/tags/tag.dart';
 import 'package:freya_pdf/features/tags/tag_provider.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
@@ -15,14 +16,16 @@ class TagsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final tagProvider = context.watch<TagProvider>();
     final tags = tagProvider.tags;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tags'),
       ),
       body: tags.isEmpty
-          ? _emptyState(context, colorScheme)
+          ? const EmptyState(
+              title: 'No tags yet',
+              subtitle: 'Create tags to organize your PDFs by category',
+            )
           : ListView.separated(
               padding: const EdgeInsets.only(top: 4, bottom: 96),
               itemCount: tags.length,
@@ -46,38 +49,6 @@ class TagsScreen extends StatelessWidget {
     );
   }
 
-  Widget _emptyState(BuildContext context, ColorScheme colorScheme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.label_outline_rounded,
-              size: 64,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No tags yet',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Create tags to organize your PDFs by category',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _TagListTile extends StatelessWidget {

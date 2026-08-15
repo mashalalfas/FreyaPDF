@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
+import 'package:freya_pdf/core/widgets/empty_state.dart';
 import 'package:freya_pdf/features/security/secure_folder_provider.dart';
 import 'package:freya_pdf/features/file_management/app_state.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
@@ -313,48 +314,21 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
   }
 
   Widget _emptyState(BuildContext context, ColorScheme colorScheme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.lock_outline_rounded,
-              size: 48,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'No files in secure folder',
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Encrypted files you add will appear here',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-              ),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _showImportDialog,
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('Import files'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.primary,
-                side: BorderSide(
-                  color: colorScheme.primary.withValues(alpha: 0.3),
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-          ],
+    return EmptyState(
+      title: 'No files in secure folder',
+      subtitle: 'Encrypted files you add will appear here',
+      action: OutlinedButton.icon(
+        onPressed: _showImportDialog,
+        icon: const Icon(Icons.add_rounded, size: 18),
+        label: const Text('Import files'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(
+            color: colorScheme.primary.withValues(alpha: 0.3),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
