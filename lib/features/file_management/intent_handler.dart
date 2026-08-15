@@ -46,6 +46,18 @@ class IntentHandler {
     return path.startsWith('content://');
   }
 
+  /// Available bytes on the filesystem containing [dirPath], or null if the
+  /// platform channel is unavailable. Used for a cheap pre-batch quota check.
+  static Future<int?> getFreeBytes(String dirPath) async {
+    try {
+      final result =
+          await _channel.invokeMethod<int>('getFreeBytes', dirPath);
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Recursively list all PDF files under a SAF content URI directory.
   /// Files are copied to app cache; returns a map of {name: cachedPath}.
   static Future<Map<String, String>> listContentUriFiles(String uriString) async {

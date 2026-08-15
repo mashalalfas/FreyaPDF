@@ -19,6 +19,8 @@ import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
 import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/core/widgets/empty_state.dart';
+import 'package:freya_pdf/core/widgets/fab_speed_dial.dart';
+import 'package:freya_pdf/features/file_management/pdf_import_service.dart';
 import 'package:freya_pdf/features/file_management/widgets/file_list_tile.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_picker_dialog.dart';
@@ -44,6 +46,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final _searchController = TextEditingController();
   bool _showSearch = false;
   late AnimationController _staggerController;
+
+  // Imports: live inline progress + transient highlight of newly added files.
+  final _listScrollController = ScrollController();
+  final _importProgress = ValueNotifier<String?>(null);
+  final Set<String> _highlightPaths = {};
+  Timer? _highlightTimer;
 
   @override
   void initState() {
@@ -123,6 +131,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void dispose() {
     _searchController.dispose();
     _staggerController.dispose();
+    _listScrollController.dispose();
+    _importProgress.dispose();
+    _highlightTimer?.cancel();
     super.dispose();
   }
 
@@ -170,6 +181,197 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _openFileFromPath(path);
       }
     }
+  }
+
+  /// Speed-dial "File" action: pick one-or-more PDFs and import each
+  /// individually (copied) into the default library. No auto-open.
+  Future<void> _pickImportFiles() async {
+    final pick = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ["pdf"],
+      allowMultiple: true,
+    );
+    if (pick == null || pick.files.isEmpty || !mounted) return;
+
+    // Read each selection into memory up-front (SAF URIs stream and can't be
+    // seeked, so we hold the full buffer per the import guards).
+    // ignore: prefer_final_parameters
+    final sources = <PdfImportSource>[];
+    var readFailed = false;
+    final pending = pick.files;
+    for (final f in pending) {
+      try {
+        // XFile.readAsBytes reads the full stream regardless of whether the
+        // picker handed us a real path or a SAF content URI (it copies to
+        // cache), so this single call satisfies the in-memory buffer guard.
+        final bytes = await f.xFile.readAsBytes();
+        sources.add(PdfImportSource(name: f.name, bytes: bytes));
+      } catch (e) {
+        readFailed = true;
+        debugPrint('HomeScreen: failed to read ${f.name}: $e');
+      }
+    }
+    if (sources.isEmpty) {
+      if (readFailed && mounted) {
+        FreyaSnackBar.show(context, 'Could not read any of the selected files');
+      }
+      return;
+    }
+
+    final cumulative = sources.fold<int>(0, (sum, s) => sum + s.sizeBytes);
+
+    // Preview/confirm cumulative size for large batches before touching disk.
+    if (sources.length >= 5) {
+      final allowed = await _confirmBatchImport(sources.length, cumulative);
+      if (allowed != true || !mounted) return;
+    }
+
+    // Fail fast on storage.
+    final docsDir = await PdfImportService.docsDirFor();
+    final free = await IntentHandler.getFreeBytes(docsDir.path);
+    if (PdfImportService.quotaExceeds(free, cumulative)) {
+      if (mounted) {
+        FreyaSnackBar.show(context, 'Not enough storage to import ${_formatBytes(cumulative)}');
+      }
+      return;
+    }
+
+    final startedImports = sources.length;
+    if (sources.length >= 5) {
+      _importProgress.value = 'Importing 0 of $startedImports…';
+    }
+
+    final results = await PdfImportService.importBatch(
+      sources: sources,
+      dir: docsDir,
+      isCancelled: () => !mounted,
+      onProgress: (completed, total) {
+        if (total >= 5) {
+          _importProgress.value = 'Importing $completed of $total…';
+        }
+      },
+    );
+    _importProgress.value = null;
+    if (!mounted) return;
+
+    // Refresh so newly imported copies appear in the library.
+    // ignore: use_build_context_synchronously
+    context.read<AppState>().refresh();
+
+    final imported = results.where((r) => r.isImported).toList();
+    final dupes = results.where((r) => r.isDuplicate).toList();
+    final failed = results.where((r) => r.status == PdfImportStatus.failed).toList();
+
+    // Scroll to + highlight the newly added files.
+    if (imported.isNotEmpty) {
+      _highlightImported(imported);
+    }
+
+    final parts = <String>[];
+    if (imported.isNotEmpty) {
+      parts.add('${imported.length} imported');
+    }
+    if (dupes.isNotEmpty) {
+      parts.add('${dupes.length} already in library');
+    }
+    if (failed.isNotEmpty) {
+      final first = failed.first.source.name;
+      parts.add('${failed.length} failed: $first');
+    }
+    final message = parts.isEmpty ? 'Nothing to import' : parts.join(', ');
+
+    final importedPaths = imported
+        .map((r) => r.committedPath)
+        .whereType<String>()
+        .toList();
+    FreyaSnackBar.show(
+      context,
+      message,
+      duration: const Duration(seconds: 5),
+      action: importedPaths.isNotEmpty ? 'Undo' : null,
+      onAction: importedPaths.isNotEmpty
+          ? () => _undoImports(docsDir.path, importedPaths)
+          : null,
+    );
+  }
+
+  Future<bool?> _confirmBatchImport(int count, int totalBytes) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Import $count files?'),
+        content: Text(
+          'This will copy $count PDF files into your library, '
+          'totalling ${_formatBytes(totalBytes)}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Import'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _highlightImported(List<PdfImportResult> imported) {
+    _highlightTimer?.cancel();
+    _highlightPaths
+      ..clear()
+      ..addAll(imported.map((r) => r.committedPath).whereType<String>());
+    // Focus the first newly added file so the user sees where they landed.
+    final files = context.read<AppState>().allFiles;
+    final firstPath = imported.first.committedPath;
+    if (firstPath != null && _listScrollController.hasClients) {
+      final index = files.indexWhere((f) => f.path == firstPath);
+      if (index >= 0) {
+        final offset = (index * 76.0).toDouble(); // approximate tile height
+        // ignore: unawaited_futures
+        _listScrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    }
+    // Clear the highlight after a couple of seconds.
+    _highlightTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(_highlightPaths.clear);
+    });
+    setState(() {});
+  }
+
+  Future<void> _undoImports(String dirPath, List<String> paths) async {
+    var removed = 0;
+    for (final path in paths) {
+      try {
+        final f = File(path);
+        if (await f.exists()) {
+          await f.delete();
+          removed++;
+        }
+      } catch (e) {
+        debugPrint('HomeScreen: undo delete failed $path: $e');
+      }
+    }
+    if (removed > 0 && mounted) {
+      // ignore: use_build_context_synchronously
+      context.read<AppState>().refresh();
+      FreyaSnackBar.show(context, removed == 1 ? 'Import undone' : '$removed imports undone');
+    }
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   void _openFile(PdfFile file) {
@@ -654,10 +856,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         colorScheme,
         selectionProvider: null,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _pickDirectory,
-        tooltip: 'Open folder',
-        child: const Icon(Icons.add_rounded),
+      floatingActionButton: FabSpeedDial(
+        onPickFile: _pickImportFiles,
+        onPickFolder: _pickDirectory,
       ),
     );
   }
@@ -745,10 +946,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               colorScheme: colorScheme,
             ),
           const SecureFolderCard(),
+          // Live import progress (shown only while a 5+ file batch is running).
+          ValueListenableBuilder<String?>(
+            valueListenable: _importProgress,
+            builder: (context, progress, _) {
+              if (progress == null) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                color: colorScheme.surfaceContainerLow,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      progress,
+                      style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
           Expanded(
             child: files.isEmpty
                 ? _emptyFilterState(tagProvider)
                 : ListView.builder(
+                    controller: _listScrollController,
                     padding: const EdgeInsets.only(top: 4, bottom: 88),
                     itemCount: files.length,
                     itemBuilder: (context, index) {
@@ -778,6 +1011,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           settingsProvider,
                           tagProvider,
                           selectionProvider: selectionProvider,
+                          isImported: _highlightPaths.contains(file.path),
                         ),
                       );
                     },
@@ -812,6 +1046,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     SettingsProvider settingsProvider,
     TagProvider tagProvider, {
     SelectionProvider? selectionProvider,
+    bool isImported = false,
   }) {
     // Decorate the file with its current tag IDs from the provider.
     final tagsForFile = tagProvider.getResolvedTagsForFile(file.path);
@@ -864,6 +1099,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       isFavorite: isFav,
       isEncrypted: file.isEncrypted,
       onToggleFavorite: () => favoritesProvider.toggleFavorite(file.path),
+      isImported: isImported,
     );
   }
 

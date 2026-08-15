@@ -9,6 +9,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.FileOutputStream
+import android.os.StatFs
 
 class MainActivity : FlutterFragmentActivity() {
     private val CHANNEL = "com.freya.freya_pdf/intent"
@@ -46,6 +47,10 @@ class MainActivity : FlutterFragmentActivity() {
                     } else {
                         result.error("INVALID_URI", "URI is null", null)
                     }
+                }
+                "getFreeBytes" -> {
+                    val dirPath = call.arguments as? String
+                    result.success(dirPath?.let { availableBytes(it) })
                 }
                 else -> result.notImplemented()
             }
@@ -209,6 +214,20 @@ class MainActivity : FlutterFragmentActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             return null
+        }
+    }
+
+    /**
+     * Available bytes on the filesystem containing [dirPath], used for cheap
+     * pre-batch quota checks on individual imports. Falls back to the whole
+     * device if the path can't be stat-ed.
+     */
+    private fun availableBytes(dirPath: String): Long {
+        return try {
+            val path = if (dirPath.isNotBlank() && File(dirPath).exists()) dirPath else"/"
+            StatFs(path).availableBytes
+        } catch (e: Exception) {
+            StatFs("/").availableBytes
         }
     }
 }

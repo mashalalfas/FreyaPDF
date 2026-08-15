@@ -23,6 +23,7 @@ class FileListTile extends StatelessWidget {
   final bool isSelectionMode;
   final VoidCallback? onSelectToggle;
   final VoidCallback? onEnterSelectionMode; // overrides context menu when set
+  final bool isImported; // transient highlight after individual import
 
   const FileListTile({
     super.key,
@@ -43,6 +44,7 @@ class FileListTile extends StatelessWidget {
     this.isSelectionMode = false,
     this.onSelectToggle,
     this.onEnterSelectionMode,
+    this.isImported = false,
   });
 
   @override
@@ -57,10 +59,14 @@ class FileListTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary.withValues(alpha: selectionAlpha)
+              : isImported
+              ? colorScheme.primary.withValues(alpha: 0.08)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: isSelected
               ? Border(left: BorderSide(color: colorScheme.primary, width: 4))
+              : isImported
+              ? Border.all(color: colorScheme.primary.withValues(alpha: 0.6), width: 1.5)
               : null,
         ),
         child: Material(
