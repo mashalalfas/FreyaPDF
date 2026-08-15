@@ -49,19 +49,19 @@ class AppTheme {
       fontWeight: FontWeight.w600,
     ),
     headlineSmall: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: _displayFamily,
       fontSize: 24,
       height: 1.33,
       fontWeight: FontWeight.w600,
     ),
     titleLarge: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: _displayFamily,
       fontSize: 22,
       height: 1.27,
       fontWeight: FontWeight.w700,
     ),
     titleMedium: TextStyle(
-      fontFamily: _fontFamily,
+      fontFamily: _displayFamily,
       fontSize: 18,
       height: 1.3,
       fontWeight: FontWeight.w600,
@@ -122,7 +122,7 @@ class AppTheme {
         foregroundColor: const Color(0xFF1A1A1A),
         surfaceTintColor: Colors.transparent,
         titleTextStyle: const TextStyle(
-          fontFamily: _fontFamily,
+          fontFamily: _displayFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: Color(0xFF1A1A1A),
@@ -218,7 +218,7 @@ class AppTheme {
         foregroundColor: colorScheme.onSurface,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: TextStyle(
-          fontFamily: _fontFamily,
+          fontFamily: _displayFamily,
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: colorScheme.onSurface,
