@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/settings/backup_service.dart';
 import 'package:freya_pdf/features/encryption/encryption_service.dart';
 import 'package:freya_pdf/features/bookmarks/bookmark_provider.dart';
@@ -89,28 +90,11 @@ class BackupProvider extends ChangeNotifier {
       );
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-                'Encrypted backup saved: FreyaPDF_backup_$timestamp.freya'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Encrypted backup saved: FreyaPDF_backup_$timestamp.freya');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Export failed: $e'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Export failed: $e');
       }
     } finally {
       _isExporting = false;
@@ -143,15 +127,7 @@ class BackupProvider extends ChangeNotifier {
       bytes = await File(filePath).readAsBytes();
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to read backup file: $e'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Failed to read backup file: $e');
       }
       return;
     }
@@ -184,15 +160,7 @@ class BackupProvider extends ChangeNotifier {
       }
       if (decrypted == null) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Could not decrypt backup — wrong passphrase?'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          FreyaSnackBar.show(context, 'Could not decrypt backup — wrong passphrase?');
         }
         return;
       }
@@ -296,42 +264,16 @@ class BackupProvider extends ChangeNotifier {
         }
 
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Backup restored successfully'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          FreyaSnackBar.show(context, 'Backup restored successfully');
         }
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Failed to restore backup: incompatible schema version',
-              ),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          );
+          FreyaSnackBar.show(context, 'Failed to restore backup: incompatible schema version');
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Import failed: $e'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Import failed: $e');
       }
     } finally {
       _isImporting = false;

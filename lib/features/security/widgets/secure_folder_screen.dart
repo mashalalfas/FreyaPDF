@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/security/secure_folder_provider.dart';
 import 'package:freya_pdf/features/file_management/app_state.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
@@ -57,15 +58,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
     if (success && mounted) {
       setState(() => _lastKnownFileCount = provider.fileCount);
     } else if (mounted && provider.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.error!),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      FreyaSnackBar.show(context, provider.error!);
     }
   }
 
@@ -118,15 +111,7 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
     final success = await provider.deleteFile(file);
     if (mounted && success) {
       setState(() => _lastKnownFileCount = provider.fileCount);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${file.displayName} deleted'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      FreyaSnackBar.show(context, '${file.displayName} deleted');
     }
   }
 
@@ -146,37 +131,13 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
       final result = await provider.exportFile(file, destPath);
       if (!mounted) return;
       if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Exported to FreyaPDF_Exports'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Exported to FreyaPDF_Exports');
       } else if (provider.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(provider.error!),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, provider.error!);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Export failed: $e'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Export failed: $e');
       }
     }
   }
@@ -197,32 +158,14 @@ class _SecureFolderScreenState extends State<SecureFolderScreen> {
     final result = await provider.activeImport;
     if (!mounted || result == null) return;
 
-    final mess = ScaffoldMessenger.of(context);
     if (result.failed == 0) {
-      mess.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Imported ${result.imported} file'
-            '${result.imported == 1 ? '' : 's'} to secure folder',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+      FreyaSnackBar.show(
+        context,
+        'Imported ${result.imported} file'
+        '${result.imported == 1 ? '' : 's'} to secure folder',
       );
     } else {
-      mess.showSnackBar(
-        SnackBar(
-          content: Text(
-            '${result.imported} imported, ${result.failed} failed',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      FreyaSnackBar.show(context, '${result.imported} imported, ${result.failed} failed');
     }
   }
 

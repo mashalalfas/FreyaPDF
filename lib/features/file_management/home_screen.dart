@@ -17,10 +17,10 @@ import 'package:freya_pdf/features/file_management/recent_files_provider.dart';
 import 'package:freya_pdf/features/file_management/scanned_paths_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/file_management/widgets/file_list_tile.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_picker_dialog.dart';
-import 'package:freya_pdf/features/encryption/widgets/encryption_badge.dart';
 import 'package:freya_pdf/features/encryption/widgets/encrypting_progress_dialog.dart';
 import 'package:freya_pdf/features/encryption/widgets/passphrase_dialog.dart';
 import 'package:freya_pdf/features/security/widgets/secure_folder_card.dart';
@@ -191,9 +191,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final allBookmarks = bookmarkProvider.allBookmarks;
 
     if (allBookmarks.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No bookmarks yet')),
-      );
+      FreyaSnackBar.show(context, 'No bookmarks yet');
       return;
     }
 
@@ -366,9 +364,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       final file = File(filePath);
       if (!file.existsSync()) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('File not found: ${filePath.split('/').last}')),
-          );
+          FreyaSnackBar.show(context, 'File not found: ${filePath.split('/').last}');
         }
         return;
       }
@@ -411,13 +407,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       bookmarkProvider.forgetFile(file.path);
     }
     if (mounted && success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${file.displayName} deleted'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, '${file.displayName} deleted');
     }
   }
 
@@ -459,21 +449,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         context.read<AppState>().refresh();
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${file.displayName} encrypted'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, '${file.displayName} encrypted');
     } else if (fileOps.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(fileOps.lastError!),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, fileOps.lastError!);
     }
   }
 
@@ -499,21 +477,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Refresh so the decrypted plaintext file and the removed .enc show up.
       context.read<AppState>().refresh();
       final plainName = result.split('/').last;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Decrypted to $plainName'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, 'Decrypted to $plainName');
     } else if (fileOps.lastError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(fileOps.lastError!),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, fileOps.lastError!);
     }
   }
 
@@ -906,42 +872,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final inSelectionMode = selectionProvider != null && selectionProvider.isSelectionMode;
     final fileSelected = selectionProvider?.isSelected(file.path) ?? false;
 
-    return Stack(
-      children: [
-        FileListTile(
-          file: decorated,
-          tags: tagsForFile,
-          isSelected: inSelectionMode ? fileSelected : appState.selectedFile?.path == file.path,
-          isSelectionMode: inSelectionMode,
-          onSelectToggle: selectionProvider != null
-              ? () => selectionProvider.toggleSelection(file.path)
-              : null,
-          onTap: inSelectionMode
-              ? () => selectionProvider.toggleSelection(file.path)
-              : () => _openFile(decorated),
-          onDelete: () => _deleteFile(decorated),
-          onShare: () => _shareFile(decorated),
-          onEncrypt: file.isEncrypted ? null : () => _encryptFile(decorated),
-          onDecrypt: file.isEncrypted ? () => _decryptFile(decorated) : null,
-          onEnterSelectionMode: selectionProvider != null && !inSelectionMode
-              ? () {
-                  selectionProvider.enterSelectionMode();
-                  selectionProvider.toggleSelection(file.path);
-                }
-              : null,
-          onTag: () => _tagFile(decorated),
-          bookmarkCount: bookmarkCount,
-          progressValue: progressValue,
-          isFavorite: isFav,
-          onToggleFavorite: () => favoritesProvider.toggleFavorite(file.path),
-        ),
-        if (file.isEncrypted)
-          Positioned(
-            right: 24,
-            top: 12,
-            child: EncryptionBadge(),
-          ),
-      ],
+    return FileListTile(
+      file: decorated,
+      tags: tagsForFile,
+      isSelected: inSelectionMode ? fileSelected : appState.selectedFile?.path == file.path,
+      isSelectionMode: inSelectionMode,
+      onSelectToggle: selectionProvider != null
+          ? () => selectionProvider.toggleSelection(file.path)
+          : null,
+      onTap: inSelectionMode
+          ? () => selectionProvider.toggleSelection(file.path)
+          : () => _openFile(decorated),
+      onDelete: () => _deleteFile(decorated),
+      onShare: () => _shareFile(decorated),
+      onEncrypt: file.isEncrypted ? null : () => _encryptFile(decorated),
+      onDecrypt: file.isEncrypted ? () => _decryptFile(decorated) : null,
+      onEnterSelectionMode: selectionProvider != null && !inSelectionMode
+          ? () {
+              selectionProvider.enterSelectionMode();
+              selectionProvider.toggleSelection(file.path);
+            }
+          : null,
+      onTag: () => _tagFile(decorated),
+      bookmarkCount: bookmarkCount,
+      progressValue: progressValue,
+      isFavorite: isFav,
+      isEncrypted: file.isEncrypted,
+      onToggleFavorite: () => favoritesProvider.toggleFavorite(file.path),
     );
   }
 
@@ -1054,13 +1011,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       // Refresh app state
       // ignore: use_build_context_synchronously
       context.read<AppState>().refresh();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$count file${count == 1 ? '' : 's'} deleted'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, '$count file${count == 1 ? '' : 's'} deleted');
     }
   }
 
@@ -1140,25 +1091,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           // ignore: use_build_context_synchronously
           context.read<AppState>().refresh();
           if (deleted > 0 && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('$deleted original file${deleted == 1 ? '' : 's'} deleted'),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            );
+            FreyaSnackBar.show(context, '$deleted original file${deleted == 1 ? '' : 's'} deleted');
             return; // skip the generic "encrypted" snackbar
           }
         }
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${encrypted.length} file${encrypted.length == 1 ? '' : 's'} encrypted'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, '${encrypted.length} file${encrypted.length == 1 ? '' : 's'} encrypted');
     }
   }
 
@@ -1193,13 +1132,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (mounted) {
       context.read<SelectionProvider>().exitSelectionMode();
       context.read<AppState>().refresh();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$successCount file${successCount == 1 ? '' : 's'} decrypted'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, '$successCount file${successCount == 1 ? '' : 's'} decrypted');
     }
   }
 
@@ -1223,13 +1156,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     // ignore: use_build_context_synchronously
     context.read<SelectionProvider>().exitSelectionMode();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$successCount file${successCount == 1 ? '' : 's'} moved to secure folder'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      FreyaSnackBar.show(context, '$successCount file${successCount == 1 ? '' : 's'} moved to secure folder');
     }
   }
 

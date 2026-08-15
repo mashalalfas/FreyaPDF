@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
 import 'package:freya_pdf/features/file_management/file_operations_provider.dart';
@@ -316,14 +317,10 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
         // Warn about large encrypted files (can't lazy-load these)
         if (widget.file.sizeBytes > 100 * 1024 * 1024 && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text(
-                'Large encrypted PDF — may take a moment to load',
-              ),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-            ),
+          FreyaSnackBar.show(
+            context,
+            'Large encrypted PDF — may take a moment to load',
+            duration: const Duration(seconds: 3),
           );
         }
 
@@ -727,38 +724,16 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
     switch (result) {
       case SaveResult.failure:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Failed to save file'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Failed to save file');
         return;
       case SaveResult.alreadyExists:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Already exists in:\n$destDir'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Already exists in:\n$destDir');
         return;
       case SaveResult.success:
         break;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Saved to:\n$destDir'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    FreyaSnackBar.show(context, 'Saved to:\n$destDir');
   }
 
   /// FEATURE 1.2 — Show PDF outline / table of contents as a bottom sheet.
@@ -1671,17 +1646,15 @@ class _ViewerScreenState extends State<ViewerScreen> {
 
           if (context.mounted) {
             final messenger = ScaffoldMessenger.of(context);
+            final snackScheme = Theme.of(context).colorScheme;
             final provider = context.read<HighlightProvider>();
             await provider.addHighlight(highlight);
 
-            messenger.showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Highlight added on page ${highlight.pageNumber}',
-                ),
-                behavior: SnackBarBehavior.floating,
-                duration: const Duration(seconds: 2),
-              ),
+            FreyaSnackBar.showVia(
+              messenger,
+              snackScheme,
+              'Highlight added on page ${highlight.pageNumber}',
+              duration: const Duration(seconds: 2),
             );
           }
         },

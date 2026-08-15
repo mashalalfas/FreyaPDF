@@ -137,6 +137,7 @@ class _FreyaPdfAppState extends State<FreyaPdfApp> {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: settings.themeMode,
+      themeAnimationDuration: const Duration(milliseconds: 200),
       home: RootSecurityGate(
         child: AppLockGate(child: const HomeScreen()),
       ),

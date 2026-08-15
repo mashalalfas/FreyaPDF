@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/security/secure_folder_provider.dart';
 import 'package:freya_pdf/features/security/widgets/secure_folder_screen.dart';
 import 'package:freya_pdf/features/security/widgets/secure_folder_import_dialog.dart';
@@ -45,32 +46,14 @@ class _SecureFolderCardState extends State<SecureFolderCard> {
     final result = await provider.activeImport;
     if (!mounted || result == null) return;
 
-    final mess = ScaffoldMessenger.of(context);
     if (result.failed == 0) {
-      mess.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Imported ${result.imported} file'
-            '${result.imported == 1 ? '' : 's'} to secure folder',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+      FreyaSnackBar.show(
+        context,
+        'Imported ${result.imported} file'
+        '${result.imported == 1 ? '' : 's'} to secure folder',
       );
     } else {
-      mess.showSnackBar(
-        SnackBar(
-          content: Text(
-            '${result.imported} imported, ${result.failed} failed',
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      FreyaSnackBar.show(context, '${result.imported} imported, ${result.failed} failed');
     }
   }
 

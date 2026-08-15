@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:freya_pdf/build_info.dart';
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/settings/backup_provider.dart';
 import 'package:freya_pdf/features/encryption/encryption_provider.dart';
 import 'package:freya_pdf/features/settings/settings_provider.dart';
@@ -98,15 +99,7 @@ class SettingsScreen extends StatelessWidget {
               onTap: () async {
                 await encryption.clearPassphrase();
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Passphrase cleared'),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
+                  FreyaSnackBar.show(context, 'Passphrase cleared');
                 }
               },
             ),
@@ -291,15 +284,7 @@ class SettingsScreen extends StatelessWidget {
                           Clipboard.setData(
                             ClipboardData(text: BuildInfo.gitHash),
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Commit hash copied'),
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          );
+                          FreyaSnackBar.show(context, 'Commit hash copied');
                         },
                       ),
                     ],
@@ -357,12 +342,7 @@ class SettingsScreen extends StatelessWidget {
 
     await PdfPasswordStorage().clearAll();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Remembered PDF passwords cleared'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    FreyaSnackBar.show(context, 'Remembered PDF passwords cleared');
   }
 
   String _themeModeLabel(ThemeMode mode) {
@@ -883,6 +863,8 @@ class _AppLockTileState extends State<_AppLockTile> {
                     onPressed: step2Loading
                         ? null
                         : () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final snackScheme = Theme.of(context).colorScheme;
                             if (pin == confirmPin) {
                               setDialogState(() {
                                 step2Loading = true;
@@ -898,18 +880,12 @@ class _AppLockTileState extends State<_AppLockTile> {
                               });
                               Navigator.pop(ctx);
                               if (context.mounted) {
-                                final messenger =
-                                    ScaffoldMessenger.of(context);
                                 await widget.settings.setAppLockEnabled(true);
                                 _loadState();
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: const Text('PIN set successfully'),
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
+                                FreyaSnackBar.showVia(
+                                  messenger,
+                                  snackScheme,
+                                  'PIN set successfully',
                                 );
                               }
                             } else {
@@ -958,21 +934,14 @@ class _AppLockTileState extends State<_AppLockTile> {
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
             onPressed: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              final snackScheme = Theme.of(context).colorScheme;
               await _lockService.clearPin();
               await widget.settings.setAppLockEnabled(false);
               if (ctx.mounted) Navigator.pop(ctx);
               if (context.mounted) {
-                final messenger = ScaffoldMessenger.of(context);
                 _loadState();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: const Text('PIN removed'),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
+                FreyaSnackBar.showVia(messenger, snackScheme, 'PIN removed');
               }
             },
             child: const Text('Remove'),
@@ -1114,8 +1083,9 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
       onTap: _checking
           ? null
           : () async {
-              setState(() => _checking = true);
               final messenger = ScaffoldMessenger.of(context);
+              final scheme = Theme.of(context).colorScheme;
+              setState(() => _checking = true);
               await update.checkForUpdate();
               if (!mounted) return;
               setState(() => _checking = false);
@@ -1126,40 +1096,18 @@ class _UpdateCheckTileState extends State<_UpdateCheckTile> {
                   showUpdateDialog(context);
                   break;
                 case UpdateState.upToDate:
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'You\'re up to date (v${update.currentVersion})',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                  FreyaSnackBar.showVia(
+                    messenger,
+                    scheme,
+                    'You\'re up to date (v${update.currentVersion})',
                   );
                   break;
                 case UpdateState.noInternet:
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: const Text('No internet connection'),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
+                  FreyaSnackBar.showVia(messenger, scheme, 'No internet connection');
                   break;
                 default:
                   if (update.errorMessage != null) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(update.errorMessage!),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    );
+                    FreyaSnackBar.showVia(messenger, scheme, update.errorMessage!);
                   }
               }
             },

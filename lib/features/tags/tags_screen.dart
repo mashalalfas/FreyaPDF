@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:freya_pdf/core/widgets/freya_snack_bar.dart';
 import 'package:freya_pdf/features/tags/tag.dart';
 import 'package:freya_pdf/features/tags/tag_provider.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
@@ -36,15 +37,7 @@ class TagsScreen extends StatelessWidget {
         onPressed: () async {
           final created = await showTagEditDialog(context);
           if (created != null && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Tag "${created.name}" created'),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            );
+            FreyaSnackBar.show(context, 'Tag "${created.name}" created');
           }
         },
         icon: const Icon(Icons.add_rounded),
@@ -117,15 +110,7 @@ class _TagListTile extends StatelessWidget {
     if (confirmed == true && context.mounted) {
       await context.read<TagProvider>().deleteTag(tag.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tag "${tag.name}" deleted'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        FreyaSnackBar.show(context, 'Tag "${tag.name}" deleted');
       }
     }
   }

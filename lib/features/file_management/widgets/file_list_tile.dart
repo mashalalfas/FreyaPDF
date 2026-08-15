@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Freya. All rights reserved.
 import 'package:flutter/material.dart';
 import 'package:freya_pdf/core/models/pdf_file.dart';
+import 'package:freya_pdf/features/encryption/widgets/encryption_badge.dart';
 import 'package:freya_pdf/features/tags/tag.dart';
 import 'package:freya_pdf/features/tags/widgets/tag_chip.dart';
 
@@ -18,6 +19,7 @@ class FileListTile extends StatelessWidget {
   final double? progressValue;
   final bool isFavorite;
   final VoidCallback? onToggleFavorite;
+  final bool isEncrypted;
   final bool isSelectionMode;
   final VoidCallback? onSelectToggle;
   final VoidCallback? onEnterSelectionMode; // overrides context menu when set
@@ -37,6 +39,7 @@ class FileListTile extends StatelessWidget {
     this.progressValue,
     this.isFavorite = false,
     this.onToggleFavorite,
+    this.isEncrypted = false,
     this.isSelectionMode = false,
     this.onSelectToggle,
     this.onEnterSelectionMode,
@@ -182,8 +185,13 @@ class FileListTile extends StatelessWidget {
                 ),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    if (isEncrypted) ...[
+                      EncryptionBadge(),
+                      const SizedBox(height: 4),
+                    ],
                     if (onToggleFavorite != null && !isSelectionMode)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 2),
